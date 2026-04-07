@@ -1,0 +1,35 @@
+{
+  "name": "lms_express_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --watch src/*.ts --exec ts-node src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.2",
+    "@types/pg": "^8.20.0",
+    "dotenv": "^17.4.0",
+    "eslint": "^10.2.0",
+    "express": "^5.2.1",
+    "install": "^0.13.0",
+    "nodemon": "^3.1.14",
+    "npm": "^11.12.1",
+    "prettier": "^3.8.1",
+    "prisma": "^7.6.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "pg": "^8.20.0"
+  }
+}
