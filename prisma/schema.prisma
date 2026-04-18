@@ -1,29 +1,178 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// Konfigurasi standar
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql" // atau mysql
 }
 
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
+// --- USER MANAGEMENT ---
+
+model Siswa {
+  id            String        @id @default(cuid())
+  nama_lengkap  String
+  email         String        @unique
+  password      String
+  jenjang       String
+  kelas_sekolah String
+  profile_img   String?
+  role          String        @default("siswa")
+  progress      Progress[]
+  certificates  Certificate[]
+  googleId      String?       @unique
+  createdAt     DateTime      @default(now())
+
+  @@map("siswa")
 }
 
-model Post {
-  id        Int     @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User    @relation(fields: [authorId], references: [id])
-  authorId  Int
+model Tutor {
+  id                  String   @id @default(cuid())
+  nama_lengkap        String
+  email               String   @unique
+  password            String
+  gender              String
+  pekerjaan           String
+  no_whatsapp         String
+  pendidikan_terakhir String
+  nama_instansi       String
+  prodi               String
+  cv_path_url         String
+  profile_img         String?
+  role                String   @default("tutor")
+  moduls              Modul[]
+  materis             Materi[]
+  googleId            String?  @unique
+}
+
+// --- LEARNING CONTENT ---
+
+model Modul {
+  id                String   @id @default(cuid())
+  nama_modul        String
+  deskripsi         String   @db.Text
+  target_waktu      Int // dalam menit
+  tingkat_kesulitan String // e.g., 'Beginner', 'Advanced'
+  is_berbayar       Boolean  @default(false)
+  harga_modul       Decimal?
+  jenjang           String
+  kelas_sekolah     String
+
+  tutor_id String
+  tutor    Tutor  @relation(fields: [tutor_id], references: [id])
+
+  materis     Materi[]
+  topiks      Topik[]
+  pretest     Pretest?  @relation(fields: [pretest_id], references: [id])
+  pretest_id  String?   @unique
+  posttest    Posttest? @relation(fields: [posttest_id], references: [id])
+  posttest_id String?   @unique
+
+  progress     Progress[]
+  certificates Certificate[]
+}
+
+model Materi {
+  id        String  @id @default(cuid())
+  modul_id  String
+  modul     Modul   @relation(fields: [modul_id], references: [id])
+  tutor_id  String
+  tutor     Tutor   @relation(fields: [tutor_id], references: [id])
+  is_video  Boolean @default(false)
+  video_url String?
+  article   String? @db.Text
+
+  submateris Submateri[]
+}
+
+model Submateri {
+  id               String           @id @default(cuid())
+  materi_id        String
+  materi           Materi           @relation(fields: [materi_id], references: [id])
+  judul            String
+  konten           String           @db.Text
+  progress_details ProgressDetail[]
+}
+
+model Topik {
+  id       String @id @default(cuid())
+  nama     String
+  modul_id String
+  modul    Modul  @relation(fields: [modul_id], references: [id])
+}
+
+// --- ASSESSMENT SYSTEM ---
+
+model Pretest {
+  id    String        @id @default(cuid())
+  modul Modul?
+  soals SoalPretest[]
+}
+
+model Posttest {
+  id    String         @id @default(cuid())
+  modul Modul?
+  soals SoalPosttest[]
+}
+
+model SoalPretest {
+  id            String  @id @default(cuid())
+  pretest_id    String
+  pretest       Pretest @relation(fields: [pretest_id], references: [id])
+  pertanyaan    String  @db.Text
+  pilihan       Json // Menyimpan array pilihan jawaban
+  jawaban_benar String
+  skor          Int     @default(10)
+}
+
+model SoalPosttest {
+  id            String   @id @default(cuid())
+  posttest_id   String
+  posttest      Posttest @relation(fields: [posttest_id], references: [id])
+  pertanyaan    String   @db.Text
+  pilihan       Json
+  jawaban_benar String
+  skor          Int      @default(10)
+}
+
+// --- TRACKING & PROGRESS (Jawaban untuk pertanyaan anda) ---
+
+model Progress {
+  id       String @id @default(cuid())
+  siswa_id String
+  siswa    Siswa  @relation(fields: [siswa_id], references: [id])
+  modul_id String
+  modul    Modul  @relation(fields: [modul_id], references: [id])
+
+  skor_pretest  Int?
+  skor_posttest Int?
+  nilai_akhir   Float?
+  status        String  @default("IN_PROGRESS") // e.g., 'COMPLETED'
+  is_lulus      Boolean @default(false)
+
+  last_accessed DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@unique([siswa_id, modul_id])
+}
+
+model ProgressDetail {
+  id           String    @id @default(cuid())
+  siswa_id     String
+  submateri_id String
+  submateri    Submateri @relation(fields: [submateri_id], references: [id])
+  is_completed Boolean   @default(false)
+  completed_at DateTime?
+}
+
+model Certificate {
+  id          String   @id @default(cuid())
+  siswa_id    String
+  siswa       Siswa    @relation(fields: [siswa_id], references: [id])
+  modul_id    String
+  modul       Modul    @relation(fields: [modul_id], references: [id])
+  kode_sertif String   @unique
+  issued_at   DateTime @default(now())
+  url_sertif  String
 }
