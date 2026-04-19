@@ -10,52 +10,12 @@ const authTutor = Router();
 // AUTENTIKASI TUTOR
 // ==========================================
 
-authTutor.post('/register', async (req, res) => {
-    try {
-        const {
-            nama_lengkap,
-            email,
-            password,
-            gender,
-            pekerjaan,
-            no_whatsapp,
-            pendidikan_terakhir,
-            nama_instansi,
-            prodi,
-            cv_path_url
-        } = req.body;
-
-        console.log(`[AUTH] Percobaan mendaftar akun Tutor baru dengan email: ${email}`);
-
-        const existingTutor = await prisma.tutor.findUnique({ where: { email } });
-        if (existingTutor) {
-            return res.status(400).json({ message: 'Email sudah terdaftar (Tutor).' });
-        }
-
-        const hashedPassword = await hashPassword(password);
-
-        const tutor = await prisma.tutor.create({
-            data: {
-                nama_lengkap,
-                email,
-                password: hashedPassword,
-                gender,
-                pekerjaan,
-                no_whatsapp,
-                pendidikan_terakhir,
-                nama_instansi,
-                prodi,
-                cv_path_url
-            },
-        });
-
-        console.log(`[AUTH] Tutor berhasil diregistrasi: ID ${tutor.id}`);
-        res.status(201).json({ message: 'Tutor berhasil didaftarkan.', id: tutor.id });
-    } catch (error) {
-        console.error(`[AUTH-ERROR] Gagal register Tutor:`, error);
-        res.status(500).json({ message: 'Internal server error saat pendaftaran Tutor.' });
-    }
+authTutor.post('/register', (_req, res) => {
+    res.status(410).json({
+        message: 'Pendaftaran Tutor via endpoint publik telah ditutup. Akun Tutor dibuat oleh administrator.',
+    });
 });
+
 
 authTutor.post('/login', async (req, res, next) => {
     console.log(`[AUTH] Mencoba login Tutor...`);
@@ -129,7 +89,7 @@ authTutor.get('/google/callback', (req, res, next) => {
 
         console.log(`[AUTH] Tutor login Google tersukses: ${user.email}`);
         // Redirect ke dashboard frontend
-        // res.redirect(`${process.env.FRONTEND_APP_URL}/tutor/dashboard`);
+        res.redirect(`${process.env.FRONTEND_APP_URL}/tutor/dashboard`);
     })(req, res, next);
 });
 

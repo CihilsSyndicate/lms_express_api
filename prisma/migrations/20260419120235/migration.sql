@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE `Siswa` (
+CREATE TABLE `siswa` (
     `id` VARCHAR(191) NOT NULL,
     `nama_lengkap` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
@@ -7,9 +7,12 @@ CREATE TABLE `Siswa` (
     `jenjang` VARCHAR(191) NOT NULL,
     `kelas_sekolah` VARCHAR(191) NOT NULL,
     `profile_img` VARCHAR(191) NULL,
+    `role` VARCHAR(191) NOT NULL DEFAULT 'siswa',
+    `googleId` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
-    UNIQUE INDEX `Siswa_email_key`(`email`),
+    UNIQUE INDEX `siswa_email_key`(`email`),
+    UNIQUE INDEX `siswa_googleId_key`(`googleId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -27,8 +30,11 @@ CREATE TABLE `Tutor` (
     `prodi` VARCHAR(191) NOT NULL,
     `cv_path_url` VARCHAR(191) NOT NULL,
     `profile_img` VARCHAR(191) NULL,
+    `role` VARCHAR(191) NOT NULL DEFAULT 'tutor',
+    `googleId` VARCHAR(191) NULL,
 
     UNIQUE INDEX `Tutor_email_key`(`email`),
+    UNIQUE INDEX `Tutor_googleId_key`(`googleId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -190,7 +196,7 @@ ALTER TABLE `SoalPretest` ADD CONSTRAINT `SoalPretest_pretest_id_fkey` FOREIGN K
 ALTER TABLE `SoalPosttest` ADD CONSTRAINT `SoalPosttest_posttest_id_fkey` FOREIGN KEY (`posttest_id`) REFERENCES `Posttest`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Progress` ADD CONSTRAINT `Progress_siswa_id_fkey` FOREIGN KEY (`siswa_id`) REFERENCES `Siswa`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Progress` ADD CONSTRAINT `Progress_siswa_id_fkey` FOREIGN KEY (`siswa_id`) REFERENCES `siswa`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Progress` ADD CONSTRAINT `Progress_modul_id_fkey` FOREIGN KEY (`modul_id`) REFERENCES `Modul`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -199,7 +205,7 @@ ALTER TABLE `Progress` ADD CONSTRAINT `Progress_modul_id_fkey` FOREIGN KEY (`mod
 ALTER TABLE `ProgressDetail` ADD CONSTRAINT `ProgressDetail_submateri_id_fkey` FOREIGN KEY (`submateri_id`) REFERENCES `Submateri`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Certificate` ADD CONSTRAINT `Certificate_siswa_id_fkey` FOREIGN KEY (`siswa_id`) REFERENCES `Siswa`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Certificate` ADD CONSTRAINT `Certificate_siswa_id_fkey` FOREIGN KEY (`siswa_id`) REFERENCES `siswa`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Certificate` ADD CONSTRAINT `Certificate_modul_id_fkey` FOREIGN KEY (`modul_id`) REFERENCES `Modul`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

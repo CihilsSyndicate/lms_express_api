@@ -108,8 +108,8 @@ authSiswa.get('/google/callback', (req, res, next) => {
 
         console.log(`[AUTH] Siswa login Google tersukses: ${user.email}`);
         // Redirect ke dashboard frontend
-        res.status(200).json({ message: 'Login Siswa berhasil.', user, tokenInfo });
-        // res.redirect(process.env.FRONTEND_APP_URL as string);
+        // res.status(200).json({ message: 'Login Siswa berhasil.', user, tokenInfo });
+        res.redirect(process.env.FRONTEND_APP_URL as string);
     })(req, res, next);
 });
 

@@ -8,8 +8,6 @@ datasource db {
   provider = "mysql" // atau mysql
 }
 
-// --- USER MANAGEMENT ---
-
 model Siswa {
   id            String        @id @default(cuid())
   nama_lengkap  String

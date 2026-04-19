@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { genSalt, hash, compare } from 'bcrypt-ts';
-import { prisma } from './prisma';
 
 export interface UserTokenPayload {
   id: string;
@@ -33,7 +32,7 @@ export const verifyToken = (
   next: NextFunction,
 ) => {
   try {
-    const secretKey = process.env.JWT_SECRET as string || 'default_secret';
+    const secretKey = process.env.JWT_SECRET as string;
     // Read token from req.cookies.token instead of headers
     const token = req.cookies?.token;
 
