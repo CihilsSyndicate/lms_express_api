@@ -74,10 +74,8 @@ authSiswa.post('/login', async (req, res, next) => {
     })(req, res, next);
 });
 
-// --- 1. Redirect ke Google
 authSiswa.get('/google', passport.authenticate('siswa-google', { scope: ['profile', 'email'] }));
 
-// --- 2. Callback pasca login dari Google
 authSiswa.get('/google/callback', (req, res, next) => {
     passport.authenticate('siswa-google', { session: false }, (err: any, user: any, info: any) => {
         if (err || !user) {
@@ -107,8 +105,6 @@ authSiswa.get('/google/callback', (req, res, next) => {
         });
 
         console.log(`[AUTH] Siswa login Google tersukses: ${user.email}`);
-        // Redirect ke dashboard frontend
-        // res.status(200).json({ message: 'Login Siswa berhasil.', user, tokenInfo });
         res.redirect(process.env.FRONTEND_APP_URL as string);
     })(req, res, next);
 });

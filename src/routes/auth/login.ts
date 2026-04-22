@@ -22,7 +22,6 @@ loginRouter.post('/', async (req, res) => {
         let foundUser: any = null;
         let role: 'siswa' | 'tutor' = 'siswa';
 
-        // --- 1. Cari di tabel Siswa ---
         const siswa = await prisma.siswa.findUnique({ where: { email } });
 
         if (siswa) {

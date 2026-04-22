@@ -168,6 +168,74 @@ CREATE TABLE `Certificate` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `knowledge_component` (
+    `id` VARCHAR(191) NOT NULL,
+    `modul_id` VARCHAR(191) NOT NULL,
+    `code` VARCHAR(191) NOT NULL,
+    `nama` VARCHAR(191) NOT NULL,
+    `deskripsi` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `pretest_question_skill_map` (
+    `id` VARCHAR(191) NOT NULL,
+    `soal_pretest_id` VARCHAR(191) NOT NULL,
+    `knowledge_component_id` VARCHAR(191) NOT NULL,
+    `weight` DOUBLE NOT NULL DEFAULT 1.0,
+
+    UNIQUE INDEX `pretest_question_skill_map_soal_pretest_id_knowledge_compone_key`(`soal_pretest_id`, `knowledge_component_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `student_answer_log` (
+    `id` VARCHAR(191) NOT NULL,
+    `siswa_id` VARCHAR(191) NOT NULL,
+    `modul_id` VARCHAR(191) NOT NULL,
+    `question_source` VARCHAR(191) NOT NULL,
+    `question_id` VARCHAR(191) NOT NULL,
+    `knowledge_component_id` VARCHAR(191) NULL,
+    `is_correct` BOOLEAN NOT NULL,
+    `attempt_no` INTEGER NOT NULL DEFAULT 1,
+    `answered_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `student_knowledge_state` (
+    `id` VARCHAR(191) NOT NULL,
+    `siswa_id` VARCHAR(191) NOT NULL,
+    `modul_id` VARCHAR(191) NOT NULL,
+    `knowledge_component_id` VARCHAR(191) NOT NULL,
+    `p_init` DOUBLE NOT NULL DEFAULT 0.2,
+    `p_learn` DOUBLE NOT NULL DEFAULT 0.3,
+    `p_guess` DOUBLE NOT NULL DEFAULT 0.1,
+    `p_slip` DOUBLE NOT NULL DEFAULT 0.1,
+    `p_mastery_current` DOUBLE NOT NULL DEFAULT 0.2,
+    `last_updated` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `student_knowledge_state_siswa_id_modul_id_knowledge_componen_key`(`siswa_id`, `modul_id`, `knowledge_component_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `module_unlock_rule` (
+    `id` VARCHAR(191) NOT NULL,
+    `modul_id` VARCHAR(191) NOT NULL,
+    `target_type` VARCHAR(191) NOT NULL,
+    `target_id` VARCHAR(191) NOT NULL,
+    `knowledge_component_id` VARCHAR(191) NOT NULL,
+    `mastery_threshold` DOUBLE NOT NULL DEFAULT 0.8,
+    `minimum_pretest_score` INTEGER NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `Modul` ADD CONSTRAINT `Modul_tutor_id_fkey` FOREIGN KEY (`tutor_id`) REFERENCES `Tutor`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -209,3 +277,36 @@ ALTER TABLE `Certificate` ADD CONSTRAINT `Certificate_siswa_id_fkey` FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE `Certificate` ADD CONSTRAINT `Certificate_modul_id_fkey` FOREIGN KEY (`modul_id`) REFERENCES `Modul`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `knowledge_component` ADD CONSTRAINT `knowledge_component_modul_id_fkey` FOREIGN KEY (`modul_id`) REFERENCES `Modul`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `pretest_question_skill_map` ADD CONSTRAINT `pretest_question_skill_map_soal_pretest_id_fkey` FOREIGN KEY (`soal_pretest_id`) REFERENCES `SoalPretest`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `pretest_question_skill_map` ADD CONSTRAINT `pretest_question_skill_map_knowledge_component_id_fkey` FOREIGN KEY (`knowledge_component_id`) REFERENCES `knowledge_component`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_answer_log` ADD CONSTRAINT `student_answer_log_siswa_id_fkey` FOREIGN KEY (`siswa_id`) REFERENCES `siswa`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_answer_log` ADD CONSTRAINT `student_answer_log_modul_id_fkey` FOREIGN KEY (`modul_id`) REFERENCES `Modul`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_answer_log` ADD CONSTRAINT `student_answer_log_knowledge_component_id_fkey` FOREIGN KEY (`knowledge_component_id`) REFERENCES `knowledge_component`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_knowledge_state` ADD CONSTRAINT `student_knowledge_state_siswa_id_fkey` FOREIGN KEY (`siswa_id`) REFERENCES `siswa`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_knowledge_state` ADD CONSTRAINT `student_knowledge_state_modul_id_fkey` FOREIGN KEY (`modul_id`) REFERENCES `Modul`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_knowledge_state` ADD CONSTRAINT `student_knowledge_state_knowledge_component_id_fkey` FOREIGN KEY (`knowledge_component_id`) REFERENCES `knowledge_component`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `module_unlock_rule` ADD CONSTRAINT `module_unlock_rule_modul_id_fkey` FOREIGN KEY (`modul_id`) REFERENCES `Modul`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `module_unlock_rule` ADD CONSTRAINT `module_unlock_rule_knowledge_component_id_fkey` FOREIGN KEY (`knowledge_component_id`) REFERENCES `knowledge_component`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

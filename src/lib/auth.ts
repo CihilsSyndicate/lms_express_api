@@ -33,7 +33,6 @@ export const verifyToken = (
 ) => {
   try {
     const secretKey = process.env.JWT_SECRET as string;
-    // Read token from req.cookies.token instead of headers
     const token = req.cookies?.token;
 
     if (!token) {

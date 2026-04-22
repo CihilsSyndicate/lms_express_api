@@ -1,5 +1,4 @@
 import Router from 'express';
-import { verifyToken, requireRole } from '../lib/auth';
 import {
   createModul,
   getSemuaModul,
@@ -7,11 +6,13 @@ import {
   updateModul,
   deleteModul
 } from '../controllers/modul';
+import { verifyToken, requireRole } from '../lib/auth';
 
 const modulRouter = Router();
 
 modulRouter.get('/', getSemuaModul);
-modulRouter.get('/:id', getModulById);
+
+modulRouter.get('/:id', verifyToken, getModulById);
 
 modulRouter.post('/', verifyToken, requireRole('tutor'), createModul);
 modulRouter.put('/:id', verifyToken, requireRole('tutor'), updateModul);
