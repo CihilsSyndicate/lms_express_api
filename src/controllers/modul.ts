@@ -94,7 +94,7 @@ export const getModulById = async (req: Request, res: Response) => {
     if (user?.role === 'siswa') {
       // Evaluate unlocks for siswa
       const { unlockedSubmateris, lockedSubmateris } =
-        await bktService.evaluateUnlockedContents(user.id, id);
+        await bktService.evaluateUnlockedContents(user.id, id as string);
 
       // Add unlock flags to submateris
       data.materis = data.materis.map((materi) => ({

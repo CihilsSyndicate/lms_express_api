@@ -60,7 +60,7 @@ export const addSoalPosttest = async (req: Request, res: Response) => {
       include: { modul: true },
     });
 
-    if (!posttest || posttest.modul.tutor_id !== tutorId) {
+    if (!posttest || posttest?.modul?.tutor_id !== tutorId) {
       return res.status(403).json({ message: 'Akses ditolak.' });
     }
 
@@ -91,7 +91,7 @@ export const getPosttestByModul = async (req: Request, res: Response) => {
     const { modulId } = req.params;
 
     const posttest = await prisma.posttest.findFirst({
-      where: { modul_id: modulId },
+      where: { modul: { id: modulId as string } },
       include: { soals: true },
     });
 
@@ -123,15 +123,15 @@ export const submitPosttest = async (req: Request, res: Response) => {
     }
 
     const score = await progressService.calculatePosttestScore(
-      siswaId,
-      modulId,
+      siswaId as string,
+      modulId as string,
       answers,
     );
 
     // Generate certificate if eligible
     const cert = await progressService.generateCertificateIfEligible(
-      siswaId,
-      modulId,
+      siswaId as string,
+      modulId as string,
     );
 
     res.status(200).json({

@@ -46,7 +46,7 @@ export const getTopikByModul = async (req: Request, res: Response) => {
     const { modulId } = req.params;
 
     const topiks = await prisma.topik.findMany({
-      where: { modul_id: modulId },
+      where: { modul_id: modulId as string },
     });
 
     res
