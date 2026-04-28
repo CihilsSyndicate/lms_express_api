@@ -15,8 +15,8 @@ export const getProgressByModule = async (req: Request, res: Response) => {
     }
 
     const progress = await progressService.getProgressByModule(
-      siswaId,
-      modulId,
+      siswaId as string,
+      modulId as string,
     );
 
     if (!progress) {
@@ -44,7 +44,9 @@ export const getAllProgressForSiswa = async (req: Request, res: Response) => {
         .json({ message: 'Hanya siswa yang bisa melihat progress.' });
     }
 
-    const progresses = await progressService.getAllProgressForSiswa(siswaId);
+    const progresses = await progressService.getAllProgressForSiswa(
+      siswaId as string,
+    );
 
     res
       .status(200)
@@ -68,7 +70,10 @@ export const markSubmateriCompleted = async (req: Request, res: Response) => {
         .json({ message: 'Hanya siswa yang bisa update progress.' });
     }
 
-    await progressService.markSubmateriCompleted(siswaId, submateriId);
+    await progressService.markSubmateriCompleted(
+      siswaId as string,
+      submateriId as string,
+    );
 
     res.status(200).json({ message: 'Submateri berhasil ditandai selesai' });
   } catch (error) {

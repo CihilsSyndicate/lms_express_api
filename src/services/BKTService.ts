@@ -180,6 +180,7 @@ export class BKTService {
   }> {
     const unlockRules = await prisma.moduleUnlockRule.findMany({
       where: { modul_id: modulId },
+      include: { knowledgeComponent: true },
     });
 
     const unlocked: string[] = [];

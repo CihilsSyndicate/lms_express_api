@@ -60,7 +60,7 @@ export const addSoalPretest = async (req: Request, res: Response) => {
       include: { modul: true },
     });
 
-    if (!pretest || pretest.modul.tutor_id !== tutorId) {
+    if (!pretest || pretest?.modul?.tutor_id !== tutorId) {
       return res.status(403).json({ message: 'Akses ditolak.' });
     }
 
@@ -91,7 +91,7 @@ export const getPretestByModul = async (req: Request, res: Response) => {
     const { modulId } = req.params;
 
     const pretest = await prisma.pretest.findFirst({
-      where: { modul_id: modulId },
+      where: { modul: { id: modulId as string } },
       include: { soals: true },
     });
 
@@ -123,8 +123,8 @@ export const submitPretest = async (req: Request, res: Response) => {
     }
 
     const score = await progressService.calculatePretestScore(
-      siswaId,
-      modulId,
+      siswaId as string,
+      modulId as string,
       answers,
     );
 
