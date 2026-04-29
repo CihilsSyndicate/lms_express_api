@@ -14,7 +14,7 @@ export const createPosttest = async (req: Request, res: Response) => {
     }
 
     // Verify tutor owns the modul
-    const modul = await prisma.modul.findUnique({
+    const modul = await prisma.modul.findFirst({
       where: { id: modul_id },
     });
 
@@ -26,7 +26,7 @@ export const createPosttest = async (req: Request, res: Response) => {
     }
 
     const newPosttest = await prisma.posttest.create({
-      data: { modul_id },
+      data: { modul: { connect: { id: modul_id } } },
     });
 
     // Link to modul
