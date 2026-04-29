@@ -4,18 +4,19 @@ await build({
   entryPoints: ['src/index.ts'],
   outfile: 'dist/index.js',
 
-  bundle: true,           // 🔥 ini yang solve masalah import
+  bundle: true,
   platform: 'node',
-  format: 'esm',
+  format: 'cjs',          // 🔥 UBAH INI
   target: 'node18',
 
   sourcemap: true,
-  minify: false,
 
   external: [
-    '@prisma/client',     // jangan di-bundle
+    'express',
+    '@prisma/client',
     'prisma',
-    'bcrypt'
+    'bcrypt',
+    'passport'
   ],
 
   logLevel: 'info',
