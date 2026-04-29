@@ -98,14 +98,15 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start server dengan error handling
-const server = app.listen(APP_PORT, () => {
-  console.log(`Server is running on port ${APP_PORT}`);
-});
+// const server = app.listen(APP_PORT, () => {
+//   console.log(`Server is running on port ${APP_PORT}`);
+// });
 
-server.on('error', (error: any) => {
-  console.error('[SERVER ERROR] Failed to start server:', error);
-  if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${APP_PORT} is already in use. Try a different port.`);
-  }
-  process.exit(1);
-});
+// server.on('error', (error: any) => {
+//   console.error('[SERVER ERROR] Failed to start server:', error);
+//   if (error.code === 'EADDRINUSE') {
+//     console.error(`Port ${APP_PORT} is already in use. Try a different port.`);
+//   }
+//   process.exit(1);
+// });
+export default app;
