@@ -1,21 +1,9 @@
 import express from 'express';
-import authRouter from './routes/auth';
+import routes from './routes/index';
 import cors from 'cors';
-
-import { verifyToken } from './lib/auth';
-
 import cookieParser from 'cookie-parser';
 import passport from './lib/passport';
-import modulRouter from './routes/modul';
-import userRouter from './routes/user';
-import materiRouter from './routes/materi';
-import submateriRouter from './routes/submateri';
-import topikRouter from './routes/topik';
-import pretestRouter from './routes/pretest';
-import posttestRouter from './routes/posttest';
-import progressRouter from './routes/progress';
-import certificateRouter from './routes/certificate';
-import docsRouter from './routes/docs';
+import { verifyToken } from './lib/auth';
 
 const app = express();
 const APP_PORT = process.env.API_PORT || 3000;
@@ -36,19 +24,7 @@ app.get('/', async (req, res) => {
   });
 });
 
-// API Documentation
-app.use('/api-docs', docsRouter);
-
-app.use('/auth', authRouter);
-app.use('/modul', modulRouter);
-app.use('/user', userRouter);
-app.use('/materi', materiRouter);
-app.use('/submateri', submateriRouter);
-app.use('/topik', topikRouter);
-app.use('/pretest', pretestRouter);
-app.use('/posttest', posttestRouter);
-app.use('/progress', progressRouter);
-app.use('/certificate', certificateRouter);
+app.use('/', routes);
 
 app.use('/protected', verifyToken, (req, res) => {
   res.json({
@@ -98,15 +74,15 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start server dengan error handling
-// const server = app.listen(APP_PORT, () => {
-//   console.log(`Server is running on port ${APP_PORT}`);
-// });
+const server = app.listen(APP_PORT, () => {
+  console.log(`Server is running on port ${APP_PORT}`);
+});
 
-// server.on('error', (error: any) => {
-//   console.error('[SERVER ERROR] Failed to start server:', error);
-//   if (error.code === 'EADDRINUSE') {
-//     console.error(`Port ${APP_PORT} is already in use. Try a different port.`);
-//   }
-//   process.exit(1);
-// });
+server.on('error', (error: any) => {
+  console.error('[SERVER ERROR] Failed to start server:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${APP_PORT} is already in use. Try a different port.`);
+  }
+  process.exit(1);
+});
 export default app;

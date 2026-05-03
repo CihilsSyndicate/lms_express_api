@@ -1,0 +1,149 @@
+// --- LEARNING CONTENT ---
+
+model Modul {
+    id                String   @id @default(cuid())
+    nama_modul        String
+    deskripsi         String   @db.Text
+    target_waktu      Int // dalam menit
+    tingkat_kesulitan String // e.g., 'Beginner', 'Advanced'
+    is_berbayar       Boolean  @default(false)
+    harga_modul       Decimal?
+    jenjang           String
+    kelas_sekolah     String
+
+    tutor_id String
+    tutor    Tutor  @relation(fields: [tutor_id], references: [id])
+
+    materis     Materi[]
+    topiks      Topik[]
+    pretest     Pretest?  @relation(fields: [pretest_id], references: [id])
+    pretest_id  String?   @unique
+    posttest    Posttest? @relation(fields: [posttest_id], references: [id])
+    posttest_id String?   @unique
+
+    progress               Progress[]
+    certificates           Certificate[]
+    knowledgeComponents    KnowledgeComponent[]
+    unlockRules            ModuleUnlockRule[]
+    answerLogs             StudentAnswerLog[]
+    knowledgeStates        StudentKnowledgeState[]
+    computationalThinkings ComputationalThinking[]
+}
+
+model Materi {
+    id        String  @id @default(cuid())
+    modul_id  String
+    modul     Modul   @relation(fields: [modul_id], references: [id])
+    tutor_id  String
+    tutor     Tutor   @relation(fields: [tutor_id], references: [id])
+    is_video  Boolean @default(false)
+    video_url String?
+    article   String? @db.Text
+
+    submateris Submateri[]
+}
+
+model Submateri {
+    id               String           @id @default(cuid())
+    materi_id        String
+    materi           Materi           @relation(fields: [materi_id], references: [id])
+    judul            String
+    konten           String           @db.Text
+    progress_details ProgressDetail[]
+}
+
+model Topik {
+    id       String @id @default(cuid())
+    nama     String
+    modul_id String
+    modul    Modul  @relation(fields: [modul_id], references: [id])
+}
+
+// --- ASSESSMENT SYSTEM ---
+
+model Pretest {
+    id    String        @id @default(cuid())
+    modul Modul?
+    soals SoalPretest[]
+}
+
+model Posttest {
+    id    String         @id @default(cuid())
+    modul Modul?
+    soals SoalPosttest[]
+}
+
+model SoalPretest {
+    id            String                    @id @default(cuid())
+    pretest_id    String
+    pretest       Pretest                   @relation(fields: [pretest_id], references: [id])
+    pertanyaan    String                    @db.Text
+    pilihan       Json // Menyimpan array pilihan jawaban
+    jawaban_benar String
+    skor          Int                       @default(10)
+    questionMaps  PretestQuestionSkillMap[]
+}
+
+model SoalPosttest {
+    id            String   @id @default(cuid())
+    posttest_id   String
+    posttest      Posttest @relation(fields: [posttest_id], references: [id])
+    pertanyaan    String   @db.Text
+    pilihan       Json
+    jawaban_benar String
+    skor          Int      @default(10)
+}
+
+// Computational Thinking
+
+model ComputationalThinking {
+    id        String  @id @default(cuid())
+    modul_id  String
+    modul     Modul   @relation(fields: [modul_id], references: [id])
+    aspek     String // e.g., 'Decomposition', 'Pattern Recognition'
+    deskripsi String? @db.Text
+}
+
+// Certificate
+
+model Certificate {
+    id          String   @id @default(cuid())
+    siswa_id    String
+    siswa       Siswa    @relation(fields: [siswa_id], references: [id])
+    modul_id    String
+    modul       Modul    @relation(fields: [modul_id], references: [id])
+    kode_sertif String   @unique
+    issued_at   DateTime @default(now())
+    url_sertif  String
+}
+
+// --- BAYESIAN KNOWLEDGE TRACING ---
+
+model KnowledgeComponent {
+    id        String   @id @default(cuid())
+    modul_id  String
+    modul     Modul    @relation(fields: [modul_id], references: [id])
+    code      String // e.g., "algebra_basics"
+    nama      String
+    deskripsi String?  @db.Text
+    createdAt DateTime @default(now())
+
+    questionMaps    PretestQuestionSkillMap[]
+    answerLogs      StudentAnswerLog[]
+    knowledgeStates StudentKnowledgeState[]
+    unlockRules     ModuleUnlockRule[]
+
+    @@map("knowledge_component")
+}
+
+model PretestQuestionSkillMap {
+    id                     String             @id @default(cuid())
+    soal_pretest_id        String
+    soalPretest            SoalPretest        @relation(fields: [soal_pretest_id], references: [id])
+    knowledge_component_id String
+    knowledgeComponent     KnowledgeComponent @relation(fields: [knowledge_component_id], references: [id])
+    weight                 Float              @default(1.0) // bobot skill di soal
+
+    @@unique([soal_pretest_id, knowledge_component_id])
+    @@map("pretest_question_skill_map")
+}

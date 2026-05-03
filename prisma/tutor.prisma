@@ -1,0 +1,26 @@
+model Tutor {
+    id                  String      @id @default(cuid())
+    nama_lengkap        String
+    email               String      @unique
+    password            String
+    gender              String
+    pekerjaan           String
+    no_whatsapp         String
+    pendidikan_terakhir String
+    nama_instansi       String
+    prodi               String
+    cv_path_url         String
+    profile_img         String?
+    role                String      @default("tutor")
+    moduls              Modul[]
+    materis             Materi[]
+    googleId            String?     @unique
+    signatures          Signature[]
+}
+
+model Signature {
+    id       String @id @default(cuid())
+    tutor_id String
+    tutor    Tutor  @relation(fields: [tutor_id], references: [id])
+    file_url String
+}

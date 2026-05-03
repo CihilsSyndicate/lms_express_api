@@ -1,0 +1,96 @@
+model Siswa {
+    id              String                  @id @default(cuid())
+    nama_lengkap    String
+    email           String                  @unique
+    password        String
+    jenjang         String
+    kelas_sekolah   String
+    profile_img     String?
+    role            String                  @default("siswa")
+    progress        Progress[]
+    certificates    Certificate[]
+    googleId        String?                 @unique
+    createdAt       DateTime                @default(now())
+    answerLogs      StudentAnswerLog[]
+    knowledgeStates StudentKnowledgeState[]
+
+    @@map("siswa")
+}
+
+model Progress {
+    id       String @id @default(cuid())
+    siswa_id String
+    siswa    Siswa  @relation(fields: [siswa_id], references: [id])
+    modul_id String
+    modul    Modul  @relation(fields: [modul_id], references: [id])
+
+    skor_pretest  Int?
+    skor_posttest Int?
+    nilai_akhir   Float?
+    status        String  @default("IN_PROGRESS") // e.g., 'COMPLETED'
+    is_lulus      Boolean @default(false)
+
+    last_accessed DateTime @updatedAt
+    createdAt     DateTime @default(now())
+
+    @@unique([siswa_id, modul_id])
+}
+
+model ProgressDetail {
+    id           String    @id @default(cuid())
+    siswa_id     String
+    submateri_id String
+    submateri    Submateri @relation(fields: [submateri_id], references: [id])
+    is_completed Boolean   @default(false)
+    completed_at DateTime?
+}
+
+model StudentAnswerLog {
+    id                     String              @id @default(cuid())
+    siswa_id               String
+    siswa                  Siswa               @relation(fields: [siswa_id], references: [id])
+    modul_id               String
+    modul                  Modul               @relation(fields: [modul_id], references: [id])
+    question_source        String // "PRETEST" | "POSTTEST" | "QUIZ"
+    question_id            String // id soal
+    knowledge_component_id String?
+    knowledgeComponent     KnowledgeComponent? @relation(fields: [knowledge_component_id], references: [id])
+    is_correct             Boolean
+    attempt_no             Int                 @default(1)
+    answered_at            DateTime            @default(now())
+
+    @@map("student_answer_log")
+}
+
+model StudentKnowledgeState {
+    id                     String             @id @default(cuid())
+    siswa_id               String
+    siswa                  Siswa              @relation(fields: [siswa_id], references: [id])
+    modul_id               String
+    modul                  Modul              @relation(fields: [modul_id], references: [id])
+    knowledge_component_id String
+    knowledgeComponent     KnowledgeComponent @relation(fields: [knowledge_component_id], references: [id])
+    p_init                 Float              @default(0.2)
+    p_learn                Float              @default(0.3)
+    p_guess                Float              @default(0.1)
+    p_slip                 Float              @default(0.1)
+    p_mastery_current      Float              @default(0.2)
+    last_updated           DateTime           @updatedAt
+
+    @@unique([siswa_id, modul_id, knowledge_component_id])
+    @@map("student_knowledge_state")
+}
+
+model ModuleUnlockRule {
+    id                     String             @id @default(cuid())
+    modul_id               String
+    modul                  Modul              @relation(fields: [modul_id], references: [id])
+    target_type            String // "SUBMATERI" | "MATERI"
+    target_id              String // id submateri/materi
+    knowledge_component_id String
+    knowledgeComponent     KnowledgeComponent @relation(fields: [knowledge_component_id], references: [id])
+    mastery_threshold      Float              @default(0.8)
+    minimum_pretest_score  Int? // optional fallback
+
+    @@map("module_unlock_rule")
+}
