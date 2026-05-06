@@ -5,7 +5,7 @@ import { UserTokenPayload } from '../../lib/auth';
 export class AuthService {
   async login(email: string, password: string) {
     let foundUser: any = null;
-    let role: 'siswa' | 'tutor' = 'siswa';
+    let role: 'siswa' | 'tutor' | 'admin' = 'siswa';
 
     const siswa = await prisma.siswa.findUnique({ where: { email } });
 

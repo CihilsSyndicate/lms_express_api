@@ -6,17 +6,13 @@ const swaggerSpec = {
       'Learning Management System API - Express.js + TypeScript + Prisma',
     version: '1.0.0',
     contact: {
-      name: 'API Support',
-      url: 'https://lms-api.example.com',
+      name: 'Support Team',
+      email: 'support@example.com',
     },
   },
   servers: [
     {
-      url: 'http://localhost:3000',
-      description: 'Development Server',
-    },
-    {
-      url: 'https://api.lms.example.com',
+      url: 'https://lms-express-api-05uk.vercel.app',
       description: 'Production Server',
     },
   ],
@@ -309,9 +305,68 @@ const swaggerSpec = {
         },
       },
     },
-    '/auth/siswa/register': {
+    '/auth/refresh': {
       post: {
-        tags: ['Auth - Siswa'],
+        tags: ['Auth'],
+        summary: 'Refresh Token',
+        description: 'Refresh JWT token using refreshToken cookie',
+        responses: {
+          '200': {
+            description: 'Token refreshed',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Message' },
+              },
+            },
+          },
+          '401': {
+            description: 'Invalid or expired refresh token',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/auth/me': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Get current user (Auth)',
+        description: 'Retrieve current user data from auth session',
+        security: [{ CookieAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    user: { $ref: '#/components/schemas/User' },
+                  },
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ==================== SISWA ENDPOINTS ====================
+    '/siswa/register': {
+      post: {
+        tags: ['Siswa'],
         summary: 'Register Siswa',
         description: 'Register a new student account',
         requestBody: {
@@ -347,7 +402,7 @@ const swaggerSpec = {
                   type: 'object',
                   properties: {
                     message: { type: 'string' },
-                    id: { type: 'string' },
+                    user: { $ref: '#/components/schemas/User' },
                   },
                 },
               },
@@ -372,56 +427,9 @@ const swaggerSpec = {
         },
       },
     },
-    '/auth/siswa/login': {
-      post: {
-        tags: ['Auth - Siswa'],
-        summary: 'Login Siswa (Legacy)',
-        description:
-          'Login endpoint specifically for siswa (legacy, use /auth/login instead)',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  email: { type: 'string', format: 'email' },
-                  password: { type: 'string', format: 'password' },
-                },
-                required: ['email', 'password'],
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Login successful',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    message: { type: 'string' },
-                    user: { $ref: '#/components/schemas/User' },
-                  },
-                },
-              },
-            },
-          },
-          '401': {
-            description: 'Email atau password salah',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/auth/siswa/google': {
+    '/siswa/google': {
       get: {
-        tags: ['Auth - Siswa'],
+        tags: ['Siswa'],
         summary: 'Google OAuth - Siswa',
         description: 'Redirect to Google OAuth login for siswa',
         responses: {
@@ -431,9 +439,9 @@ const swaggerSpec = {
         },
       },
     },
-    '/auth/siswa/google/callback': {
+    '/siswa/google/callback': {
       get: {
-        tags: ['Auth - Siswa'],
+        tags: ['Siswa'],
         summary: 'Google OAuth Callback - Siswa',
         description: 'Google OAuth callback endpoint for siswa',
         parameters: [
@@ -452,30 +460,13 @@ const swaggerSpec = {
         },
       },
     },
-    '/auth/tutor/register': {
+
+    // ==================== TUTOR ENDPOINTS ====================
+    '/tutor/register': {
       post: {
-        tags: ['Auth - Tutor'],
+        tags: ['Tutor'],
         summary: 'Register Tutor',
-        description:
-          'Tutor registration is closed. Accounts are created by administrator.',
-        responses: {
-          '410': {
-            description: 'Tutor registration closed',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/auth/tutor/login': {
-      post: {
-        tags: ['Auth - Tutor'],
-        summary: 'Login Tutor (Legacy)',
-        description:
-          'Login endpoint specifically for tutor (legacy, use /auth/login instead)',
+        description: 'Register a new tutor account',
         requestBody: {
           required: true,
           content: {
@@ -483,31 +474,60 @@ const swaggerSpec = {
               schema: {
                 type: 'object',
                 properties: {
+                  nama_lengkap: { type: 'string' },
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', format: 'password' },
+                  gender: { type: 'string' },
+                  pekerjaan: { type: 'string' },
+                  no_whatsapp: { type: 'string' },
+                  pendidikan_terakhir: { type: 'string' },
+                  nama_instansi: { type: 'string' },
+                  prodi: { type: 'string' },
+                  signature: { type: 'string', format: 'binary' },
+                  cv_path_url: { type: 'string', format: 'binary' },
+                  profile_img: { type: 'string', format: 'binary' },
                 },
-                required: ['email', 'password'],
+                required: [
+                  'nama_lengkap',
+                  'email',
+                  'password',
+                  'gender',
+                  'pekerjaan',
+                  'no_whatsapp',
+                  'pendidikan_terakhir',
+                  'nama_instansi',
+                  'prodi',
+                  'cv_path_url',
+                ],
               },
             },
           },
         },
         responses: {
-          '200': {
-            description: 'Login successful',
+          '201': {
+            description: 'Tutor registered successfully',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
                     message: { type: 'string' },
-                    role: { type: 'string', example: 'tutor' },
+                    user: { $ref: '#/components/schemas/User' },
                   },
                 },
               },
             },
           },
-          '401': {
-            description: 'Email atau password salah',
+          '400': {
+            description: 'Validation failed or email already registered',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -517,9 +537,9 @@ const swaggerSpec = {
         },
       },
     },
-    '/auth/tutor/google': {
+    '/tutor/google': {
       get: {
-        tags: ['Auth - Tutor'],
+        tags: ['Tutor'],
         summary: 'Google OAuth - Tutor',
         description: 'Redirect to Google OAuth login for tutor',
         responses: {
@@ -529,9 +549,9 @@ const swaggerSpec = {
         },
       },
     },
-    '/auth/tutor/google/callback': {
+    '/tutor/google/callback': {
       get: {
-        tags: ['Auth - Tutor'],
+        tags: ['Tutor'],
         summary: 'Google OAuth Callback - Tutor',
         description: 'Google OAuth callback endpoint for tutor',
         parameters: [
