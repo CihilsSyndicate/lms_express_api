@@ -8,6 +8,7 @@ model Tutor {
     no_whatsapp         String
     pendidikan_terakhir String
     nama_instansi       String
+    biografi            String?
     prodi               String
     cv_path_url         String
     profile_img         String?

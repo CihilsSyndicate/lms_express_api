@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import jwt from 'jsonwebtoken';
-import { UserTokenPayload, generateToken } from '../../lib/auth';
+import { UserTokenPayload, generateToken } from '@/lib/auth';
 
 const authService = new AuthService();
 
@@ -77,12 +77,14 @@ export const refresh = async (req: Request, res: Response) => {
   try {
     const rToken = req.cookies?.refreshToken;
     if (!rToken) {
-      return res.status(401).json({ message: 'Refresh token tidak ditemukan.' });
+      return res
+        .status(401)
+        .json({ message: 'Refresh token tidak ditemukan.' });
     }
 
     const secretKey = process.env.JWT_SECRET as string;
     const decoded = jwt.verify(rToken, secretKey) as { user: UserTokenPayload };
-    
+
     const { accessToken } = generateToken(decoded.user);
 
     res.cookie('token', accessToken, {
@@ -95,6 +97,47 @@ export const refresh = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Token berhasil diperbarui.' });
   } catch (error) {
     console.error('[AUTH-CONTROLLER] Refresh Token error:', error);
-    return res.status(401).json({ message: 'Refresh token tidak valid atau kadaluarsa.' });
+    return res
+      .status(401)
+      .json({ message: 'Refresh token tidak valid atau kadaluarsa.' });
+  }
+};
+
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role, jenjang, kelas } = req.body;
+
+    const validRoles = ['siswa', 'tutor', 'admin'];
+
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        message:
+          'Role tidak valid. Harus salah satu dari: siswa, tutor, admin.',
+      });
+    }
+  } catch (error) {
+    console.error('[AUTH-CONTROLLER] Register error:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+export const update = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthenticated' });
+    }
+    const role = req.user.role;
+
+    const validRoles = ['siswa', 'tutor', 'admin'];
+
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        message:
+          'Role tidak valid. Harus salah satu dari: siswa, tutor, admin.',
+      });
+    }
+  } catch (error) {
+    console.error('[AUTH-CONTROLLER] Update error:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 };

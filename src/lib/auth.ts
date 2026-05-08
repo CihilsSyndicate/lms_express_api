@@ -6,17 +6,17 @@ export interface UserTokenPayload {
   id: string;
   name: string;
   email: string;
-  role: 'siswa' | 'tutor';
+  role: 'siswa' | 'tutor' | 'admin';
 }
 
 declare global {
   namespace Express {
-    interface User extends UserTokenPayload { }
+    interface User extends UserTokenPayload {}
   }
 }
 
 export const generateToken = (user: UserTokenPayload) => {
-  const secretKey = process.env.JWT_SECRET as string || 'default_secret';
+  const secretKey = (process.env.JWT_SECRET as string) || 'default_secret';
   const accessToken = jwt.sign({ user }, secretKey, {
     expiresIn: 1 * 24 * 60 * 60,
   }); // 1 day
@@ -56,10 +56,14 @@ export const verifyToken = (
 export const requireRole = (role: 'siswa' | 'tutor') => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ message: 'Akses ditolak, butuh autentikasi.' });
+      return res
+        .status(401)
+        .json({ message: 'Akses ditolak, butuh autentikasi.' });
     }
     if (req.user.role !== role) {
-      return res.status(403).json({ message: `Akses ditolak, otorisasi khusus ${role}.` });
+      return res
+        .status(403)
+        .json({ message: `Akses ditolak, otorisasi khusus ${role}.` });
     }
     next();
   };
@@ -88,7 +92,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     return res.status(200).json({ message: 'Token refreshed successfully' });

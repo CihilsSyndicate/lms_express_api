@@ -1,132 +1,105 @@
-import { Request, Response } from 'express';
+import { AppError } from '@/errors/app.error';
 import { prisma } from '@/lib/prisma';
+import type {
+  CreateTopikRecord,
+  UpdateTopikRecord,
+} from '@/validators/topik/topik.validator';
 
-export const createTopic = async (req: Request, res: Response) => {
-  try {
-    const { modul_id, nama } = req.body;
-    const tutorId = req.user?.id;
+/**
+ * Domain/Business Logic Functions for Topik (Topic)
+ * These functions contain business rules, data validation, and orchestration.
+ */
 
-    if (!tutorId) {
-      return res.status(401).json({ message: 'Akses ditolak.' });
-    }
+export const createTopik = async (
+  payload: CreateTopikRecord,
+  tutorId?: string,
+) => {
+  if (!tutorId) {
+    throw new AppError(401, 'Akses ditolak.');
+  }
 
-    const modul = await prisma.modul.findUnique({
-      where: { id: modul_id },
-    });
+  const modul = await prisma.modul.findUnique({
+    where: { id: payload.modul_id },
+  });
 
-    if (!modul || modul.tutor_id !== tutorId) {
-      return res.status(403).json({
-        message:
-          'Akses ditolak. Anda tidak berhak menambah topik ke modul ini.',
-      });
-    }
-
-    const newTopic = await prisma.topik.create({
-      data: {
-        modul_id,
-        nama,
-      },
-    });
-
-    console.log(
-      `[TOPIK] Topik baru dibuat oleh Tutor ${tutorId}: ${newTopic.id}`,
+  if (!modul || modul.tutor_id !== tutorId) {
+    throw new AppError(
+      403,
+      'Akses ditolak. Anda tidak berhak menambah topik ke modul ini.',
     );
-    return res
-      .status(201)
-      .json({ message: 'Topik berhasil dibuat', data: newTopic });
-  } catch (error) {
-    console.error('[TOPIK-ERROR] Gagal membuat topik:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat membuat topik.' });
   }
+
+  const newTopic = await prisma.topik.create({
+    data: {
+      modul_id: payload.modul_id,
+      nama: payload.nama,
+    },
+  });
+
+  console.log(
+    `[TOPIK] Topik baru dibuat oleh Tutor ${tutorId}: ${newTopic.id}`,
+  );
+
+  return newTopic;
 };
 
-export const getTopicsByModule = async (req: Request, res: Response) => {
-  try {
-    const { modulId } = req.params;
-
-    const topics = await prisma.topik.findMany({
-      where: { modul_id: modulId as string },
-    });
-
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil data topik', data: topics });
-  } catch (error) {
-    console.error('[TOPIK-ERROR] Gagal mengambil topik:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat mengambil topik.' });
-  }
+export const getTopikList = async (modulId: string) => {
+  return prisma.topik.findMany({
+    where: { modul_id: modulId },
+  });
 };
 
-export const updateTopic = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { nama } = req.body;
-    const tutorId = req.user?.id;
+export const updateTopik = async (
+  topikId: string,
+  payload: UpdateTopikRecord,
+  tutorId?: string,
+) => {
+  const topik = await prisma.topik.findUnique({
+    where: { id: topikId },
+    include: { modul: true },
+  });
 
-    const topik = await prisma.topik.findUnique({
-      where: { id: id as string },
-      include: { modul: true },
-    });
-
-    if (!topik) {
-      return res.status(404).json({ message: 'Topik tidak ditemukan.' });
-    }
-
-    if (topik.modul.tutor_id !== tutorId) {
-      return res.status(403).json({
-        message: 'Akses ditolak. Anda tidak berhak mengubah topik ini.',
-      });
-    }
-
-    const updatedTopic = await prisma.topik.update({
-      where: { id: id as string },
-      data: { nama },
-    });
-
-    console.log(`[TOPIK] Topik diupdate oleh Tutor ${tutorId}: ${id}`);
-    return res
-      .status(200)
-      .json({ message: 'Topik berhasil diupdate', data: updatedTopic });
-  } catch (error) {
-    console.error('[TOPIK-ERROR] Gagal update topik:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat update topik.' });
+  if (!topik) {
+    throw new AppError(404, 'Topik tidak ditemukan.');
   }
+
+  if (topik.modul.tutor_id !== tutorId) {
+    throw new AppError(
+      403,
+      'Akses ditolak. Anda tidak berhak mengubah topik ini.',
+    );
+  }
+
+  const data: { nama?: string } = {};
+  if (payload.nama !== undefined) data.nama = payload.nama;
+
+  const updatedTopic = await prisma.topik.update({
+    where: { id: topikId },
+    data,
+  });
+
+  console.log(`[TOPIK] Topik diupdate oleh Tutor ${tutorId}: ${topikId}`);
+
+  return updatedTopic;
 };
 
-export const deleteTopic = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const tutorId = req.user?.id;
+export const deleteTopik = async (topikId: string, tutorId?: string) => {
+  const topik = await prisma.topik.findUnique({
+    where: { id: topikId },
+    include: { modul: true },
+  });
 
-    const topik = await prisma.topik.findUnique({
-      where: { id: id as string },
-      include: { modul: true },
-    });
-
-    if (!topik) {
-      return res.status(404).json({ message: 'Topik tidak ditemukan.' });
-    }
-
-    if (topik.modul.tutor_id !== tutorId) {
-      return res.status(403).json({
-        message: 'Akses ditolak. Anda tidak berhak menghapus topik ini.',
-      });
-    }
-
-    await prisma.topik.delete({ where: { id: id as string } });
-
-    console.log(`[TOPIK] Topik dihapus oleh Tutor ${tutorId}: ${id}`);
-    return res.status(200).json({ message: 'Topik berhasil dihapus' });
-  } catch (error) {
-    console.error('[TOPIK-ERROR] Gagal hapus topik:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat menghapus topik.' });
+  if (!topik) {
+    throw new AppError(404, 'Topik tidak ditemukan.');
   }
+
+  if (topik.modul.tutor_id !== tutorId) {
+    throw new AppError(
+      403,
+      'Akses ditolak. Anda tidak berhak menghapus topik ini.',
+    );
+  }
+
+  await prisma.topik.delete({ where: { id: topikId } });
+  console.log(`[TOPIK] Topik dihapus oleh Tutor ${tutorId}: ${topikId}`);
 };

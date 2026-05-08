@@ -4,7 +4,7 @@ import {
   getAllProgressForSiswa,
   markSubmateriCompleted,
 } from './progress.controller';
-import { verifyToken, requireRole } from '../../../../lib/auth';
+import { verifyToken, requireRole } from '@/lib/auth';
 
 const progressRouter = Router();
 

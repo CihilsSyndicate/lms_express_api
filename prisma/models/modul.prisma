@@ -20,6 +20,7 @@ model Modul {
     pretest_id  String?   @unique
     posttest    Posttest? @relation(fields: [posttest_id], references: [id])
     posttest_id String?   @unique
+    isDraft     Boolean   @default(true)
 
     progress               Progress[]
     certificates           Certificate[]

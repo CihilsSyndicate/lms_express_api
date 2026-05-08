@@ -3,7 +3,7 @@ import {
   getCertificatesForSiswa,
   getCertificateById,
 } from './certificates.controller';
-import { verifyToken, requireRole } from '../../../../lib/auth';
+import { verifyToken, requireRole } from '@/lib/auth';
 
 const certificateRouter = Router();
 

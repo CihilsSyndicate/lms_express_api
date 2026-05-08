@@ -5,7 +5,7 @@ import {
   updateTopic,
   deleteTopic,
 } from './topik.controller';
-import { verifyToken, requireRole } from '../../lib/auth';
+import { verifyToken, requireRole } from '@/lib/auth';
 
 const topikRouter = Router();
 

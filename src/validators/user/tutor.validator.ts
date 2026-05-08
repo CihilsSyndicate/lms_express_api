@@ -5,10 +5,16 @@ export const tutorBaseSchema = z.object({
   nama_lengkap: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
-  bidang_keahlian: z.string().optional().nullable(),
   profile_img: z.string().url().optional().nullable(),
   role: z.string().min(1).default('tutor'),
-  googleId: z.string().optional().nullable(),
+  gender: z.string(),
+  biografi: z.string().optional().nullable(),
+  pekerjaan: z.string(),
+  no_whatsapp: z.string(),
+  pendidikan_terakhir: z.string(),
+  nama_instansi: z.string(),
+  cv_path_url: z.string().url(),
+  // googleId: z.string().optional().nullable(),
   createdAt: z.coerce.date(),
 });
 

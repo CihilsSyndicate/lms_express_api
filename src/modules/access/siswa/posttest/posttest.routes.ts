@@ -5,7 +5,7 @@ import {
   getPosttestByModul,
   submitPosttest,
 } from './posttest.controller';
-import { verifyToken, requireRole } from '../../../../lib/auth';
+import { verifyToken, requireRole } from '@/lib/auth';
 
 const posttestRouter = Router();
 

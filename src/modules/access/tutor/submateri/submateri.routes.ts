@@ -6,7 +6,7 @@ import {
   updateSubmaterial,
   deleteSubmaterial,
 } from './submateri.controller';
-import { verifyToken, requireRole } from '../../lib/auth';
+import { verifyToken, requireRole } from '@/lib/auth';
 
 const submateriRouter = Router();
 

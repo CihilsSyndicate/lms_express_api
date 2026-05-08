@@ -1,139 +1,126 @@
-import { Request, Response } from 'express';
+import { AppError } from '@/errors/app.error';
 import { prisma } from '@/lib/prisma';
+import type {
+  CreateMateriRecord,
+  UpdateMateriRecord,
+} from '@/validators/materi/materi.validator';
 
-export const createMaterial = async (req: Request, res: Response) => {
-  try {
-    const { modul_id, is_video, video_url, article } = req.body;
-    const tutorId = req.user?.id;
+/**
+ * Domain/Business Logic Functions for Materi (Material)
+ * These functions contain business rules, data validation, and orchestration.
+ */
 
-    if (!tutorId) {
-      return res.status(401).json({ message: 'Akses ditolak.' });
-    }
+export const createMateri = async (
+  payload: CreateMateriRecord,
+  tutorId?: string,
+) => {
+  if (!tutorId) {
+    throw new AppError(401, 'Akses ditolak.');
+  }
 
-    const modul = await prisma.modul.findUnique({
-      where: { id: modul_id },
-    });
+  const modul = await prisma.modul.findUnique({
+    where: { id: payload.modul_id },
+  });
 
-    if (!modul || modul.tutor_id !== tutorId) {
-      return res.status(403).json({
-        message:
-          'Akses ditolak. Anda tidak berhak menambah materi ke modul ini.',
-      });
-    }
-
-    const newMaterial = await prisma.materi.create({
-      data: {
-        modul_id,
-        tutor_id: tutorId,
-        is_video: is_video ?? false,
-        video_url,
-        article,
-      },
-    });
-
-    console.log(
-      `[MATERI] Materi baru dibuat oleh Tutor ${tutorId}: ${newMaterial.id}`,
+  if (!modul || modul.tutor_id !== tutorId) {
+    throw new AppError(
+      403,
+      'Akses ditolak. Anda tidak berhak menambah materi ke modul ini.',
     );
-    return res
-      .status(201)
-      .json({ message: 'Materi berhasil dibuat', data: newMaterial });
-  } catch (error) {
-    console.error('[MATERI-ERROR] Gagal membuat materi:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat membuat materi.' });
   }
+
+  const data: {
+    modul_id: string;
+    tutor_id: string;
+    is_video: boolean;
+    video_url?: string | null;
+    article?: string | null;
+  } = {
+    modul_id: payload.modul_id,
+    tutor_id: tutorId,
+    is_video: payload.is_video ?? false,
+  };
+
+  if (payload.video_url !== undefined) data.video_url = payload.video_url;
+  if (payload.article !== undefined) data.article = payload.article;
+
+  const newMaterial = await prisma.materi.create({ data });
+
+  console.log(
+    `[MATERI] Materi baru dibuat oleh Tutor ${tutorId}: ${newMaterial.id}`,
+  );
+
+  return newMaterial;
 };
 
-export const getMaterialsByModule = async (req: Request, res: Response) => {
-  try {
-    const { modulId } = req.params;
-
-    const materials = await prisma.materi.findMany({
-      where: { modul_id: modulId as string },
-      include: {
-        submateris: true,
-        tutor: { select: { nama_lengkap: true } },
-      },
-    });
-
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil data materi', data: materials });
-  } catch (error) {
-    console.error('[MATERI-ERROR] Gagal mengambil materi:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat mengambil materi.' });
-  }
+export const getMateriList = async (modulId: string) => {
+  return prisma.materi.findMany({
+    where: { modul_id: modulId },
+    include: {
+      submateris: true,
+      tutor: { select: { nama_lengkap: true } },
+    },
+  });
 };
 
-export const updateMaterial = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { is_video, video_url, article } = req.body;
-    const tutorId = req.user?.id;
+export const updateMateri = async (
+  materiId: string,
+  payload: UpdateMateriRecord,
+  tutorId?: string,
+) => {
+  const materi = await prisma.materi.findUnique({
+    where: { id: materiId },
+    include: { modul: true },
+  });
 
-    const materi = await prisma.materi.findUnique({
-      where: { id: id as string },
-      include: { modul: true },
-    });
-
-    if (!materi) {
-      return res.status(404).json({ message: 'Materi tidak ditemukan.' });
-    }
-
-    if (materi.modul.tutor_id !== tutorId) {
-      return res.status(403).json({
-        message: 'Akses ditolak. Anda tidak berhak mengubah materi ini.',
-      });
-    }
-
-    const updatedMaterial = await prisma.materi.update({
-      where: { id: id as string },
-      data: { is_video, video_url, article },
-    });
-
-    console.log(`[MATERI] Materi diupdate oleh Tutor ${tutorId}: ${id}`);
-    return res
-      .status(200)
-      .json({ message: 'Materi berhasil diupdate', data: updatedMaterial });
-  } catch (error) {
-    console.error('[MATERI-ERROR] Gagal update materi:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat update materi.' });
+  if (!materi) {
+    throw new AppError(404, 'Materi tidak ditemukan.');
   }
+
+  if (materi.modul.tutor_id !== tutorId) {
+    throw new AppError(
+      403,
+      'Akses ditolak. Anda tidak berhak mengubah materi ini.',
+    );
+  }
+
+  const data: {
+    is_video?: boolean;
+    video_url?: string | null;
+    article?: string | null;
+  } = {};
+
+  if (payload.is_video !== undefined) data.is_video = payload.is_video;
+  if (payload.video_url !== undefined) data.video_url = payload.video_url;
+  if (payload.article !== undefined) data.article = payload.article;
+
+  const updatedMaterial = await prisma.materi.update({
+    where: { id: materiId },
+    data,
+  });
+
+  console.log(`[MATERI] Materi diupdate oleh Tutor ${tutorId}: ${materiId}`);
+
+  return updatedMaterial;
 };
 
-export const deleteMaterial = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const tutorId = req.user?.id;
+export const deleteMateri = async (materiId: string, tutorId?: string) => {
+  const materi = await prisma.materi.findUnique({
+    where: { id: materiId },
+    include: { modul: true },
+  });
 
-    const materi = await prisma.materi.findUnique({
-      where: { id: id as string },
-      include: { modul: true },
-    });
-
-    if (!materi) {
-      return res.status(404).json({ message: 'Materi tidak ditemukan.' });
-    }
-
-    if (materi.modul.tutor_id !== tutorId) {
-      return res.status(403).json({
-        message: 'Akses ditolak. Anda tidak berhak menghapus materi ini.',
-      });
-    }
-
-    await prisma.materi.delete({ where: { id: id as string } });
-
-    console.log(`[MATERI] Materi dihapus oleh Tutor ${tutorId}: ${id}`);
-    return res.status(200).json({ message: 'Materi berhasil dihapus' });
-  } catch (error) {
-    console.error('[MATERI-ERROR] Gagal hapus materi:', error);
-    return res
-      .status(500)
-      .json({ message: 'Internal server error saat menghapus materi.' });
+  if (!materi) {
+    throw new AppError(404, 'Materi tidak ditemukan.');
   }
+
+  if (materi.modul.tutor_id !== tutorId) {
+    throw new AppError(
+      403,
+      'Akses ditolak. Anda tidak berhak menghapus materi ini.',
+    );
+  }
+
+  await prisma.materi.delete({ where: { id: materiId } });
+  console.log(`[MATERI] Materi dihapus oleh Tutor ${tutorId}: ${materiId}`);
 };

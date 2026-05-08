@@ -5,7 +5,7 @@ import {
   getPretestByModul,
   submitPretest,
 } from './pretest.controller';
-import { verifyToken, requireRole } from '../../../lib/auth';
+import { verifyToken, requireRole } from '@/lib/auth';
 
 const pretestRouter = Router();
 

@@ -16,7 +16,9 @@ export const modulBaseSchema = z.object({
 });
 
 export const createModulSchema = modulBaseSchema.omit({ id: true });
-export const updateModulSchema = modulBaseSchema.partial().omit({ id: true, tutor_id: true });
+export const updateModulSchema = modulBaseSchema
+  .partial()
+  .omit({ id: true, tutor_id: true });
 
 export type Modul = z.infer<typeof modulBaseSchema>;
 export type CreateModulRecord = z.infer<typeof createModulSchema>;

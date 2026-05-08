@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --watch **.ts --exec ts-node src/index.ts",
+    "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node -r tsconfig-paths/register src/index.ts\"",
     "seed": "tsx prisma/seed.ts",
     "build": "prisma generate && node build.mjs",
     "start": "node dist/index.js",
@@ -60,6 +60,7 @@
     "passport-oauth2": "^1.8.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "tsconfig-paths": "^4.2.0",
     "zod": "^4.4.2"
   }
 }

@@ -1,6 +1,6 @@
 import Router from 'express';
 import { getDashboardData } from './dashboards.controller';
-import { verifyToken } from '../../../../lib/auth';
+import { verifyToken } from '@/lib/auth';
 
 const dashboardRouter = Router();
 

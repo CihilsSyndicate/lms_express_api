@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
-import { comparePassword, generateToken } from '../../lib/auth';
-import { UserTokenPayload } from '../../lib/auth';
+import { comparePassword, generateToken } from '@/lib/auth';
+import { UserTokenPayload } from '@/lib/auth';
 
 export class AuthService {
   async login(email: string, password: string) {
@@ -16,13 +16,22 @@ export class AuthService {
       role = 'siswa';
     } else {
       const tutor = await prisma.tutor.findUnique({ where: { email } });
-      if (!tutor) return null;
+      if (tutor) {
+        if (!tutor) return null;
 
-      const isMatch = await comparePassword(password, tutor.password);
-      if (!isMatch) return null;
+        const isMatch = await comparePassword(password, tutor.password);
+        if (!isMatch) return null;
 
-      foundUser = tutor;
-      role = 'tutor';
+        foundUser = tutor;
+        role = 'tutor';
+      } else {
+        const admin = await prisma.admin.findUnique({ where: { email } });
+        if (!admin) return null;
+        const isMatch = await comparePassword(password, admin.password);
+        if (!isMatch) return null;
+        foundUser = admin;
+        role = 'admin';
+      }
     }
 
     const tokenPayload: UserTokenPayload = {
@@ -42,12 +51,14 @@ export class AuthService {
     };
   }
 
-  async getCurrentUser(userId: string, role: 'siswa' | 'tutor') {
+  async getCurrentUser(userId: string, role: 'siswa' | 'tutor' | 'admin') {
     let user;
     if (role === 'siswa') {
       user = await prisma.siswa.findUnique({ where: { id: userId } });
-    } else {
+    } else if (role === 'tutor') {
       user = await prisma.tutor.findUnique({ where: { id: userId } });
+    } else {
+      user = await prisma.admin.findUnique({ where: { id: userId } });
     }
 
     if (!user) return null;

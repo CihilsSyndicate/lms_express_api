@@ -7,3 +7,13 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Notification {
+  id      String @id @default(uuid())
+  userId  String
+  title   String
+  message String
+
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

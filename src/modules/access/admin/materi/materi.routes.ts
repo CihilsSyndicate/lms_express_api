@@ -5,7 +5,7 @@ import {
   updateMaterial,
   deleteMaterial,
 } from './materi.controller';
-import { verifyToken, requireRole } from '../../lib/auth';
+import { verifyToken, requireRole } from '@/lib/auth';
 
 const materiRouter = Router();
 
