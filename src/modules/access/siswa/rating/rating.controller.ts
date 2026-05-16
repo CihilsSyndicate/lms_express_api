@@ -17,7 +17,7 @@ export const ratingModul = async (req: Request, res: Response) => {
     // Cek apakah siswa sudah pernah memberikan rating untuk modul ini
     const existingRating = await prisma.rating.findFirst({
       where: {
-        siswa_id: siswaId as string,
+        siswaId: siswaId as string,
         modulId: id as string,
       },
     });
@@ -32,7 +32,7 @@ export const ratingModul = async (req: Request, res: Response) => {
     // Simpan rating baru
     const newRating = await prisma.rating.create({
       data: {
-        siswa_id: siswaId as string,
+        siswaId: siswaId as string,
         modulId: id as string,
         rating,
         komentar,

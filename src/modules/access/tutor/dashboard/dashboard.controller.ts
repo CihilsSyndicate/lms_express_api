@@ -6,11 +6,11 @@ export const loadDashboardData = async (req: Request, res: Response) => {
     const tutorId = req.user?.id;
 
     const countPublishedModules = await prisma.modul.count({
-      where: { tutor_id: tutorId as string, isDraft: false },
+      where: { tutorId: tutorId as string, isDraft: false },
     });
 
     const getDraftModules = await prisma.modul.findMany({
-      where: { tutor_id: tutorId as string, isDraft: true },
+      where: { tutorId: tutorId as string, isDraft: true },
     });
 
     const countDraftModules = getDraftModules.length;
@@ -18,7 +18,7 @@ export const loadDashboardData = async (req: Request, res: Response) => {
     const countRegisteredSiswa = await prisma.progress.count({
       where: {
         modul: {
-          tutor_id: tutorId as string,
+          tutorId: tutorId as string,
         },
       },
     });
@@ -26,28 +26,28 @@ export const loadDashboardData = async (req: Request, res: Response) => {
     const countSiswaLulus = await prisma.progress.count({
       where: {
         modul: {
-          tutor_id: tutorId as string,
+          tutorId: tutorId as string,
         },
-        is_lulus: true,
+        isGraduated: true,
       },
     });
 
     const mostAccessedModules = await prisma.progress.groupBy({
-      by: ['modul_id'],
+      by: ['modulId'],
       where: {
         modul: {
-          tutor_id: tutorId as string,
+          tutorId: tutorId as string,
         },
         NOT: {
-          siswa_id: '',
+          siswaId: '',
         },
       },
       _count: {
-        modul_id: true,
+        modulId: true,
       },
       orderBy: {
         _count: {
-          modul_id: 'desc',
+          modulId: 'desc',
         },
       },
       take: 5,
@@ -55,15 +55,15 @@ export const loadDashboardData = async (req: Request, res: Response) => {
 
     const nominatedModules = await prisma.modul.findMany({
       where: {
-        tutor_id: tutorId as string,
+        tutorId: tutorId as string,
         id: {
-          in: mostAccessedModules.map((item) => item.modul_id),
+          in: mostAccessedModules.map((item) => item.modulId),
         },
       },
       include: {
         progress: {
           select: {
-            siswa_id: true,
+            siswaId: true,
           },
         },
         ratings: true,
@@ -73,7 +73,7 @@ export const loadDashboardData = async (req: Request, res: Response) => {
     const getRatingsFromSiswa = await prisma.rating.findMany({
       where: {
         modul: {
-          tutor_id: tutorId as string,
+          tutorId: tutorId as string,
         },
       },
     });

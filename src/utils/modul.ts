@@ -9,15 +9,16 @@ export const createModule = async (payload: CreateModulRecord) => {
   try {
     const newModule = await prisma.modul.create({
       data: {
-        nama_modul: payload.nama_modul,
-        deskripsi: payload.deskripsi,
-        target_waktu: payload.target_waktu,
-        tingkat_kesulitan: payload.tingkat_kesulitan,
-        is_berbayar: payload.is_berbayar,
-        harga_modul: payload.harga_modul ?? null,
-        jenjang: payload.jenjang,
-        kelas_sekolah: payload.kelas_sekolah,
-        tutor_id: payload.tutor_id,
+        moduleName: payload.nama_modul,
+        description: payload.deskripsi,
+        subtitle: payload.subtitle,
+        targetTime: payload.target_waktu,
+        difficulty: payload.tingkat_kesulitan,
+        isPaid: payload.is_berbayar,
+        modulPrice: payload.harga_modul ?? null,
+        level: payload.jenjang,
+        class: payload.kelas_sekolah,
+        tutorId: payload.tutor_id,
       },
     });
 
@@ -32,11 +33,17 @@ export const getModules = async () => {
   try {
     const modules = await prisma.modul.findMany({
       include: {
-        tutor: { select: { nama_lengkap: true } },
+        tutor: { select: { fullName: true } },
+        progress: {
+          select: { siswaId: true },
+        },
       },
     });
 
-    return modules;
+    return modules.map((modul) => ({
+      ...modul,
+      totalSiswa: modul.progress.length,
+    }));
   } catch (error) {
     console.error('Error fetching modules:', error);
     throw error;
@@ -48,7 +55,7 @@ export const getModuleById = async (id: string) => {
     const findModuleById = await prisma.modul.findUnique({
       where: { id },
       include: {
-        tutor: { select: { nama_lengkap: true } },
+        tutor: { select: { fullName: true } },
       },
     });
     return findModuleById;
@@ -69,23 +76,26 @@ export const updateModule = async (
     if (!existingModule) {
       throw new Error('Module not found');
     }
+    if (tutorId && existingModule.tutorId !== tutorId) {
+      throw new Error('Unauthorized to update this module');
+    }
+
     const updatedModule = await prisma.modul.update({
-      where: { id: id, tutor_id: tutorId as string },
+      where: { id },
       data: {
-        nama_modul: payload.nama_modul ?? existingModule.nama_modul,
-        deskripsi: payload.deskripsi ?? existingModule.deskripsi,
-        target_waktu: payload.target_waktu ?? existingModule.target_waktu,
-        tingkat_kesulitan:
-          payload.tingkat_kesulitan ?? existingModule.tingkat_kesulitan,
-        is_berbayar: payload.is_berbayar ?? existingModule.is_berbayar,
-        harga_modul:
+        moduleName: payload.nama_modul ?? existingModule.moduleName,
+        description: payload.deskripsi ?? existingModule.description,
+        targetTime: payload.target_waktu ?? existingModule.targetTime,
+        difficulty: payload.tingkat_kesulitan ?? existingModule.difficulty,
+        isPaid: payload.is_berbayar ?? existingModule.isPaid,
+        modulPrice:
           payload.harga_modul === undefined
-            ? existingModule.harga_modul === null
+            ? existingModule.modulPrice === null
               ? null
-              : Number(existingModule.harga_modul)
+              : Number(existingModule.modulPrice as any)
             : payload.harga_modul,
-        jenjang: payload.jenjang ?? existingModule.jenjang,
-        kelas_sekolah: payload.kelas_sekolah ?? existingModule.kelas_sekolah,
+        level: payload.jenjang ?? existingModule.level,
+        class: payload.kelas_sekolah ?? (existingModule as any).class,
       },
     });
 

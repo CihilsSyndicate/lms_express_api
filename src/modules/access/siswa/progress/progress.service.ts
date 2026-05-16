@@ -9,15 +9,15 @@ export class ProgressService {
    */
   async initializeProgress(siswaId: string, modulId: string): Promise<void> {
     const existing = await prisma.progress.findUnique({
-      where: { siswa_id_modul_id: { siswa_id: siswaId, modul_id: modulId } },
+      where: { siswaId_modulId: { siswaId: siswaId, modulId: modulId } },
     });
 
     if (existing) return; // Already initialized
 
     await prisma.progress.create({
       data: {
-        siswa_id: siswaId,
-        modul_id: modulId,
+        siswaId: siswaId,
+        modulId: modulId,
       },
     });
   }
@@ -27,7 +27,7 @@ export class ProgressService {
    */
   async getProgressByModule(siswaId: string, modulId: string) {
     const progress = await prisma.progress.findUnique({
-      where: { siswa_id_modul_id: { siswa_id: siswaId, modul_id: modulId } },
+      where: { siswaId_modulId: { siswaId: siswaId, modulId: modulId } },
       include: {
         modul: true,
       },
@@ -37,14 +37,14 @@ export class ProgressService {
 
     // Hitung completion rate
     const totalSubmaterials = await prisma.submateri.count({
-      where: { materi: { modul_id: modulId } },
+      where: { materi: { topik: { modulId: modulId } } },
     });
 
     const completedSubmaterials = await prisma.progressDetail.count({
       where: {
-        siswa_id: siswaId,
-        is_completed: true,
-        submateri: { materi: { modul_id: modulId } },
+        siswaId: siswaId,
+        isCompleted: true,
+        submateri: { materi: { topik: { modulId: modulId } } },
       },
     });
 
@@ -64,10 +64,10 @@ export class ProgressService {
    */
   async getAllProgressForSiswa(siswaId: string) {
     return await prisma.progress.findMany({
-      where: { siswa_id: siswaId },
+      where: { siswaId: siswaId },
       include: {
         modul: {
-          select: { nama_modul: true, jenjang: true, kelas_sekolah: true },
+          select: { moduleName: true, level: true, class: true },
         },
       },
     });
@@ -78,8 +78,8 @@ export class ProgressService {
    */
   async updateLastAccessed(siswaId: string, modulId: string): Promise<void> {
     await prisma.progress.updateMany({
-      where: { siswa_id: siswaId, modul_id: modulId },
-      data: { last_accessed: new Date() },
+      where: { siswaId: siswaId, modulId: modulId },
+      data: { lastAccessed: new Date() },
     });
   }
 
@@ -92,32 +92,32 @@ export class ProgressService {
   ): Promise<void> {
     const submateri = await prisma.submateri.findUnique({
       where: { id: submateriId },
-      include: { materi: { include: { modul: true } } },
+      include: { materi: { include: { topik: { include: { modul: true } } } } },
     });
 
     if (!submateri) throw new Error('Submateri tidak ditemukan');
 
-    await this.initializeProgress(siswaId, submateri.materi.modul_id);
+    await this.initializeProgress(siswaId, (submateri.materi as any).topik.modulId);
 
     const existingDetail = await prisma.progressDetail.findFirst({
       where: {
-        siswa_id: siswaId,
-        submateri_id: submateriId,
+        siswaId: siswaId,
+        submateriId: submateriId,
       },
     });
 
     await prisma.progressDetail.upsert({
       where: {
-        id: existingDetail?.id as string,
+        id: (existingDetail?.id as string) || "new-id",
       },
       update: {
-        is_completed: true,
+        isCompleted: true,
         completed_at: new Date(),
       },
       create: {
-        siswa_id: siswaId,
-        submateri_id: submateriId,
-        is_completed: true,
+        siswaId: siswaId,
+        submateriId: submateriId,
+        isCompleted: true,
         completed_at: new Date(),
       },
     });
@@ -125,7 +125,7 @@ export class ProgressService {
     // Sync progress summary
     await this.bktService.syncModuleProgressSummary(
       siswaId,
-      submateri.materi.modul_id,
+      (submateri.materi as any).topik.modulId,
     );
   }
 
@@ -138,12 +138,12 @@ export class ProgressService {
   ): Promise<boolean> {
     const detail = await prisma.progressDetail.findFirst({
       where: {
-        siswa_id: siswaId,
-        submateri_id: submateriId,
+        siswaId: siswaId,
+        submateriId: submateriId,
       },
     });
 
-    return detail?.is_completed ?? false;
+    return detail?.isCompleted ?? false;
   }
 
   /**
@@ -160,7 +160,7 @@ export class ProgressService {
           id: modulId,
         },
       },
-      include: { soals: true },
+      include: { pretestQuestions: true },
     });
 
     if (!pretest) return 0;
@@ -169,11 +169,11 @@ export class ProgressService {
     const answerLogs: { questionId: string; isCorrect: boolean }[] = [];
 
     for (const answer of answers) {
-      const question = pretest.soals.find(
+      const question = pretest.pretestQuestions.find(
         (item) => item.id === answer.questionId,
       );
       if (question) {
-        const isCorrect = question.jawaban_benar === answer.answer;
+        const isCorrect = question.correctAnswer === answer.answer;
         if (isCorrect) totalScore += question.skor;
 
         answerLogs.push({ questionId: answer.questionId, isCorrect });
@@ -181,11 +181,11 @@ export class ProgressService {
         // Log answer
         await prisma.studentAnswerLog.create({
           data: {
-            siswa_id: siswaId,
-            modul_id: modulId,
-            question_source: 'PRETEST',
-            question_id: answer.questionId,
-            is_correct: isCorrect,
+            siswaId: siswaId,
+            modulId: modulId,
+            questionSource: 'PRETEST',
+            questionId: answer.questionId,
+            isCorrect: isCorrect,
           },
         });
       }
@@ -193,8 +193,8 @@ export class ProgressService {
 
     // Update progress skor pretest
     await prisma.progress.updateMany({
-      where: { siswa_id: siswaId, modul_id: modulId },
-      data: { skor_pretest: totalScore },
+      where: { siswaId: siswaId, modulId: modulId },
+      data: { pretestScore: totalScore },
     });
 
     // Initialize BKT
@@ -229,17 +229,17 @@ export class ProgressService {
         (item) => item.id === answer.questionId,
       );
       if (question) {
-        const isCorrect = question.jawaban_benar === answer.answer;
+        const isCorrect = question.correctAnswer === answer.answer;
         if (isCorrect) totalScore += question.skor;
 
         // Log answer
         await prisma.studentAnswerLog.create({
           data: {
-            siswa_id: siswaId,
-            modul_id: modulId,
-            question_source: 'POSTTEST',
-            question_id: answer.questionId,
-            is_correct: isCorrect,
+            siswaId: siswaId,
+            modulId: modulId,
+            questionSource: 'POSTTEST',
+            questionId: answer.questionId,
+            isCorrect: isCorrect,
           },
         });
       }
@@ -247,8 +247,8 @@ export class ProgressService {
 
     // Update progress skor posttest
     await prisma.progress.updateMany({
-      where: { siswa_id: siswaId, modul_id: modulId },
-      data: { skor_posttest: totalScore },
+      where: { siswaId: siswaId, modulId: modulId },
+      data: { posttestScore: totalScore },
     });
 
     // Sync summary
@@ -265,14 +265,14 @@ export class ProgressService {
     modulId: string,
   ): Promise<any | null> {
     const progress = await prisma.progress.findUnique({
-      where: { siswa_id_modul_id: { siswa_id: siswaId, modul_id: modulId } },
+      where: { siswaId_modulId: { siswaId: siswaId, modulId: modulId } },
       include: { siswa: true, modul: true },
     });
 
-    if (!progress || !progress.is_lulus) return null;
+    if (!progress || !progress.isGraduated) return null;
 
     const existingCert = await prisma.certificate.findFirst({
-      where: { siswa_id: siswaId, modul_id: modulId },
+      where: { siswaId: siswaId, modulId: modulId },
     });
 
     if (existingCert) return existingCert;
@@ -281,10 +281,10 @@ export class ProgressService {
 
     return await prisma.certificate.create({
       data: {
-        siswa_id: siswaId,
-        modul_id: modulId,
+        siswaId: siswaId,
+        modulId: modulId,
         kode_sertif: certificateCode,
-        url_sertif: `https://example.com/cert/${certificateCode}`, // Placeholder
+        certificateUrl: `https://example.com/cert/${certificateCode}`, // Placeholder
       },
     });
   }

@@ -1,26 +1,32 @@
 // --- LEARNING CONTENT ---
 
 model Modul {
-    id                String   @id @default(cuid())
-    nama_modul        String
-    deskripsi         String   @db.Text
-    target_waktu      Int // dalam menit
-    tingkat_kesulitan String // e.g., 'Beginner', 'Advanced'
-    is_berbayar       Boolean  @default(false)
-    harga_modul       Decimal?
-    jenjang           String
-    kelas_sekolah     String
+    id                     String   @id @default(cuid())
+    moduleName             String
+    subtitle               String
+    description            String   @db.Text
+    targetTime             Int // dalam menit
+    difficulty             String // e.g., 'Beginner', 'Advanced'
+    isPaid                 Boolean  @default(false)
+    modulPrice             Decimal?
+    level                  String? // e.g., 'SD', 'SMP', 'SMA'
+    class                  String?
+    pretestPostTestEnabled Boolean  @default(true)
+    hasStudyGroup          Boolean  @default(false)
+    hasCertificate         Boolean  @default(false)
+    moduleImgUrl           String?
 
-    tutor_id String
-    tutor    Tutor  @relation(fields: [tutor_id], references: [id])
+    modulType ModulType @default(SISWA)
 
-    materis     Materi[]
-    topiks      Topik[]
-    pretest     Pretest?  @relation(fields: [pretest_id], references: [id])
-    pretest_id  String?   @unique
-    posttest    Posttest? @relation(fields: [posttest_id], references: [id])
-    posttest_id String?   @unique
-    isDraft     Boolean   @default(true)
+    tutorId String
+    tutor   Tutor  @relation(fields: [tutorId], references: [id])
+
+    topiks     Topik[]
+    pretest    Pretest?  @relation(fields: [pretestId], references: [id])
+    pretestId  String?   @unique
+    posttest   Posttest? @relation(fields: [posttestId], references: [id])
+    posttestId String?   @unique
+    isDraft    Boolean   @default(true)
 
     progress               Progress[]
     certificates           Certificate[]
@@ -31,30 +37,63 @@ model Modul {
     computationalThinkings ComputationalThinking[]
     ratings                Rating[]
 
+    createdAt               DateTime                @default(now())
+    updatedAt               DateTime                @updatedAt
+    automaticAccessMateries AutomaticAccessMatery[]
+}
+
+model Topik {
+    id                      String                  @id @default(cuid())
+    nama                    String
+    modulId                 String
+    modul                   Modul                   @relation(fields: [modulId], references: [id])
+    topikItems              TopikItem[]
+    automaticAccessMateries AutomaticAccessMatery[]
+    isComputationalThinking Boolean                 @default(false)
+
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    materis   Materi[]
+}
+
+model TopikItem {
+    id      String @id @default(cuid())
+    topikId String
+    topik   Topik  @relation(fields: [topikId], references: [id])
+
+    itemId      String
+    orderNumber Int
+
+    itemType ItemType @default(ARTICLE)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([topikId, orderNumber])
 }
 
 model Materi {
-    id        String  @id @default(cuid())
-    modul_id  String
-    modul     Modul   @relation(fields: [modul_id], references: [id])
-    tutor_id  String
-    tutor     Tutor   @relation(fields: [tutor_id], references: [id])
-    is_video  Boolean @default(false)
-    video_url String?
-    article   String? @db.Text
+    id       String  @id @default(cuid())
+    tutorId  String
+    tutor    Tutor   @relation(fields: [tutorId], references: [id])
+    isVideo  Boolean @default(false)
+    videoUrl String?
+    article  String? @db.Text
+    topikId  String
+    topik    Topik   @relation(fields: [topikId], references: [id])
 
     submateris Submateri[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt               DateTime                @default(now())
+    updatedAt               DateTime                @updatedAt
+    quizzes                 Quiz[]
+    automaticAccessMateries AutomaticAccessMatery[]
 }
 
 model Submateri {
     id               String           @id @default(cuid())
-    materi_id        String
-    materi           Materi           @relation(fields: [materi_id], references: [id])
+    materiId         String
+    materi           Materi           @relation(fields: [materiId], references: [id])
     judul            String
     konten           String           @db.Text
     progress_details ProgressDetail[]
@@ -63,25 +102,57 @@ model Submateri {
     updatedAt DateTime @updatedAt
 }
 
-model Topik {
-    id       String @id @default(cuid())
-    nama     String
-    modul_id String
-    modul    Modul  @relation(fields: [modul_id], references: [id])
+model Quiz {
+    id                 String  @id @default(cuid())
+    materiId           String
+    materi             Materi  @relation(fields: [materiId], references: [id])
+    quizImgQuestionUrl String?
+
+    question String @db.Text
+
+    correctAnswer String
+    skor          Int    @default(10)
+
+    quizAnswerOptions QuizAnswerOption[]
+    quizSettings      QuizSetting[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
 
-// --- ASSESSMENT SYSTEM ---
-
-model Pretest {
-    id    String        @id @default(cuid())
-    modul Modul?
-    soals SoalPretest[]
+model QuizAnswerOption {
+    id     String @id @default(cuid())
+    quizId String
+    quiz   Quiz   @relation(fields: [quizId], references: [id])
+    option String
 
     createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+}
+
+model QuizSetting {
+    id                             String  @id @default(cuid())
+    quizId                         String
+    quiz                           Quiz    @relation(fields: [quizId], references: [id])
+    timeLimit                      Int? // dalam detik
+    allowMultipleAttempts          Boolean @default(false)
+    isComputationalThinkingEnabled Boolean @default(false)
+    minScoreTreshold               Int? // skor minimum untuk dianggap lulus
+    standardScorePerQuestion       Int     @default(100)
+
+    createdAt DateTime @default(now())
+}
+
+// --- ASSESSMENT SYSTEM ---
+model Pretest {
+    id               String        @id @default(cuid())
+    pretestName      String
+    modul            Modul?
+    pretestQuestions SoalPretest[]
+
+    createdAt               DateTime                @default(now())
+    updatedAt               DateTime                @updatedAt
+    pretestSettings         PretestSetting[]
+    automaticAccessMateries AutomaticAccessMatery[]
 }
 
 model Posttest {
@@ -94,26 +165,64 @@ model Posttest {
 }
 
 model SoalPretest {
-    id            String                    @id @default(cuid())
-    pretest_id    String
-    pretest       Pretest                   @relation(fields: [pretest_id], references: [id])
-    pertanyaan    String                    @db.Text
-    pilihan       Json // Menyimpan array pilihan jawaban
-    jawaban_benar String
-    skor          Int                       @default(10)
-    questionMaps  PretestQuestionSkillMap[]
+    id                    String                    @id @default(cuid())
+    pretestId             String
+    pretest               Pretest                   @relation(fields: [pretestId], references: [id])
+    pertanyaan            String                    @db.Text
+    pretestQuestionImgUrl String?
+    answerOptions         PretestAnswerOptions[]
+    correctAnswer         String
+    skor                  Int                       @default(10)
+    questionMaps          PretestQuestionSkillMap[]
+    automaticAccessMatery AutomaticAccessMatery[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
 
+model PretestAnswerOptions {
+    id              String      @id @default(cuid())
+    soalPretestId   String
+    pretestQuestion SoalPretest @relation(fields: [soalPretestId], references: [id])
+    option          String
+
+    createdAt DateTime @default(now())
+}
+
+model PretestSetting {
+    id                  String  @id @default(cuid())
+    pretestId           String
+    pretest             Pretest @relation(fields: [pretestId], references: [id])
+    duration            Int // dalam detik
+    countShownQuestions Int
+
+    createdAt DateTime @default(now())
+}
+
+model AutomaticAccessMatery {
+    id        String   @id @default(cuid())
+    pretestId String?
+    pretest   Pretest? @relation(fields: [pretestId], references: [id])
+    materiId  String
+    materi    Materi   @relation(fields: [materiId], references: [id])
+
+    minScore       Int     @default(0)
+    selectedTopics Topik[]
+
+    createdAt     DateTime     @default(now())
+    modul         Modul?       @relation(fields: [modulId], references: [id])
+    modulId       String?
+    soalPretest   SoalPretest? @relation(fields: [soalPretestId], references: [id])
+    soalPretestId String?
+}
+
 model SoalPosttest {
     id            String   @id @default(cuid())
-    posttest_id   String
-    posttest      Posttest @relation(fields: [posttest_id], references: [id])
-    pertanyaan    String   @db.Text
+    posttestId    String
+    posttest      Posttest @relation(fields: [posttestId], references: [id])
+    question      String   @db.Text
     pilihan       Json
-    jawaban_benar String
+    correctAnswer String
     skor          Int      @default(10)
 
     createdAt DateTime @default(now())
@@ -121,11 +230,10 @@ model SoalPosttest {
 }
 
 // Computational Thinking
-
 model ComputationalThinking {
     id        String  @id @default(cuid())
-    modul_id  String
-    modul     Modul   @relation(fields: [modul_id], references: [id])
+    modulId   String
+    modul     Modul   @relation(fields: [modulId], references: [id])
     aspek     String // e.g., 'Decomposition', 'Pattern Recognition'
     deskripsi String? @db.Text
 
@@ -134,27 +242,25 @@ model ComputationalThinking {
 }
 
 // Certificate
-
 model Certificate {
-    id          String   @id @default(cuid())
-    siswa_id    String
-    siswa       Siswa    @relation(fields: [siswa_id], references: [id])
-    modul_id    String
-    modul       Modul    @relation(fields: [modul_id], references: [id])
-    kode_sertif String   @unique
-    issued_at   DateTime @default(now())
-    url_sertif  String
+    id             String   @id @default(cuid())
+    siswaId        String
+    siswa          Siswa    @relation(fields: [siswaId], references: [id])
+    modulId        String
+    modul          Modul    @relation(fields: [modulId], references: [id])
+    kode_sertif    String   @unique
+    issued_at      DateTime @default(now())
+    certificateUrl String
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
 
 // --- BAYESIAN KNOWLEDGE TRACING ---
-
 model KnowledgeComponent {
     id        String   @id @default(cuid())
-    modul_id  String
-    modul     Modul    @relation(fields: [modul_id], references: [id])
+    modulId   String
+    modul     Modul    @relation(fields: [modulId], references: [id])
     code      String // e.g., "algebra_basics"
     nama      String
     deskripsi String?  @db.Text
@@ -170,17 +276,17 @@ model KnowledgeComponent {
 }
 
 model PretestQuestionSkillMap {
-    id                     String             @id @default(cuid())
-    soal_pretest_id        String
-    soalPretest            SoalPretest        @relation(fields: [soal_pretest_id], references: [id])
-    knowledge_component_id String
-    knowledgeComponent     KnowledgeComponent @relation(fields: [knowledge_component_id], references: [id])
-    weight                 Float              @default(1.0) // bobot skill di soal
+    id                   String             @id @default(cuid())
+    pretestQuestionId    String
+    soalPretest          SoalPretest        @relation(fields: [pretestQuestionId], references: [id])
+    knowledgeComponentId String
+    knowledgeComponent   KnowledgeComponent @relation(fields: [knowledgeComponentId], references: [id])
+    weight               Float              @default(1.0) // bobot skill di soal
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@unique([soal_pretest_id, knowledge_component_id])
+    @@unique([pretestQuestionId, knowledgeComponentId])
     @@map("pretest_question_skill_map")
 }
 
@@ -189,9 +295,20 @@ model Rating {
     rating   Int
     komentar String? @db.Text
 
-    siswa_id String
-    siswa    Siswa  @relation(fields: [siswa_id], references: [id])
+    siswaId String
+    siswa   Siswa  @relation(fields: [siswaId], references: [id])
 
     modul   Modul?  @relation(fields: [modulId], references: [id])
     modulId String?
+}
+
+enum ModulType {
+    SISWA
+    UMUM
+}
+
+enum ItemType {
+    // VIDEO
+    ARTICLE
+    QUIZ
 }

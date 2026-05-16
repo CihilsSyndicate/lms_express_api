@@ -1,36 +1,38 @@
 model Tutor {
-    id                  String        @id @default(cuid())
-    nama_lengkap        String
-    email               String        @unique
-    password            String
-    gender              String
-    pekerjaan           String
-    no_whatsapp         String
-    pendidikan_terakhir String
-    nama_instansi       String
-    biografi            String?
-    prodi               String
-    cv_path_url         String
-    profile_img         String?
-    role                String        @default("tutor")
-    moduls              Modul[]
-    materis             Materi[]
-    googleId            String?       @unique
-    signatures          Signature[]
-    socialMedias        SocialMedia[]
+    id             String        @id @default(cuid())
+    fullName       String
+    email          String        @unique
+    password       String
+    gender         String
+    pekerjaan      String
+    whatsappNumber String
+    lastEducation  String
+    institution    String
+    biografi       String?
+    prodi          String
+    cvPathUrl      String
+    profileImg     String?
+    role           String        @default("tutor")
+    moduls         Modul[]
+    materis        Materi[]
+    googleId       String?       @unique
+    signatures     Signature[]
+    socialMedias   SocialMedia[]
+
+    isActive Boolean @default(true)
 }
 
 model Signature {
-    id       String @id @default(cuid())
-    tutor_id String
-    tutor    Tutor  @relation(fields: [tutor_id], references: [id])
-    file_url String
+    id      String @id @default(cuid())
+    tutorId String
+    tutor   Tutor  @relation(fields: [tutorId], references: [id])
+    fileUrl String
 }
 
 model SocialMedia {
     id       String @id @default(cuid())
-    tutor_id String
-    tutor    Tutor  @relation(fields: [tutor_id], references: [id])
+    tutorId  String
+    tutor    Tutor  @relation(fields: [tutorId], references: [id])
     platform String
     url      String
 

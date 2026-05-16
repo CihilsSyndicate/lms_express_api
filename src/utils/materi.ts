@@ -18,30 +18,31 @@ export const createMateri = async (
     throw new AppError(401, 'Akses ditolak.');
   }
 
-  const modul = await prisma.modul.findUnique({
-    where: { id: payload.modul_id },
+  const topik = await prisma.topik.findUnique({
+    where: { id: payload.topik_id },
+    include: { modul: true },
   });
 
-  if (!modul || modul.tutor_id !== tutorId) {
+  if (!topik || topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
-      'Akses ditolak. Anda tidak berhak menambah materi ke modul ini.',
+      'Akses ditolak. Anda tidak berhak menambah materi ke topik ini.',
     );
   }
 
   const data: {
-    modul_id: string;
-    tutor_id: string;
-    is_video: boolean;
-    video_url?: string | null;
+    topikId: string;
+    tutorId: string;
+    isVideo: boolean;
+    videoUrl?: string | null;
     article?: string | null;
   } = {
-    modul_id: payload.modul_id,
-    tutor_id: tutorId,
-    is_video: payload.is_video ?? false,
+    topikId: payload.topik_id,
+    tutorId: tutorId,
+    isVideo: payload.is_video ?? false,
   };
 
-  if (payload.video_url !== undefined) data.video_url = payload.video_url;
+  if (payload.video_url !== undefined) data.videoUrl = payload.video_url;
   if (payload.article !== undefined) data.article = payload.article;
 
   const newMaterial = await prisma.materi.create({ data });
@@ -55,10 +56,10 @@ export const createMateri = async (
 
 export const getMateriList = async (modulId: string) => {
   return prisma.materi.findMany({
-    where: { modul_id: modulId },
+    where: { topik: { modulId: modulId } },
     include: {
       submateris: true,
-      tutor: { select: { nama_lengkap: true } },
+      tutor: { select: { fullName: true } },
     },
   });
 };
@@ -70,14 +71,14 @@ export const updateMateri = async (
 ) => {
   const materi = await prisma.materi.findUnique({
     where: { id: materiId },
-    include: { modul: true },
+    include: { topik: { include: { modul: true } } },
   });
 
   if (!materi) {
     throw new AppError(404, 'Materi tidak ditemukan.');
   }
 
-  if (materi.modul.tutor_id !== tutorId) {
+  if (materi.topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak mengubah materi ini.',
@@ -85,13 +86,13 @@ export const updateMateri = async (
   }
 
   const data: {
-    is_video?: boolean;
-    video_url?: string | null;
+    isVideo?: boolean;
+    videoUrl?: string | null;
     article?: string | null;
   } = {};
 
-  if (payload.is_video !== undefined) data.is_video = payload.is_video;
-  if (payload.video_url !== undefined) data.video_url = payload.video_url;
+  if (payload.is_video !== undefined) data.isVideo = payload.is_video;
+  if (payload.video_url !== undefined) data.videoUrl = payload.video_url;
   if (payload.article !== undefined) data.article = payload.article;
 
   const updatedMaterial = await prisma.materi.update({
@@ -107,14 +108,14 @@ export const updateMateri = async (
 export const deleteMateri = async (materiId: string, tutorId?: string) => {
   const materi = await prisma.materi.findUnique({
     where: { id: materiId },
-    include: { modul: true },
+    include: { topik: { include: { modul: true } } },
   });
 
   if (!materi) {
     throw new AppError(404, 'Materi tidak ditemukan.');
   }
 
-  if (materi.modul.tutor_id !== tutorId) {
+  if (materi.topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menghapus materi ini.',

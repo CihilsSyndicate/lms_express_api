@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma';
 import { Request, Response } from 'express';
 import {
   getModuleById as getModuleByIdFunc,
@@ -6,7 +7,32 @@ import {
   deleteModule as deleteModuleFunc,
   getModules as getModulesFunc,
 } from '@/utils/modul';
-import { prisma } from '@/lib/prisma';
+
+export const assignStudentToModule = async (req: Request, res: Response) => {
+  try {
+    const { moduleId, studentId } = req.body;
+
+    const assignToProgress = await prisma.progress.create({
+      data: {
+        modulId: moduleId as string,
+        siswaId: studentId as string,
+        progressPercentage: 0,
+      },
+    });
+
+    res
+      .json({
+        message: 'Student assigned to module successfully',
+        data: assignToProgress,
+      })
+      .status(200);
+  } catch (error) {
+    console.error('Error assigning student to module:', error);
+    res
+      .status(500)
+      .json({ error: 'Failed to assign student to module', message: error });
+  }
+};
 
 export const getModules = async (req: Request, res: Response) => {
   try {

@@ -23,7 +23,7 @@ export const createPretestRecord = async (
     where: { id: modulId },
   });
 
-  if (!modul || modul.tutor_id !== tutorId) {
+  if (!modul || modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak membuat pretest untuk modul ini.',
@@ -31,12 +31,12 @@ export const createPretestRecord = async (
   }
 
   const newPretest = await prisma.pretest.create({
-    data: { modul_id: modulId },
+    data: { pretestName: `Pretest ${modul.moduleName}` },
   });
 
   await prisma.modul.update({
     where: { id: modulId },
-    data: { pretest_id: newPretest.id },
+    data: { pretestId: newPretest.id },
   });
 
   console.log(
@@ -50,7 +50,7 @@ export const addPretestQuestion = async (
   payload: {
     pretest_id: string;
     pertanyaan: string;
-    pilihan: any;
+    pilihan: string[];
     jawaban_benar: string;
     skor?: number;
   },
@@ -61,16 +61,18 @@ export const addPretestQuestion = async (
     include: { modul: true },
   });
 
-  if (!pretest || pretest?.modul?.tutor_id !== tutorId) {
+  if (!pretest || pretest?.modul?.tutorId !== tutorId) {
     throw new AppError(403, 'Akses ditolak.');
   }
 
   const newSoal = await prisma.soalPretest.create({
     data: {
-      pretest_id: payload.pretest_id,
+      pretestId: payload.pretest_id,
       pertanyaan: payload.pertanyaan,
-      pilihan: payload.pilihan,
-      jawaban_benar: payload.jawaban_benar,
+      answerOptions: {
+        create: payload.pilihan.map((option) => ({ option })),
+      },
+      correctAnswer: payload.jawaban_benar,
       skor: payload.skor ?? 10,
     },
   });
@@ -83,7 +85,7 @@ export const addPretestQuestion = async (
 export const getPretestQuestions = async (modulId: string) => {
   const pretest = await prisma.pretest.findFirst({
     where: { modul: { id: modulId } },
-    include: { soals: true },
+    include: { pretestQuestions: { include: { answerOptions: true } } },
   });
 
   if (!pretest) {

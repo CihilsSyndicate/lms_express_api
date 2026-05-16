@@ -22,7 +22,7 @@ export const createSubmateri = async (
     where: { id: payload.materi_id },
   });
 
-  if (!materi || materi.tutor_id !== tutorId) {
+  if (!materi || materi.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menambah submateri ke materi ini.',
@@ -31,7 +31,7 @@ export const createSubmateri = async (
 
   const newSubmaterial = await prisma.submateri.create({
     data: {
-      materi_id: payload.materi_id,
+      materiId: payload.materi_id,
       judul: payload.judul,
       konten: payload.konten,
     },
@@ -46,7 +46,7 @@ export const createSubmateri = async (
 
 export const getSubmateriList = async (materiId: string) => {
   return prisma.submateri.findMany({
-    where: { materi_id: materiId },
+    where: { materiId: materiId },
   });
 };
 
@@ -54,7 +54,7 @@ export const getSubmateriById = async (submateriId: string) => {
   const submateri = await prisma.submateri.findUnique({
     where: { id: submateriId },
     include: {
-      materi: { include: { modul: true } },
+      materi: { include: { topik: { include: { modul: true } } } },
     },
   });
 
@@ -79,7 +79,7 @@ export const updateSubmateri = async (
     throw new AppError(404, 'Submateri tidak ditemukan.');
   }
 
-  if (submateri.materi.tutor_id !== tutorId) {
+  if (submateri.materi.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak mengubah submateri ini.',
@@ -115,7 +115,7 @@ export const deleteSubmateri = async (
     throw new AppError(404, 'Submateri tidak ditemukan.');
   }
 
-  if (submateri.materi.tutor_id !== tutorId) {
+  if (submateri.materi.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menghapus submateri ini.',

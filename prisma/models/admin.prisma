@@ -7,6 +7,8 @@ model Admin {
     fullName String
     gender   String
 
+    role String @default("admin")
+
     whatsappNumber String
     profileImg     String?
 

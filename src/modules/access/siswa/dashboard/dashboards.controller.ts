@@ -5,14 +5,14 @@ const dashboardService = new DashboardService();
 
 export const getDashboardData = async (req: Request, res: Response) => {
   try {
-    const { siswa_id } = req.params;
+    const id = req?.user?.id as string;
     const latestProgress = await dashboardService.getLatestProgress(
-      siswa_id as string,
+      id as string,
     );
 
     const { certificateData, accessibleModules } =
       await dashboardService.getCertificateDataAndAccessibleModule(
-        siswa_id as string,
+        id as string,
       );
 
     const data = {

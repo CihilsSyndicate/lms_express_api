@@ -64,58 +64,58 @@ export const updateSiswa = async (userId: string, data: UpdateSiswaRecord) => {
   }
 };
 
-export const updateTutor = async (userId: string, data: UpdateTutorRecord) => {
-  const payload = data as UpdateTutorRecord;
-  if (payload.password) {
-    payload.password = await hashPassword(payload.password);
-  }
+// export const updateTutor = async (userId: string, data: UpdateTutorRecord) => {
+//   const payload = data as UpdateTutorRecord;
+//   if (payload.password) {
+//     payload.password = await hashPassword(payload.password);
+//   }
 
-  if (data.profile_img) {
-    const fileResult = await uploadFileToStorage(
-      {
-        buffer: Buffer.from(data.profile_img, 'base64'),
-        originalname: `profile_${userId}.jpg`,
-        mimetype: 'image/jpeg',
-      },
-      'PROFILE_IMAGE' as UploadFileType,
-    );
+//   if (data.profileImg) {
+//     const fileResult = await uploadFileToStorage(
+//       {
+//         buffer: Buffer.from(data.profileImg, 'base64'),
+//         originalname: `profile_${userId}.jpg`,
+//         mimetype: 'image/jpeg',
+//       },
+//       'PROFILE_IMAGE' as UploadFileType,
+//     );
 
-    payload.profile_img = fileResult.publicPath;
-  }
+//     payload.profileImg = fileResult.publicPath;
+//   }
 
-  if (data.cv_path_url) {
-    const fileResult = await uploadFileToStorage(
-      {
-        buffer: Buffer.from(data.cv_path_url, 'base64'),
-        originalname: `cv_${userId}.pdf`,
-        mimetype: 'application/pdf',
-      },
-      'CV_FILE' as UploadFileType,
-    );
+//   if (data.cvPathUrl) {
+//     const fileResult = await uploadFileToStorage(
+//       {
+//         buffer: Buffer.from(data.cvPathUrl, 'base64'),
+//         originalname: `cv_${userId}.pdf`,
+//         mimetype: 'application/pdf',
+//       },
+//       'CV_FILE' as UploadFileType,
+//     );
 
-    payload.cv_path_url = fileResult.publicPath;
-  }
+//     payload.cvPathUrl = fileResult.publicPath;
+//   }
 
-  try {
-    const updatedTutor = await prisma.tutor.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        nama_lengkap: payload.nama_lengkap as string,
-        password: data.password ?? (payload.password as string),
-        gender: payload.gender as string,
-        pekerjaan: payload.pekerjaan as string,
-        no_whatsapp: payload.no_whatsapp as string,
-        biografi: payload.biografi as string,
-        pendidikan_terakhir: payload.pendidikan_terakhir as string,
-        nama_instansi: payload.nama_instansi as string,
-        cv_path_url: payload.cv_path_url as string,
-        profile_img: payload.profile_img as string,
-      },
-    });
-    return updatedTutor;
-  } catch (error) {
-    throw new Error(error as string);
-  }
-};
+//   try {
+//     const updatedTutor = await prisma.tutor.update({
+//       where: {
+//         id: userId,
+//       },
+//       data: {
+//         fullName: payload.fullName as string,
+//         password: data.password ?? (payload.password as string),
+//         gender: payload.gender as string,
+//         pekerjaan: payload.pekerjaan as string,
+//         whatsappNumber: payload.whatsappNumber as string,
+//         biografi: payload.biografi as string,
+//         lastEducation: payload.lastEducation as string,
+//         institution: payload.institution as string,
+//         cvPathUrl: payload.cvPathUrl as string,
+//         profileImg: payload.profileImg as string,
+//       },
+//     });
+//     return updatedTutor;
+//   } catch (error) {
+//     throw new Error(error as string);
+//   }
+// };

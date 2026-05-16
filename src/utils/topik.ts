@@ -22,7 +22,7 @@ export const createTopik = async (
     where: { id: payload.modul_id },
   });
 
-  if (!modul || modul.tutor_id !== tutorId) {
+  if (!modul || modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menambah topik ke modul ini.',
@@ -31,7 +31,7 @@ export const createTopik = async (
 
   const newTopic = await prisma.topik.create({
     data: {
-      modul_id: payload.modul_id,
+      modulId: payload.modul_id,
       nama: payload.nama,
     },
   });
@@ -45,7 +45,7 @@ export const createTopik = async (
 
 export const getTopikList = async (modulId: string) => {
   return prisma.topik.findMany({
-    where: { modul_id: modulId },
+    where: { modulId: modulId },
   });
 };
 
@@ -63,7 +63,7 @@ export const updateTopik = async (
     throw new AppError(404, 'Topik tidak ditemukan.');
   }
 
-  if (topik.modul.tutor_id !== tutorId) {
+  if (topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak mengubah topik ini.',
@@ -93,7 +93,7 @@ export const deleteTopik = async (topikId: string, tutorId?: string) => {
     throw new AppError(404, 'Topik tidak ditemukan.');
   }
 
-  if (topik.modul.tutor_id !== tutorId) {
+  if (topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menghapus topik ini.',

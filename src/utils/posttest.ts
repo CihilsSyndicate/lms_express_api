@@ -23,7 +23,7 @@ export const createPosttestRecord = async (
     where: { id: modulId },
   });
 
-  if (!modul || modul.tutor_id !== tutorId) {
+  if (!modul || modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak membuat posttest untuk modul ini.',
@@ -36,7 +36,7 @@ export const createPosttestRecord = async (
 
   await prisma.modul.update({
     where: { id: modulId },
-    data: { posttest_id: newPosttest.id },
+    data: { posttestId: newPosttest.id },
   });
 
   console.log(
@@ -61,16 +61,16 @@ export const addPosttestQuestion = async (
     include: { modul: true },
   });
 
-  if (!posttest || posttest?.modul?.tutor_id !== tutorId) {
+  if (!posttest || posttest?.modul?.tutorId !== tutorId) {
     throw new AppError(403, 'Akses ditolak.');
   }
 
   const newSoal = await prisma.soalPosttest.create({
     data: {
-      posttest_id: payload.posttest_id,
-      pertanyaan: payload.pertanyaan,
+      posttestId: payload.posttest_id,
+      question: payload.pertanyaan,
       pilihan: payload.pilihan,
-      jawaban_benar: payload.jawaban_benar,
+      correctAnswer: payload.jawaban_benar,
       skor: payload.skor ?? 10,
     },
   });

@@ -9,9 +9,9 @@ export interface BKTParams {
 
 export interface KnowledgeState {
   id?: string;
-  siswa_id: string;
-  modul_id: string;
-  knowledge_component_id: string;
+  siswaId: string;
+  modulId: string;
+  knowledgeComponentId: string;
   p_init: number;
   p_learn: number;
   p_guess: number;
@@ -38,7 +38,7 @@ export class BKTService {
     pretestAnswers: { questionId: string; isCorrect: boolean }[],
   ): Promise<void> {
     const knowledgeComponents = await prisma.knowledgeComponent.findMany({
-      where: { modul_id: modulId },
+      where: { modulId: modulId },
     });
 
     if (knowledgeComponents.length === 0) {
@@ -63,8 +63,8 @@ export class BKTService {
         pretestAnswers.map(async (answer) => {
           const map = await prisma.pretestQuestionSkillMap.findFirst({
             where: {
-              soal_pretest_id: answer.questionId,
-              knowledge_component_id: kc.id,
+              pretestQuestionId: answer.questionId,
+              knowledgeComponentId: kc.id,
             },
           });
           return map ? { ...answer, weight: map.weight } : null;
@@ -85,19 +85,19 @@ export class BKTService {
       if (hasObservations) {
         await prisma.studentKnowledgeState.upsert({
           where: {
-            siswa_id_modul_id_knowledge_component_id: {
-              siswa_id: siswaId,
-              modul_id: modulId,
-              knowledge_component_id: kc.id,
+            siswaId_modulId_knowledgeComponentId: {
+              siswaId: siswaId,
+              modulId: modulId,
+              knowledgeComponentId: kc.id,
             },
           },
           update: {
             p_mastery_current: mastery,
           },
           create: {
-            siswa_id: siswaId,
-            modul_id: modulId,
-            knowledge_component_id: kc.id,
+            siswaId: siswaId,
+            modulId: modulId,
+            knowledgeComponentId: kc.id,
             p_init: this.defaultParams.p_init,
             p_learn: this.defaultParams.p_learn,
             p_guess: this.defaultParams.p_guess,
@@ -120,10 +120,10 @@ export class BKTService {
   ): Promise<void> {
     const state = await prisma.studentKnowledgeState.findUnique({
       where: {
-        siswa_id_modul_id_knowledge_component_id: {
-          siswa_id: siswaId,
-          modul_id: modulId,
-          knowledge_component_id: knowledgeComponentId,
+        siswaId_modulId_knowledgeComponentId: {
+          siswaId: siswaId,
+          modulId: modulId,
+          knowledgeComponentId: knowledgeComponentId,
         },
       },
     });
@@ -137,9 +137,9 @@ export class BKTService {
       );
       await prisma.studentKnowledgeState.create({
         data: {
-          siswa_id: siswaId,
-          modul_id: modulId,
-          knowledge_component_id: knowledgeComponentId,
+          siswaId: siswaId,
+          modulId: modulId,
+          knowledgeComponentId: knowledgeComponentId,
           p_init: this.defaultParams.p_init,
           p_learn: this.defaultParams.p_learn,
           p_guess: this.defaultParams.p_guess,
@@ -179,7 +179,7 @@ export class BKTService {
     }[];
   }> {
     const unlockRules = await prisma.moduleUnlockRule.findMany({
-      where: { modul_id: modulId },
+      where: { modulId: modulId },
       include: { knowledgeComponent: true },
     });
 
@@ -192,26 +192,26 @@ export class BKTService {
     }[] = [];
 
     for (const rule of unlockRules) {
-      if (rule.target_type !== 'SUBMATERI') continue;
+      if (rule.targetType !== 'SUBMATERI') continue;
 
       const state = await prisma.studentKnowledgeState.findUnique({
         where: {
-          siswa_id_modul_id_knowledge_component_id: {
-            siswa_id: siswaId,
-            modul_id: modulId,
-            knowledge_component_id: rule.knowledge_component_id,
+          siswaId_modulId_knowledgeComponentId: {
+            siswaId: siswaId,
+            modulId: modulId,
+            knowledgeComponentId: rule.knowledgeComponentId,
           },
         },
       });
 
       const currentMastery = state?.p_mastery_current ?? 0;
-      if (currentMastery >= rule.mastery_threshold) {
-        unlocked.push(rule.target_id);
+      if (currentMastery >= rule.materyTreshold) {
+        unlocked.push(rule.targetId);
       } else {
         locked.push({
-          id: rule.target_id,
+          id: rule.targetId,
           reason: `Mastery untuk ${rule.knowledgeComponent.nama} belum mencapai threshold`,
-          requiredMastery: rule.mastery_threshold,
+          requiredMastery: rule.materyTreshold,
           currentMastery,
         });
       }
@@ -228,21 +228,21 @@ export class BKTService {
     modulId: string,
   ): Promise<void> {
     const progress = await prisma.progress.findUnique({
-      where: { siswa_id_modul_id: { siswa_id: siswaId, modul_id: modulId } },
+      where: { siswaId_modulId: { siswaId: siswaId, modulId: modulId } },
     });
 
     if (!progress) return;
 
     // Hitung completion rate
     const totalSubmaterials = await prisma.submateri.count({
-      where: { materi: { modul_id: modulId } },
+      where: { materi: { topik: { modulId: modulId } } },
     });
 
     const completedSubmaterials = await prisma.progressDetail.count({
       where: {
-        siswa_id: siswaId,
-        is_completed: true,
-        submateri: { materi: { modul_id: modulId } },
+        siswaId: siswaId,
+        isCompleted: true,
+        submateri: { materi: { topik: { modulId: modulId } } },
       },
     });
 
@@ -251,13 +251,13 @@ export class BKTService {
 
     // Hitung nilai akhir berdasarkan pretest, posttest, dan mastery
     const averageMastery = await prisma.studentKnowledgeState.aggregate({
-      where: { siswa_id: siswaId, modul_id: modulId },
+      where: { siswaId: siswaId, modulId: modulId },
       _avg: { p_mastery_current: true },
     });
 
     const finalScore =
-      (progress.skor_pretest ?? 0) * 0.3 +
-      (progress.skor_posttest ?? 0) * 0.4 +
+      (progress.pretestScore ?? 0) * 0.3 +
+      (progress.posttestScore ?? 0) * 0.4 +
       (averageMastery._avg.p_mastery_current ?? 0) * 100 * 0.3;
 
     const isPassed = finalScore >= 60; // Simple threshold
@@ -265,8 +265,8 @@ export class BKTService {
     await prisma.progress.update({
       where: { id: progress.id },
       data: {
-        nilai_akhir: finalScore,
-        is_lulus: isPassed,
+        finalScore: finalScore,
+        isGraduated: isPassed,
       },
     });
   }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const modulBaseSchema = z.object({
   id: z.string().cuid(),
   nama_modul: z.string().min(1),
+  subtitle: z.string().min(1),
   deskripsi: z.string().min(1),
   target_waktu: z.number().int(),
   tingkat_kesulitan: z.string().min(1),

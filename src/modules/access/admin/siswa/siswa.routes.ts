@@ -1,5 +1,5 @@
 import Router from 'express';
-import { registerSiswa } from '@/modules/access/siswa/profile/siswa.controller';
+import { registerSiswa } from './siswa.controller';
 
 export const pengelolaanSiswaRouter = Router();
 
