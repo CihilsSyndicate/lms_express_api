@@ -16,7 +16,11 @@ export const modulBaseSchema = z.object({
   posttest_id: z.string().cuid().optional().nullable(),
 });
 
-export const createModulSchema = modulBaseSchema.omit({ id: true });
+export const createModulSchema = modulBaseSchema.omit({
+  id: true,
+  pretest_id: true,
+  posttest_id: true,
+});
 export const updateModulSchema = modulBaseSchema
   .partial()
   .omit({ id: true, tutor_id: true });

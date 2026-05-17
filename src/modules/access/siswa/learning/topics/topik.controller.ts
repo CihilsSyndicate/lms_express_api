@@ -21,7 +21,7 @@ export const createTopic = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: 'Topik berhasil dibuat', data: newTopic });
+      .json({ message: 'Topik berhasil dibuat', result: newTopic });
   } catch (error) {
     return handleTopikError(error, res, 'create');
   }
@@ -33,7 +33,7 @@ export const getTopicsByModule = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: 'Berhasil mengambil data topik', data: topics });
+      .json({ message: 'Berhasil mengambil data topik', items: topics });
   } catch (error) {
     return handleTopikError(error, res, 'get');
   }
@@ -49,7 +49,7 @@ export const updateTopic = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: 'Topik berhasil diupdate', data: updatedTopic });
+      .json({ message: 'Topik berhasil diupdate', result: updatedTopic });
   } catch (error) {
     return handleTopikError(error, res, 'update');
   }

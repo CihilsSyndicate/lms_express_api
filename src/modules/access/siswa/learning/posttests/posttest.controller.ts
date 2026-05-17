@@ -24,7 +24,7 @@ export const createPosttest = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: 'Posttest berhasil dibuat', data: newPosttest });
+      .json({ message: 'Posttest berhasil dibuat', result: newPosttest });
   } catch (error) {
     return handlePosttestError(error, res, 'create');
   }
@@ -36,7 +36,7 @@ export const addSoalPosttest = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: 'Soal posttest berhasil ditambah', data: newSoal });
+      .json({ message: 'Soal posttest berhasil ditambah', result: newSoal });
   } catch (error) {
     return handlePosttestError(error, res, 'addQuestion');
   }
@@ -48,7 +48,7 @@ export const getPosttestByModul = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: 'Berhasil mengambil posttest', data: posttest });
+      .json({ message: 'Berhasil mengambil posttest', result: posttest });
   } catch (error) {
     return handlePosttestError(error, res, 'get');
   }
@@ -65,8 +65,10 @@ export const submitPosttest = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       message: 'Posttest berhasil disubmit',
-      score: result.score,
-      certificate: result.certificate,
+      result: {
+        score: result.score,
+        certificate: result.certificate,
+      },
     });
   } catch (error) {
     return handlePosttestError(error, res, 'submit');

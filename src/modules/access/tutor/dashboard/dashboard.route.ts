@@ -3,4 +3,4 @@ import { loadDashboardData } from './dashboard.controller';
 
 export const tutorDashboardRouter = Router();
 
-tutorDashboardRouter.get('/dashboard', loadDashboardData);
+tutorDashboardRouter.get('/', loadDashboardData);

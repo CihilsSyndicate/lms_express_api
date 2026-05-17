@@ -24,7 +24,7 @@ export const ratingModul = async (req: Request, res: Response) => {
 
     if (existingRating) {
       // Update rating yang sudah ada
-      res
+      return res
         .status(403)
         .json({ message: 'Anda sudah memberikan rating untuk modul ini.' });
     }
@@ -40,11 +40,11 @@ export const ratingModul = async (req: Request, res: Response) => {
     });
 
     return res
-      .json({ data: newRating, message: 'Rating berhasil diberikan.' })
-      .status(201);
+      .status(201)
+      .json({ message: 'Rating berhasil diberikan.', result: newRating });
   } catch (err) {
     console.error('[MODUL-ERROR] Gagal memberikan rating:', err);
-    res
+    return res
       .status(500)
       .json({ message: 'Internal server error saat memberikan rating.' });
   }

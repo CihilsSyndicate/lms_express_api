@@ -13,11 +13,9 @@ type PretestAction = 'get' | 'submit';
 
 export const getPretestByModul = async (req: Request, res: Response) => {
   try {
-    const pretest = await getPretestQuestions(req.params.modulId as string);
+    const payload = await getPretestQuestions(req.params.modulId as string);
 
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil pretest', data: pretest });
+    return res.status(200).json(payload);
   } catch (error) {
     return handlePretestError(error, res, 'get');
   }
@@ -25,16 +23,14 @@ export const getPretestByModul = async (req: Request, res: Response) => {
 
 export const submitPretest = async (req: Request, res: Response) => {
   try {
-    const score = await submitPretestAnswer(
+    const payload = await submitPretestAnswer(
       req.params.modulId as string,
       req.body.answers,
       req.user?.id,
       req.user?.role,
     );
 
-    return res
-      .status(200)
-      .json({ message: 'Pretest berhasil disubmit', score });
+    return res.status(200).json(payload);
   } catch (error) {
     return handlePretestError(error, res, 'submit');
   }

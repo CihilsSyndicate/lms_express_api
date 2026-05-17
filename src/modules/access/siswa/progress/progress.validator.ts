@@ -2,19 +2,32 @@ import { z } from 'zod';
 
 export const progressBaseSchema = z.object({
   id: z.string().cuid(),
-  siswa_id: z.string().cuid(),
-  modul_id: z.string().cuid(),
-  skor_pretest: z.number().int().optional().nullable(),
-  skor_posttest: z.number().int().optional().nullable(),
-  nilai_akhir: z.number().optional().nullable(),
+  siswaId: z.string().cuid(),
+  modulId: z.string().cuid(),
+  pretestScore: z.number().int().optional().nullable(),
+  posttestScore: z.number().int().optional().nullable(),
+  finalScore: z.number().optional().nullable(),
+  quizScore: z.number().optional().nullable(),
   status: z.string().min(1).default('IN_PROGRESS'),
-  is_lulus: z.boolean().default(false),
-  last_accessed: z.coerce.date(),
+  isGraduated: z.boolean().default(false),
+  progressPercentage: z.number().min(0).max(100).default(0),
+  lastAccessed: z.coerce.date(),
   createdAt: z.coerce.date(),
 });
 
-export const createProgressSchema = progressBaseSchema.omit({ id: true, createdAt: true, last_accessed: true });
-export const updateProgressSchema = progressBaseSchema.partial().omit({ id: true, siswa_id: true, modul_id: true });
+export const createProgressSchema = progressBaseSchema.omit({
+  id: true,
+  createdAt: true,
+  lastAccessed: true,
+  pretestScore: true,
+  posttestScore: true,
+  finalScore: true,
+  quizScore: true,
+});
+
+export const updateProgressSchema = progressBaseSchema
+  .partial()
+  .omit({ id: true, siswaId: true, modulId: true });
 
 export type Progress = z.infer<typeof progressBaseSchema>;
 export type CreateProgressRecord = z.infer<typeof createProgressSchema>;

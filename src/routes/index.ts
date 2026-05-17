@@ -1,16 +1,19 @@
 import { Router } from 'express';
-import authRoutes from '../modules/auth/auth.routes';
-import progressRoutes from '../modules/access/siswa/progress/progress.routes';
-import certificateRoutes from '../modules/access/siswa/certificates/certificates.routes';
-import userRoutes from '../modules/users/users.routes';
+import authRoutes from '../modules/auth/auth.route';
+import { adminRouter } from '../modules/access/admin/route';
+import { tutorRouter } from '../modules/access/tutor/route';
+import { siswaRouter } from '../modules/access/siswa/route';
+import { umumRouter } from '../modules/access/umum/route';
 import docsRoutes from '../modules/docs/docs.routes';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
-router.use('/progress', progressRoutes);
-router.use('/certificate', certificateRoutes);
-router.use('/user', userRoutes);
+router.use('/admin', adminRouter);
+router.use('/tutor', tutorRouter);
+router.use('/siswa', siswaRouter);
+router.use('/umum', umumRouter);
+
 router.use('/api-docs', docsRoutes);
 
 export default router;

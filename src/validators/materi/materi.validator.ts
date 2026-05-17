@@ -9,7 +9,10 @@ export const materiBaseSchema = z.object({
   article: z.string().optional().nullable(),
 });
 
-export const createMateriSchema = materiBaseSchema.omit({ id: true });
+export const createMateriSchema = materiBaseSchema.omit({
+  id: true,
+  tutor_id: true,
+});
 export const updateMateriSchema = materiBaseSchema
   .partial()
   .omit({ id: true, topik_id: true, tutor_id: true });

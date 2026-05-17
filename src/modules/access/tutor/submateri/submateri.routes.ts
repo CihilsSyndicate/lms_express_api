@@ -6,29 +6,13 @@ import {
   updateSubmaterial,
   deleteSubmaterial,
 } from './submateri.controller';
-import { verifyToken, requireRole } from '@/lib/auth';
 
 const submateriRouter = Router();
 
-submateriRouter.get(
-  '/materi/:materiId',
-  verifyToken,
-  getSubmaterialsByMaterial,
-);
-submateriRouter.get('/:id', verifyToken, getSubmaterialDetail);
-
-submateriRouter.post('/', verifyToken, requireRole('tutor'), createSubmaterial);
-submateriRouter.put(
-  '/:id',
-  verifyToken,
-  requireRole('tutor'),
-  updateSubmaterial,
-);
-submateriRouter.delete(
-  '/:id',
-  verifyToken,
-  requireRole('tutor'),
-  deleteSubmaterial,
-);
+submateriRouter.get('/materi/:materiId', getSubmaterialsByMaterial);
+submateriRouter.get('/:id', getSubmaterialDetail);
+submateriRouter.post('/', createSubmaterial);
+submateriRouter.put('/:id', updateSubmaterial);
+submateriRouter.delete('/:id', deleteSubmaterial);
 
 export default submateriRouter;

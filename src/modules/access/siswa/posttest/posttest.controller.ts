@@ -13,11 +13,9 @@ type PosttestAction = 'get' | 'submit';
 
 export const getPosttestByModul = async (req: Request, res: Response) => {
   try {
-    const posttest = await getPosttestQuestions(req.params.modulId as string);
+    const payload = await getPosttestQuestions(req.params.modulId as string);
 
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil posttest', data: posttest });
+    return res.status(200).json(payload);
   } catch (error) {
     return handlePosttestError(error, res, 'get');
   }
@@ -25,18 +23,14 @@ export const getPosttestByModul = async (req: Request, res: Response) => {
 
 export const submitPosttest = async (req: Request, res: Response) => {
   try {
-    const result = await submitPosttestAnswer(
+    const payload = await submitPosttestAnswer(
       req.params.modulId as string,
       req.body.answers,
       req.user?.id,
       req.user?.role,
     );
 
-    return res.status(200).json({
-      message: 'Posttest berhasil disubmit',
-      score: result.score,
-      certificate: result.certificate,
-    });
+    return res.status(200).json(payload);
   } catch (error) {
     return handlePosttestError(error, res, 'submit');
   }

@@ -17,11 +17,9 @@ type TopikAction = 'create' | 'get' | 'update' | 'delete';
 
 export const createTopic = async (req: Request, res: Response) => {
   try {
-    const newTopic = await createTopik(req.body, req.user?.id);
+    const payload = await createTopik(req.body, req.user?.id);
 
-    return res
-      .status(201)
-      .json({ message: 'Topik berhasil dibuat', data: newTopic });
+    return res.status(201).json(payload);
   } catch (error) {
     return handleTopikError(error, res, 'create');
   }
@@ -29,11 +27,9 @@ export const createTopic = async (req: Request, res: Response) => {
 
 export const getTopicsByModule = async (req: Request, res: Response) => {
   try {
-    const topics = await getTopikList(req.params.modulId as string);
+    const payload = await getTopikList(req.params.modulId as string);
 
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil data topik', data: topics });
+    return res.status(200).json(payload);
   } catch (error) {
     return handleTopikError(error, res, 'get');
   }
@@ -41,15 +37,13 @@ export const getTopicsByModule = async (req: Request, res: Response) => {
 
 export const updateTopic = async (req: Request, res: Response) => {
   try {
-    const updatedTopic = await updateTopik(
+    const payload = await updateTopik(
       req.params.id as string,
       req.body,
       req.user?.id,
     );
 
-    return res
-      .status(200)
-      .json({ message: 'Topik berhasil diupdate', data: updatedTopic });
+    return res.status(200).json(payload);
   } catch (error) {
     return handleTopikError(error, res, 'update');
   }
@@ -57,9 +51,9 @@ export const updateTopic = async (req: Request, res: Response) => {
 
 export const deleteTopic = async (req: Request, res: Response) => {
   try {
-    await deleteTopik(req.params.id as string, req.user?.id);
+    const payload = await deleteTopik(req.params.id as string, req.user?.id);
 
-    return res.status(200).json({ message: 'Topik berhasil dihapus' });
+    return res.status(200).json(payload);
   } catch (error) {
     return handleTopikError(error, res, 'delete');
   }

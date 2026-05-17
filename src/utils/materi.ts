@@ -124,4 +124,6 @@ export const deleteMateri = async (materiId: string, tutorId?: string) => {
 
   await prisma.materi.delete({ where: { id: materiId } });
   console.log(`[MATERI] Materi dihapus oleh Tutor ${tutorId}: ${materiId}`);
+
+  return { message: 'Materi berhasil dihapus' };
 };

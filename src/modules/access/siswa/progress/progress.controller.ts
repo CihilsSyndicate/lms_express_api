@@ -1,20 +1,13 @@
 import { Request, Response } from 'express';
-import { ProgressService } from './progress.service';
-
-const progressService = new ProgressService();
+import * as progressService from './progress.service';
+import { parsePaginationQuery } from '../../../../utils/pagination';
 
 export const getProgressByModule = async (req: Request, res: Response) => {
   try {
     const { modulId } = req.params;
     const siswaId = req.user?.id;
 
-    if (req.user?.role !== 'siswa') {
-      return res
-        .status(403)
-        .json({ message: 'Hanya siswa yang bisa melihat progress.' });
-    }
-
-    const progress = await progressService.getProgressByModule(
+    const progress = await progressService.getProgressByModuleService(
       siswaId as string,
       modulId as string,
     );
@@ -23,9 +16,7 @@ export const getProgressByModule = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Progress tidak ditemukan.' });
     }
 
-    res
-      .status(200)
-      .json({ message: 'Berhasil mengambil progress', data: progress });
+    res.status(200).json(progress);
   } catch (error) {
     console.error('[PROGRESS-ERROR] Gagal mengambil progress:', error);
     res
@@ -38,21 +29,23 @@ export const getAllProgressForSiswa = async (req: Request, res: Response) => {
   try {
     const siswaId = req.user?.id;
 
-    if (req.user?.role !== 'siswa') {
-      return res
-        .status(403)
-        .json({ message: 'Hanya siswa yang bisa melihat progress.' });
-    }
+    const { limit, cursor } = parsePaginationQuery(req.query);
 
-    const progresses = await progressService.getAllProgressForSiswa(
+    const progresses = await progressService.getAllProgressForSiswaService(
       siswaId as string,
+      limit,
+      cursor,
     );
 
-    res
-      .status(200)
-      .json({ message: 'Berhasil mengambil semua progress', data: progresses });
-  } catch (error) {
-    console.error('[PROGRESS-ERROR] Gagal mengambil progress siswa:', error);
+    res.status(200).json(progresses);
+  } catch (error: any) {
+    console.error('[PROGRESS-ERROR] Gagal mengambil progress:', error);
+    if (
+      error.message === 'Invalid limit parameter' ||
+      error.message === 'Invalid cursor'
+    ) {
+      return res.status(400).json({ message: error.message });
+    }
     res
       .status(500)
       .json({ message: 'Internal server error saat mengambil progress.' });
@@ -64,22 +57,16 @@ export const markSubmateriCompleted = async (req: Request, res: Response) => {
     const { submateriId } = req.params;
     const siswaId = req.user?.id;
 
-    if (req.user?.role !== 'siswa') {
-      return res
-        .status(403)
-        .json({ message: 'Hanya siswa yang bisa update progress.' });
-    }
-
-    await progressService.markSubmateriCompleted(
+    const payload = await progressService.markSubmateriCompletedService(
       siswaId as string,
       submateriId as string,
     );
 
-    res.status(200).json({ message: 'Submateri berhasil ditandai selesai' });
-  } catch (error) {
-    console.error('[PROGRESS-ERROR] Gagal update progress:', error);
-    res
-      .status(500)
-      .json({ message: 'Internal server error saat update progress.' });
+    res.status(200).json(payload);
+  } catch (error: any) {
+    console.error('[PROGRESS-ERROR] Gagal menandai selesai:', error);
+    res.status(500).json({
+      message: error.message || 'Internal server error saat menandai selesai.',
+    });
   }
 };

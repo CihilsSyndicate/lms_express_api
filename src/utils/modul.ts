@@ -4,6 +4,11 @@ import type {
   Modul,
 } from '@/validators/modul/modul.validator';
 import { prisma } from '@/lib/prisma';
+import {
+  buildCursorPaginatedResponse,
+  buildCursorWhere,
+  decodeCursor,
+} from './pagination';
 
 export const createModule = async (payload: CreateModulRecord) => {
   try {
@@ -29,9 +34,15 @@ export const createModule = async (payload: CreateModulRecord) => {
   }
 };
 
-export const getModules = async () => {
+export const getModules = async (limit: number = 10, cursor?: string) => {
   try {
+    const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
+    const where = buildCursorWhere(cursorPayload);
+
     const modules = await prisma.modul.findMany({
+      where,
+      take: limit + 1,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         tutor: { select: { fullName: true } },
         progress: {
@@ -40,9 +51,14 @@ export const getModules = async () => {
       },
     });
 
-    return modules.map((modul) => ({
+    const items = modules.map((modul) => ({
       ...modul,
       totalSiswa: modul.progress.length,
+    }));
+
+    return buildCursorPaginatedResponse(items, limit, (item) => ({
+      createdAt: item.createdAt,
+      id: item.id,
     }));
   } catch (error) {
     console.error('Error fetching modules:', error);
@@ -108,11 +124,48 @@ export const updateModule = async (
 
 export const deleteModule = async (id: string, tutorId?: string) => {
   try {
-    return await prisma.modul.delete({
+    const existingModule = await getModuleById(id);
+    if (!existingModule) {
+      throw new Error('Module not found');
+    }
+    if (tutorId && existingModule.tutorId !== tutorId) {
+      throw new Error('Unauthorized to delete this module');
+    }
+
+    await prisma.modul.delete({
       where: { id },
     });
+
+    return { message: 'Module deleted successfully' };
   } catch (error) {
     console.error('Error deleting module:', error);
     throw error;
   }
+};
+
+export const assignStudentToModule = async (
+  moduleId: string,
+  studentId: string,
+) => {
+  return prisma.progress.create({
+    data: {
+      modulId: moduleId,
+      siswaId: studentId,
+      progressPercentage: 0,
+    },
+  });
+};
+
+export const unassignStudentFromModule = async (
+  moduleId: string,
+  studentId: string,
+) => {
+  await prisma.progress.deleteMany({
+    where: {
+      modulId: moduleId,
+      siswaId: studentId,
+    },
+  });
+
+  return { message: 'Student unassigned from module successfully' };
 };

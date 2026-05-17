@@ -102,4 +102,6 @@ export const deleteTopik = async (topikId: string, tutorId?: string) => {
 
   await prisma.topik.delete({ where: { id: topikId } });
   console.log(`[TOPIK] Topik dihapus oleh Tutor ${tutorId}: ${topikId}`);
+
+  return { message: 'Topik berhasil dihapus' };
 };

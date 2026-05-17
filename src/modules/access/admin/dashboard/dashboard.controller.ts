@@ -1,32 +1,12 @@
-import { prisma } from '@/lib/prisma';
 import { Request, Response } from 'express';
+import { getDashboardStatsService } from './dashboard.service';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
-    const activeStudents = await prisma.siswa.count();
-
-    const activeQuizzes = await prisma.quiz.count();
-
-    const activeTutors = await prisma.tutor.count();
-
-    const activeModules = await prisma.modul.count({
-      where: {
-        isDraft: false,
-      },
-    });
-
-    const countAllUsers = activeStudents + activeTutors;
-
-    res.json({
-      activeStudents,
-      activeQuizzes,
-      activeTutors,
-      activeModules,
-      countAllUsers,
-      activeClass: activeModules,
-    });
+    const payload = await getDashboardStatsService();
+    return res.status(200).json(payload);
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

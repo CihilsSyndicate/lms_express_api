@@ -1,8 +1,20 @@
 import { Router } from 'express';
-import { Request, Response } from 'express';
+import {
+  assignStudentToModule,
+  createModule,
+  deleteModule,
+  getModuleById,
+  getModules,
+  unassignStudentFromModule,
+  updateModule,
+} from './modul.controller';
 
 export const adminModulRouter = Router();
 
-adminModulRouter.get('/', (req: Request, res: Response) => {
-  res.send('Admin Modul Route');
-});
+adminModulRouter.get('/', getModules);
+adminModulRouter.post('/', createModule);
+adminModulRouter.post('/assign', assignStudentToModule);
+adminModulRouter.delete('/assign', unassignStudentFromModule);
+adminModulRouter.get('/:id', getModuleById);
+adminModulRouter.put('/:id', updateModule);
+adminModulRouter.delete('/:id', deleteModule);

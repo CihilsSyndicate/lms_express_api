@@ -18,14 +18,12 @@ type PretestAction = 'create' | 'addQuestion' | 'get' | 'submit';
 
 export const createPretest = async (req: Request, res: Response) => {
   try {
-    const newPretest = await createPretestRecord(
+    const payload = await createPretestRecord(
       req.body.modul_id,
       req.user?.id,
     );
 
-    return res
-      .status(201)
-      .json({ message: 'Pretest berhasil dibuat', data: newPretest });
+    return res.status(201).json(payload);
   } catch (error) {
     return handlePretestError(error, res, 'create');
   }
@@ -33,11 +31,9 @@ export const createPretest = async (req: Request, res: Response) => {
 
 export const addSoalPretest = async (req: Request, res: Response) => {
   try {
-    const newSoal = await addPretestQuestion(req.body, req.user?.id);
+    const payload = await addPretestQuestion(req.body, req.user?.id);
 
-    return res
-      .status(201)
-      .json({ message: 'Soal pretest berhasil ditambah', data: newSoal });
+    return res.status(201).json(payload);
   } catch (error) {
     return handlePretestError(error, res, 'addQuestion');
   }
@@ -45,11 +41,9 @@ export const addSoalPretest = async (req: Request, res: Response) => {
 
 export const getPretestByModul = async (req: Request, res: Response) => {
   try {
-    const pretest = await getPretestQuestions(req.params.modulId as string);
+    const payload = await getPretestQuestions(req.params.modulId as string);
 
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil pretest', data: pretest });
+    return res.status(200).json(payload);
   } catch (error) {
     return handlePretestError(error, res, 'get');
   }

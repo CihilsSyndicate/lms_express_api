@@ -13,11 +13,9 @@ type TopikAction = 'get';
 
 export const getTopicsByModule = async (req: Request, res: Response) => {
   try {
-    const topics = await getTopikList(req.params.modulId as string);
+    const payload = await getTopikList(req.params.modulId as string);
 
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil data topik', data: topics });
+    return res.status(200).json(payload);
   } catch (error) {
     return handleTopikError(error, res, 'get');
   }

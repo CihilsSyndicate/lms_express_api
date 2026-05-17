@@ -105,9 +105,11 @@ export const submitPretestAnswer = async (
     throw new AppError(403, 'Hanya siswa yang bisa submit pretest.');
   }
 
-  return progressService.calculatePretestScore(
+  const score = await progressService.calculatePretestScore(
     siswaId as string,
     modulId,
     answers,
   );
+
+  return { score };
 };

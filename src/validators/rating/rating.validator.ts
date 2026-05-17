@@ -12,6 +12,8 @@ export const ratingBaseSchema = z.object({
 
 export const ratingCreateSchema = ratingBaseSchema.omit({
   id: true,
+  siswa_id: true,
+  modul_id: true,
   createdAt: true,
   updatedAt: true,
 });

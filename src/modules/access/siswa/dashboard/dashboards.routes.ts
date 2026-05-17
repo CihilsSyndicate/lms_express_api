@@ -1,9 +1,8 @@
 import Router from 'express';
 import { getDashboardData } from './dashboards.controller';
-import { requireRole, verifyToken } from '@/lib/auth';
 
 const dashboardRouter = Router();
 
-dashboardRouter.get('/', verifyToken, requireRole('siswa'), getDashboardData);
+dashboardRouter.get('/', getDashboardData);
 
 export default dashboardRouter;

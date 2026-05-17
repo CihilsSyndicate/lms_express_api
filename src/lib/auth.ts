@@ -53,7 +53,7 @@ export const verifyToken = (
   }
 };
 
-export const requireRole = (role: 'siswa' | 'tutor') => {
+export const requireRole = (role: 'siswa' | 'tutor' | 'admin') => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res

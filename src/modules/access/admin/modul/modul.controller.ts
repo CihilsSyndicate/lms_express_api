@@ -1,31 +1,22 @@
-import { prisma } from '@/lib/prisma';
 import { Request, Response } from 'express';
 import {
+  assignStudentToModule as assignStudentToModuleFunc,
   getModuleById as getModuleByIdFunc,
   updateModule as updateModuleFunc,
   createModule as createModuleFunc,
   deleteModule as deleteModuleFunc,
   getModules as getModulesFunc,
+  unassignStudentFromModule as unassignStudentFromModuleFunc,
 } from '@/utils/modul';
+import { parsePaginationQuery } from '@/utils/pagination';
 
 export const assignStudentToModule = async (req: Request, res: Response) => {
   try {
     const { moduleId, studentId } = req.body;
 
-    const assignToProgress = await prisma.progress.create({
-      data: {
-        modulId: moduleId as string,
-        siswaId: studentId as string,
-        progressPercentage: 0,
-      },
-    });
+    const payload = await assignStudentToModuleFunc(moduleId, studentId);
 
-    res
-      .json({
-        message: 'Student assigned to module successfully',
-        data: assignToProgress,
-      })
-      .status(200);
+    res.status(200).json(payload);
   } catch (error) {
     console.error('Error assigning student to module:', error);
     res
@@ -34,12 +25,33 @@ export const assignStudentToModule = async (req: Request, res: Response) => {
   }
 };
 
+export const unassignStudentFromModule = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { moduleId, studentId } = req.body;
+    const payload = await unassignStudentFromModuleFunc(moduleId, studentId);
+
+    res.status(200).json(payload);
+  } catch (error) {
+    console.error('Error unassigning student from module:', error);
+    res
+      .status(500)
+      .json({ error: 'Failed to unassign student from module', message: error });
+  }
+};
+
 export const getModules = async (req: Request, res: Response) => {
   try {
-    const modules = await getModulesFunc();
-    res.json(modules).status(200);
-  } catch (error) {
+    const { limit, cursor } = parsePaginationQuery(req.query);
+    const modules = await getModulesFunc(limit, cursor);
+    res.status(200).json(modules);
+  } catch (error: any) {
     console.error('Error fetching modules:', error);
+    if (error.message === 'Invalid limit parameter' || error.message === 'Invalid cursor') {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ error: 'Failed to fetch modules' });
   }
 };
@@ -51,7 +63,7 @@ export const getModuleById = async (req: Request, res: Response) => {
     if (!module) {
       return res.status(404).json({ error: 'Module not found' });
     }
-    res.json(module).status(200);
+    res.status(200).json(module);
   } catch (error) {
     console.error('Error fetching module by ID:', error);
     res.status(500).json({ error: 'Failed to fetch module' });
@@ -85,7 +97,7 @@ export const updateModule = async (req: Request, res: Response) => {
         .status(404)
         .json({ error: 'Module not found or unauthorized' });
     }
-    res.json(updatedModule).status(200);
+    res.status(200).json(updatedModule);
   } catch (error) {
     console.error('Error updating module:', error);
     res.status(500).json({ error: 'Failed to update module' });
@@ -96,13 +108,13 @@ export const deleteModule = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const tutorId = req.user?.id;
-    const deletedModule = await deleteModuleFunc(id as string, tutorId);
-    if (!deletedModule) {
+    const payload = await deleteModuleFunc(id as string, tutorId);
+    if (!payload) {
       return res
         .status(404)
         .json({ error: 'Module not found or unauthorized' });
     }
-    res.json({ message: 'Module deleted successfully' }).status(200);
+    res.status(200).json(payload);
   } catch (error) {
     console.error('Error deleting module:', error);
     res.status(500).json({ error: 'Failed to delete module' });

@@ -18,14 +18,12 @@ type PosttestAction = 'create' | 'addQuestion' | 'get' | 'submit';
 
 export const createPosttest = async (req: Request, res: Response) => {
   try {
-    const newPosttest = await createPosttestRecord(
+    const payload = await createPosttestRecord(
       req.body.modul_id,
       req.user?.id,
     );
 
-    return res
-      .status(201)
-      .json({ message: 'Posttest berhasil dibuat', data: newPosttest });
+    return res.status(201).json(payload);
   } catch (error) {
     return handlePosttestError(error, res, 'create');
   }
@@ -33,11 +31,9 @@ export const createPosttest = async (req: Request, res: Response) => {
 
 export const addSoalPosttest = async (req: Request, res: Response) => {
   try {
-    const newSoal = await addPosttestQuestion(req.body, req.user?.id);
+    const payload = await addPosttestQuestion(req.body, req.user?.id);
 
-    return res
-      .status(201)
-      .json({ message: 'Soal posttest berhasil ditambah', data: newSoal });
+    return res.status(201).json(payload);
   } catch (error) {
     return handlePosttestError(error, res, 'addQuestion');
   }
@@ -45,11 +41,9 @@ export const addSoalPosttest = async (req: Request, res: Response) => {
 
 export const getPosttestByModul = async (req: Request, res: Response) => {
   try {
-    const posttest = await getPosttestQuestions(req.params.modulId as string);
+    const payload = await getPosttestQuestions(req.params.modulId as string);
 
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil posttest', data: posttest });
+    return res.status(200).json(payload);
   } catch (error) {
     return handlePosttestError(error, res, 'get');
   }

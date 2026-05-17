@@ -6,14 +6,21 @@ import {
   deleteModule as deleteModuleFunc,
   getModules as getModulesFunc,
 } from '@/utils/modul';
-import { prisma } from '@/lib/prisma';
+import { parsePaginationQuery } from '@/utils/pagination';
 
 export const getModules = async (req: Request, res: Response) => {
   try {
-    const modules = await getModulesFunc();
-    res.json(modules).status(200);
-  } catch (error) {
+    const { limit, cursor } = parsePaginationQuery(req.query);
+    const modules = await getModulesFunc(limit, cursor);
+    res.status(200).json(modules);
+  } catch (error: any) {
     console.error('Error fetching modules:', error);
+    if (
+      error.message === 'Invalid limit parameter' ||
+      error.message === 'Invalid cursor'
+    ) {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ error: 'Failed to fetch modules' });
   }
 };
@@ -25,7 +32,7 @@ export const getModuleById = async (req: Request, res: Response) => {
     if (!module) {
       return res.status(404).json({ error: 'Module not found' });
     }
-    res.json(module).status(200);
+    res.status(200).json(module);
   } catch (error) {
     console.error('Error fetching module by ID:', error);
     res.status(500).json({ error: 'Failed to fetch module' });
@@ -59,7 +66,7 @@ export const updateModule = async (req: Request, res: Response) => {
         .status(404)
         .json({ error: 'Module not found or unauthorized' });
     }
-    res.json(updatedModule).status(200);
+    res.status(200).json(updatedModule);
   } catch (error) {
     console.error('Error updating module:', error);
     res.status(500).json({ error: 'Failed to update module' });
@@ -70,13 +77,13 @@ export const deleteModule = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const tutorId = req.user?.id;
-    const deletedModule = await deleteModuleFunc(id as string, tutorId);
-    if (!deletedModule) {
+    const payload = await deleteModuleFunc(id as string, tutorId);
+    if (!payload) {
       return res
         .status(404)
         .json({ error: 'Module not found or unauthorized' });
     }
-    res.json({ message: 'Module deleted successfully' }).status(200);
+    res.status(200).json(payload);
   } catch (error) {
     console.error('Error deleting module:', error);
     res.status(500).json({ error: 'Failed to delete module' });

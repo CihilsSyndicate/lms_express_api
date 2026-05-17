@@ -5,14 +5,12 @@ import {
   updateMaterial,
   deleteMaterial,
 } from './materi.controller';
-import { verifyToken, requireRole } from '@/lib/auth';
 
 const materiRouter = Router();
 
-materiRouter.get('/:modulId', verifyToken, getMaterialsByModule);
-
-materiRouter.post('/', verifyToken, requireRole('tutor'), createMaterial);
-materiRouter.put('/:id', verifyToken, requireRole('tutor'), updateMaterial);
-materiRouter.delete('/:id', verifyToken, requireRole('tutor'), deleteMaterial);
+materiRouter.get('/:modulId', getMaterialsByModule);
+materiRouter.post('/', createMaterial);
+materiRouter.put('/:id', updateMaterial);
+materiRouter.delete('/:id', deleteMaterial);
 
 export default materiRouter;

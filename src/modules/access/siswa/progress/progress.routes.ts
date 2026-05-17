@@ -4,28 +4,11 @@ import {
   getAllProgressForSiswa,
   markSubmateriCompleted,
 } from './progress.controller';
-import { verifyToken, requireRole } from '@/lib/auth';
 
 const progressRouter = Router();
 
-progressRouter.get(
-  '/',
-  verifyToken,
-  requireRole('siswa'),
-  getAllProgressForSiswa,
-);
-progressRouter.get(
-  '/:modulId',
-  verifyToken,
-  requireRole('siswa'),
-  getProgressByModule,
-);
-
-progressRouter.post(
-  '/submateri/:submateriId/complete',
-  verifyToken,
-  requireRole('siswa'),
-  markSubmateriCompleted,
-);
+progressRouter.get('/', getAllProgressForSiswa);
+progressRouter.get('/:modulId', getProgressByModule);
+progressRouter.post('/submateri/:submateriId/complete', markSubmateriCompleted);
 
 export default progressRouter;

@@ -17,11 +17,9 @@ type MateriAction = 'create' | 'get' | 'update' | 'delete';
 
 export const createMaterial = async (req: Request, res: Response) => {
   try {
-    const newMaterial = await createMateri(req.body, req.user?.id);
+    const payload = await createMateri(req.body, req.user?.id);
 
-    return res
-      .status(201)
-      .json({ message: 'Materi berhasil dibuat', data: newMaterial });
+    return res.status(201).json(payload);
   } catch (error) {
     return handleMateriError(error, res, 'create');
   }
@@ -29,11 +27,9 @@ export const createMaterial = async (req: Request, res: Response) => {
 
 export const getMaterialsByModule = async (req: Request, res: Response) => {
   try {
-    const materials = await getMateriList(req.params.modulId as string);
+    const payload = await getMateriList(req.params.modulId as string);
 
-    return res
-      .status(200)
-      .json({ message: 'Berhasil mengambil data materi', data: materials });
+    return res.status(200).json(payload);
   } catch (error) {
     return handleMateriError(error, res, 'get');
   }
@@ -41,15 +37,13 @@ export const getMaterialsByModule = async (req: Request, res: Response) => {
 
 export const updateMaterial = async (req: Request, res: Response) => {
   try {
-    const updatedMaterial = await updateMateri(
+    const payload = await updateMateri(
       req.params.id as string,
       req.body,
       req.user?.id,
     );
 
-    return res
-      .status(200)
-      .json({ message: 'Materi berhasil diupdate', data: updatedMaterial });
+    return res.status(200).json(payload);
   } catch (error) {
     return handleMateriError(error, res, 'update');
   }
@@ -57,9 +51,9 @@ export const updateMaterial = async (req: Request, res: Response) => {
 
 export const deleteMaterial = async (req: Request, res: Response) => {
   try {
-    await deleteMateri(req.params.id as string, req.user?.id);
+    const payload = await deleteMateri(req.params.id as string, req.user?.id);
 
-    return res.status(200).json({ message: 'Materi berhasil dihapus' });
+    return res.status(200).json(payload);
   } catch (error) {
     return handleMateriError(error, res, 'delete');
   }

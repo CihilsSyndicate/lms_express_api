@@ -21,7 +21,7 @@ export const createMaterial = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: 'Materi berhasil dibuat', data: newMaterial });
+      .json({ message: 'Materi berhasil dibuat', result: newMaterial });
   } catch (error) {
     return handleMateriError(error, res, 'create');
   }
@@ -33,7 +33,7 @@ export const getMaterialsByModule = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: 'Berhasil mengambil data materi', data: materials });
+      .json({ message: 'Berhasil mengambil data materi', items: materials });
   } catch (error) {
     return handleMateriError(error, res, 'get');
   }
@@ -49,7 +49,7 @@ export const updateMaterial = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: 'Materi berhasil diupdate', data: updatedMaterial });
+      .json({ message: 'Materi berhasil diupdate', result: updatedMaterial });
   } catch (error) {
     return handleMateriError(error, res, 'update');
   }

@@ -1,14 +1,33 @@
 import { prisma } from '@/lib/prisma';
+import {
+  buildCursorPaginatedResponse,
+  buildCursorWhere,
+  decodeCursor,
+} from './pagination';
 
-export const getStudentCertificates = async (userId: string) => {
+export const getStudentCertificates = async (
+  userId: string,
+  limit: number = 10,
+  cursor?: string,
+) => {
   try {
+    const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
+    const cursorWhere = buildCursorWhere(cursorPayload);
+
     const certificates = await prisma.certificate.findMany({
       where: {
-        siswaId: userId,
-        progress: {
-          status: 'completed',
-        },
+        AND: [
+          {
+            siswaId: userId,
+            progress: {
+              status: 'completed',
+            },
+          },
+          cursorWhere,
+        ],
       },
+      take: limit + 1,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         modul: {
           select: {
@@ -25,7 +44,11 @@ export const getStudentCertificates = async (userId: string) => {
         },
       },
     });
-    return certificates;
+
+    return buildCursorPaginatedResponse(certificates, limit, (item) => ({
+      createdAt: item.createdAt,
+      id: item.id,
+    }));
   } catch (error) {
     throw new Error(`Gagal mengambil sertifikat: ${error}`);
   }

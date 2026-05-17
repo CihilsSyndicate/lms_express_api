@@ -1,6 +1,14 @@
 import Router from 'express';
-import { registerSiswa } from './siswa.controller';
+import {
+  deactivateSiswa,
+  deleteSiswa,
+  registerSiswa,
+  updateSiswa,
+} from './siswa.controller';
 
 export const pengelolaanSiswaRouter = Router();
 
-pengelolaanSiswaRouter.post('/siswa', registerSiswa);
+pengelolaanSiswaRouter.post('/', registerSiswa);
+pengelolaanSiswaRouter.put('/:id', updateSiswa);
+pengelolaanSiswaRouter.delete('/:id', deleteSiswa);
+pengelolaanSiswaRouter.patch('/:id/deactivate', deactivateSiswa);

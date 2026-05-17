@@ -24,7 +24,7 @@ export const createPretest = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: 'Pretest berhasil dibuat', data: newPretest });
+      .json({ message: 'Pretest berhasil dibuat', result: newPretest });
   } catch (error) {
     return handlePretestError(error, res, 'create');
   }
@@ -36,7 +36,7 @@ export const addSoalPretest = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: 'Soal pretest berhasil ditambah', data: newSoal });
+      .json({ message: 'Soal pretest berhasil ditambah', result: newSoal });
   } catch (error) {
     return handlePretestError(error, res, 'addQuestion');
   }
@@ -48,7 +48,7 @@ export const getPretestByModul = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: 'Berhasil mengambil pretest', data: pretest });
+      .json({ message: 'Berhasil mengambil pretest', result: pretest });
   } catch (error) {
     return handlePretestError(error, res, 'get');
   }
@@ -65,7 +65,7 @@ export const submitPretest = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json({ message: 'Pretest berhasil disubmit', score });
+      .json({ message: 'Pretest berhasil disubmit', result: score });
   } catch (error) {
     return handlePretestError(error, res, 'submit');
   }

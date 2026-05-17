@@ -126,4 +126,6 @@ export const deleteSubmateri = async (
   console.log(
     `[SUBMATERI] Submateri dihapus oleh Tutor ${tutorId}: ${submateriId}`,
   );
+
+  return { message: 'Submateri berhasil dihapus' };
 };

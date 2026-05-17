@@ -22,7 +22,7 @@ export const createSubmaterial = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: 'Submateri berhasil dibuat', data: newSubmaterial });
+      .json({ message: 'Submateri berhasil dibuat', result: newSubmaterial });
   } catch (error) {
     return handleSubmateriError(error, res, 'create');
   }
@@ -37,7 +37,7 @@ export const getSubmaterialsByMaterial = async (
 
     return res.status(200).json({
       message: 'Berhasil mengambil data submateri',
-      data: submaterials,
+      items: submaterials,
     });
   } catch (error) {
     return handleSubmateriError(error, res, 'get');
@@ -50,7 +50,7 @@ export const getSubmaterialDetail = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       message: 'Berhasil mengambil detail submateri',
-      data: submateri,
+      result: submateri,
     });
   } catch (error) {
     return handleSubmateriError(error, res, 'get');
@@ -67,7 +67,7 @@ export const updateSubmaterial = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       message: 'Submateri berhasil diupdate',
-      data: updatedSubmaterial,
+      result: updatedSubmaterial,
     });
   } catch (error) {
     return handleSubmateriError(error, res, 'update');
