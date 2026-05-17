@@ -60,7 +60,7 @@ passport.use(
 
         return done(null, {
           id: tutor.id,
-          name: tutor.nama_lengkap,
+          name: tutor.fullName,
           email: tutor.email,
           role: 'tutor'
         });
@@ -81,15 +81,13 @@ passport.use('siswa-google', new GoogleStrategy({
     try {
 
       const siswa = await prisma.siswa.upsert({
-        where: { googleId: profile.id as string },
+        where: { email: profile.emails[0].value as string },
         update: {
-          googleId: profile.id as string,
         },
         create: {
-          googleId: profile.id as string,
           nama_lengkap: profile.displayName as string,
           email: profile.emails[0].value as string,
-          profile_img: profile.photos[0].value as string,
+          profileImage: profile.photos[0].value as string,
           password: "",
           jenjang: "",
           kelas_sekolah: "",
@@ -125,24 +123,24 @@ passport.use('tutor-google', new GoogleStrategy({
         },
         create: {
           googleId: profile.id as string,
-          nama_lengkap: profile.displayName as string,
+          fullName: profile.displayName as string,
           email: profile.emails[0].value as string,
-          profile_img: profile.photos[0].value as string,
+          profileImg: profile.photos[0].value as string,
           password: "",
           gender: "",
           pekerjaan: "",
-          no_whatsapp: "",
-          pendidikan_terakhir: "",
-          nama_instansi: "",
+          whatsappNumber: "",
+          lastEducation: "",
+          institution: "",
           prodi: "",
-          cv_path_url: ""
+          cvPathUrl: ""
 
         }
       })
 
       return done(null, {
         id: tutor.id,
-        name: tutor.nama_lengkap,
+        name: tutor.fullName,
         email: tutor.email,
         role: 'tutor'
       })

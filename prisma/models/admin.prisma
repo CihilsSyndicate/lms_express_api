@@ -1,0 +1,17 @@
+model Admin {
+    id       String @id @default(uuid())
+    email    String @unique
+    password String
+    username String
+
+    fullName String
+    gender   String
+
+    role String @default("admin")
+
+    whatsappNumber String
+    profileImg     String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}

@@ -18,22 +18,22 @@ async function main() {
     where: { email: 'tutor@example.com' },
     update: {},
     create: {
-      nama_lengkap: 'Dr. Ahmad Tutor',
+      fullName: 'Dr. Ahmad Tutor',
       email: 'tutor@example.com',
       password: tutorPassword,
       gender: 'Laki-laki',
       pekerjaan: 'Dosen',
-      no_whatsapp: '08123456789',
-      pendidikan_terakhir: 'S3',
-      nama_instansi: 'Universitas ABC',
+      whatsappNumber: '08123456789',
+      lastEducation: 'S3',
+      institution: 'Universitas ABC',
       prodi: 'Matematika',
-      cv_path_url: 'https://example.com/cv.pdf',
+      cvPathUrl: 'https://example.com/cv.pdf',
     },
   });
 
   // Create siswa
   const siswaPassword = hashSync('password123', genSaltSync(10));
-  const siswa1 = await prisma.siswa.upsert({
+  await prisma.siswa.upsert({
     where: { email: 'siswa1@example.com' },
     update: {},
     create: {
@@ -45,7 +45,7 @@ async function main() {
     },
   });
 
-  const siswa2 = await prisma.siswa.upsert({
+  await prisma.siswa.upsert({
     where: { email: 'siswa2@example.com' },
     update: {},
     create: {
@@ -59,32 +59,33 @@ async function main() {
 
   // Create modul
   let modul = await prisma.modul.findFirst({
-    where: { nama_modul: 'Aljabar Dasar' },
+    where: { moduleName: 'Aljabar Dasar' },
   });
 
   if (!modul) {
     modul = await prisma.modul.create({
       data: {
-        nama_modul: 'Aljabar Dasar',
-        deskripsi: 'Modul pembelajaran aljabar untuk siswa SMA',
-        target_waktu: 120,
-        tingkat_kesulitan: 'Beginner',
-        jenjang: 'SMA',
-        kelas_sekolah: '10-12',
-        tutor_id: tutor.id,
+        moduleName: 'Aljabar Dasar',
+        description: 'Modul pembelajaran aljabar untuk siswa SMA',
+        subtitle: 'Belajar Aljabar Dasar dengan mudah',
+        targetTime: 120,
+        difficulty: 'Beginner',
+        level: 'SMA',
+        class: '10-12',
+        tutorId: tutor.id,
       },
     });
   }
 
   // Create knowledge components
   let kc1 = await prisma.knowledgeComponent.findFirst({
-    where: { code: 'algebra_basics', modul_id: modul.id },
+    where: { code: 'algebra_basics', modulId: modul.id },
   });
 
   if (!kc1) {
     kc1 = await prisma.knowledgeComponent.create({
       data: {
-        modul_id: modul.id,
+        modulId: modul.id,
         code: 'algebra_basics',
         nama: 'Dasar Aljabar',
         deskripsi: 'Konsep dasar aljabar seperti variabel dan operasi',
@@ -93,13 +94,13 @@ async function main() {
   }
 
   let kc2 = await prisma.knowledgeComponent.findFirst({
-    where: { code: 'equations', modul_id: modul.id },
+    where: { code: 'equations', modulId: modul.id },
   });
 
   if (!kc2) {
     kc2 = await prisma.knowledgeComponent.create({
       data: {
-        modul_id: modul.id,
+        modulId: modul.id,
         code: 'equations',
         nama: 'Persamaan Linear',
         deskripsi: 'Menyelesaikan persamaan linear',
@@ -107,31 +108,45 @@ async function main() {
     });
   }
 
+  // Create topik
+  let topik = await prisma.topik.findFirst({
+    where: { modulId: modul.id, nama: 'Variabel dan Konstanta' },
+  });
+
+  if (!topik) {
+    topik = await prisma.topik.create({
+      data: {
+        modulId: modul.id,
+        nama: 'Variabel dan Konstanta',
+      },
+    });
+  }
+
   // Create materi
   let materi1 = await prisma.materi.findFirst({
-    where: { modul_id: modul.id, is_video: true },
+    where: { topikId: topik.id, isVideo: true },
   });
 
   if (!materi1) {
     materi1 = await prisma.materi.create({
       data: {
-        modul_id: modul.id,
-        tutor_id: tutor.id,
-        is_video: true,
-        video_url: 'https://example.com/video1.mp4',
+        topikId: topik.id,
+        tutorId: tutor.id,
+        isVideo: true,
+        videoUrl: 'https://example.com/video1.mp4',
       },
     });
   }
 
   // Create submateri
   let submateri1 = await prisma.submateri.findFirst({
-    where: { materi_id: materi1.id, judul: 'Pengenalan Variabel' },
+    where: { materiId: materi1.id, judul: 'Pengenalan Variabel' },
   });
 
   if (!submateri1) {
     submateri1 = await prisma.submateri.create({
       data: {
-        materi_id: materi1.id,
+        materiId: materi1.id,
         judul: 'Pengenalan Variabel',
         konten: 'Konten tentang variabel...',
       },
@@ -139,29 +154,15 @@ async function main() {
   }
 
   let submateri2 = await prisma.submateri.findFirst({
-    where: { materi_id: materi1.id, judul: 'Operasi Aljabar' },
+    where: { materiId: materi1.id, judul: 'Operasi Aljabar' },
   });
 
   if (!submateri2) {
     submateri2 = await prisma.submateri.create({
       data: {
-        materi_id: materi1.id,
+        materiId: materi1.id,
         judul: 'Operasi Aljabar',
         konten: 'Konten tentang operasi...',
-      },
-    });
-  }
-
-  // Create topik
-  const existingTopik = await prisma.topik.findFirst({
-    where: { modul_id: modul.id, nama: 'Variabel dan Konstanta' },
-  });
-
-  if (!existingTopik) {
-    await prisma.topik.create({
-      data: {
-        modul_id: modul.id,
-        nama: 'Variabel dan Konstanta',
       },
     });
   }
@@ -174,66 +175,72 @@ async function main() {
   if (!pretest) {
     pretest = await prisma.pretest.create({
       data: {
-        modul: {
-          connect: { id: modul.id },
-        },
+        pretestName: 'Pretest Aljabar Dasar',
       },
     });
 
     await prisma.modul.update({
       where: { id: modul.id },
-      data: { pretest_id: pretest.id },
+      data: { pretestId: pretest.id },
     });
   }
 
   // Create soal pretest with mapping
   let soal1 = await prisma.soalPretest.findFirst({
-    where: { pretest_id: pretest.id, pertanyaan: 'Apa itu variabel?' },
+    where: { pretestId: pretest.id, pertanyaan: 'Apa itu variabel?' },
   });
 
   if (!soal1) {
     soal1 = await prisma.soalPretest.create({
       data: {
-        pretest_id: pretest.id,
+        pretestId: pretest.id,
         pertanyaan: 'Apa itu variabel?',
-        pilihan: [
-          'Konstanta',
-          'Simbol untuk nilai yang berubah',
-          'Angka tetap',
-        ],
-        jawaban_benar: 'Simbol untuk nilai yang berubah',
+        answerOptions: {
+          create: [
+            { option: 'Konstanta' },
+            { option: 'Simbol untuk nilai yang berubah' },
+            { option: 'Angka tetap' },
+          ]
+        },
+        correctAnswer: 'Simbol untuk nilai yang berubah',
         skor: 10,
       },
     });
 
     await prisma.pretestQuestionSkillMap.create({
       data: {
-        soal_pretest_id: soal1.id,
-        knowledge_component_id: kc1.id,
+        pretestQuestionId: soal1.id,
+        knowledgeComponentId: kc1.id,
         weight: 1.0,
       },
     });
   }
 
   let soal2 = await prisma.soalPretest.findFirst({
-    where: { pretest_id: pretest.id, pertanyaan: '2x + 3 = 7, x = ?' },
+    where: { pretestId: pretest.id, pertanyaan: '2x + 3 = 7, x = ?' },
   });
 
   if (!soal2) {
     soal2 = await prisma.soalPretest.create({
       data: {
-        pretest_id: pretest.id,
+        pretestId: pretest.id,
         pertanyaan: '2x + 3 = 7, x = ?',
-        pilihan: ['2', '4', '1'],
-        jawaban_benar: '2',
+        answerOptions: {
+          create: [
+            { option: '2' },
+            { option: '4' },
+            { option: '1' },
+          ]
+        },
+        correctAnswer: '2',
         skor: 10,
       },
     });
 
     await prisma.pretestQuestionSkillMap.create({
       data: {
-        soal_pretest_id: soal2.id,
-        knowledge_component_id: kc2.id,
+        pretestQuestionId: soal2.id,
+        knowledgeComponentId: kc2.id,
         weight: 1.0,
       },
     });
@@ -242,20 +249,20 @@ async function main() {
   // Create unlock rules
   const existingRule = await prisma.moduleUnlockRule.findFirst({
     where: {
-      modul_id: modul.id,
-      target_type: 'SUBMATERI',
-      target_id: submateri2.id,
+      modulId: modul.id,
+      targetType: 'SUBMATERI',
+      targetId: submateri2.id,
     },
   });
 
   if (!existingRule) {
     await prisma.moduleUnlockRule.create({
       data: {
-        modul_id: modul.id,
-        target_type: 'SUBMATERI',
-        target_id: submateri2.id,
-        knowledge_component_id: kc1.id,
-        mastery_threshold: 0.8,
+        modulId: modul.id,
+        targetType: 'SUBMATERI',
+        targetId: submateri2.id,
+        knowledgeComponentId: kc1.id,
+        materyTreshold: 0.8,
       },
     });
   }
