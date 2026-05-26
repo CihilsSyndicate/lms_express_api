@@ -15,6 +15,8 @@ export const createQuiz = async (payload: QuizPayload) => {
   try {
     const { quiz, answerOptions, setting } = payload;
 
+    console.log(payload);
+
     const newQuiz = await prisma.quiz.create({
       data: {
         ...quiz,
@@ -22,8 +24,12 @@ export const createQuiz = async (payload: QuizPayload) => {
         quizAnswerOptions: {
           createMany: { data: answerOptions },
         },
-        quizSetting: {
-          create: setting,
+        // create quiz setting in a nested create so Prisma links it to the new quiz
+        quizSettings: {
+          create: {
+            timeLimit: setting.timeLimit ?? null,
+            minScoreTreshold: setting.minScoreTreshold ?? null,
+          },
         },
       },
     });

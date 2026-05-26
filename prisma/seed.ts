@@ -31,6 +31,24 @@ async function main() {
     },
   });
 
+  // Create admin
+  const adminPassword = hashSync('adminpassword', genSaltSync(10));
+  await prisma.admin.upsert({
+    where: { email: 'admin@example.com' },
+    update: {},
+    create: {
+      email: 'admin@example.com',
+      password: adminPassword,
+      username: 'admin',
+      fullName: 'Admin Utama',
+      gender: 'Laki-laki',
+      whatsappNumber: '081298765432',
+      profileImg: null,
+    },
+  });
+
+  
+
   // Create siswa
   const siswaPassword = hashSync('password123', genSaltSync(10));
   await prisma.siswa.upsert({

@@ -19,12 +19,12 @@ model Modul {
     modulType ModulType @default(SISWA)
 
     tutorId String
-    tutor   Tutor  @relation(fields: [tutorId], references: [id])
+    tutor   Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     topiks     Topik[]
-    pretest    Pretest?  @relation(fields: [pretestId], references: [id])
+    pretest    Pretest?  @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     pretestId  String?   @unique
-    posttest   Posttest? @relation(fields: [posttestId], references: [id])
+    posttest   Posttest? @relation(fields: [posttestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     posttestId String?   @unique
     isDraft    Boolean   @default(true)
 
@@ -46,7 +46,7 @@ model Topik {
     id                      String                  @id @default(cuid())
     nama                    String
     modulId                 String
-    modul                   Modul                   @relation(fields: [modulId], references: [id])
+    modul                   Modul                   @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     topikItems              TopikItem[]
     automaticAccessMateries AutomaticAccessMatery[]
     isComputationalThinking Boolean                 @default(false)
@@ -59,7 +59,7 @@ model Topik {
 model TopikItem {
     id      String @id @default(cuid())
     topikId String
-    topik   Topik  @relation(fields: [topikId], references: [id])
+    topik   Topik  @relation(fields: [topikId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     itemId      String
     orderNumber Int
@@ -75,12 +75,12 @@ model TopikItem {
 model Materi {
     id       String  @id @default(cuid())
     tutorId  String
-    tutor    Tutor   @relation(fields: [tutorId], references: [id])
+    tutor    Tutor   @relation(fields: [tutorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     isVideo  Boolean @default(false)
     videoUrl String?
     article  String? @db.Text
     topikId  String
-    topik    Topik   @relation(fields: [topikId], references: [id])
+    topik    Topik   @relation(fields: [topikId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     submateris Submateri[]
 
@@ -93,7 +93,7 @@ model Materi {
 model Submateri {
     id               String           @id @default(cuid())
     materiId         String
-    materi           Materi           @relation(fields: [materiId], references: [id])
+    materi           Materi           @relation(fields: [materiId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     judul            String
     konten           String           @db.Text
     progress_details ProgressDetail[]
@@ -105,7 +105,7 @@ model Submateri {
 model Quiz {
     id                 String  @id @default(cuid())
     materiId           String
-    materi             Materi  @relation(fields: [materiId], references: [id])
+    materi             Materi  @relation(fields: [materiId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     quizImgQuestionUrl String?
 
     question String @db.Text
@@ -123,7 +123,7 @@ model Quiz {
 model QuizAnswerOption {
     id     String @id @default(cuid())
     quizId String
-    quiz   Quiz   @relation(fields: [quizId], references: [id])
+    quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     option String
 
     createdAt DateTime @default(now())
@@ -132,7 +132,7 @@ model QuizAnswerOption {
 model QuizSetting {
     id                             String  @id @default(cuid())
     quizId                         String
-    quiz                           Quiz    @relation(fields: [quizId], references: [id])
+    quiz                           Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     timeLimit                      Int? // dalam detik
     allowMultipleAttempts          Boolean @default(false)
     isComputationalThinkingEnabled Boolean @default(false)
@@ -167,7 +167,7 @@ model Posttest {
 model SoalPretest {
     id                    String                    @id @default(cuid())
     pretestId             String
-    pretest               Pretest                   @relation(fields: [pretestId], references: [id])
+    pretest               Pretest                   @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     pertanyaan            String                    @db.Text
     pretestQuestionImgUrl String?
     answerOptions         PretestAnswerOptions[]
@@ -183,7 +183,7 @@ model SoalPretest {
 model PretestAnswerOptions {
     id              String      @id @default(cuid())
     soalPretestId   String
-    pretestQuestion SoalPretest @relation(fields: [soalPretestId], references: [id])
+    pretestQuestion SoalPretest @relation(fields: [soalPretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     option          String
 
     createdAt DateTime @default(now())
@@ -192,7 +192,7 @@ model PretestAnswerOptions {
 model PretestSetting {
     id                  String  @id @default(cuid())
     pretestId           String
-    pretest             Pretest @relation(fields: [pretestId], references: [id])
+    pretest             Pretest @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     duration            Int // dalam detik
     countShownQuestions Int
 
@@ -202,24 +202,24 @@ model PretestSetting {
 model AutomaticAccessMatery {
     id        String   @id @default(cuid())
     pretestId String?
-    pretest   Pretest? @relation(fields: [pretestId], references: [id])
+    pretest   Pretest? @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     materiId  String
-    materi    Materi   @relation(fields: [materiId], references: [id])
+    materi    Materi   @relation(fields: [materiId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     minScore       Int     @default(0)
     selectedTopics Topik[]
 
     createdAt     DateTime     @default(now())
-    modul         Modul?       @relation(fields: [modulId], references: [id])
+    modul         Modul?       @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     modulId       String?
-    soalPretest   SoalPretest? @relation(fields: [soalPretestId], references: [id])
+    soalPretest   SoalPretest? @relation(fields: [soalPretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     soalPretestId String?
 }
 
 model SoalPosttest {
     id            String   @id @default(cuid())
     posttestId    String
-    posttest      Posttest @relation(fields: [posttestId], references: [id])
+    posttest      Posttest @relation(fields: [posttestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     question      String   @db.Text
     pilihan       Json
     correctAnswer String
@@ -233,7 +233,7 @@ model SoalPosttest {
 model ComputationalThinking {
     id        String  @id @default(cuid())
     modulId   String
-    modul     Modul   @relation(fields: [modulId], references: [id])
+    modul     Modul   @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     aspek     String // e.g., 'Decomposition', 'Pattern Recognition'
     deskripsi String? @db.Text
 
@@ -245,9 +245,9 @@ model ComputationalThinking {
 model Certificate {
     id             String   @id @default(cuid())
     siswaId        String
-    siswa          Siswa    @relation(fields: [siswaId], references: [id])
+    siswa          Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     modulId        String
-    modul          Modul    @relation(fields: [modulId], references: [id])
+    modul          Modul    @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     kode_sertif    String   @unique
     issued_at      DateTime @default(now())
     certificateUrl String
@@ -260,7 +260,7 @@ model Certificate {
 model KnowledgeComponent {
     id        String   @id @default(cuid())
     modulId   String
-    modul     Modul    @relation(fields: [modulId], references: [id])
+    modul     Modul    @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     code      String // e.g., "algebra_basics"
     nama      String
     deskripsi String?  @db.Text
@@ -278,9 +278,9 @@ model KnowledgeComponent {
 model PretestQuestionSkillMap {
     id                   String             @id @default(cuid())
     pretestQuestionId    String
-    soalPretest          SoalPretest        @relation(fields: [pretestQuestionId], references: [id])
+    soalPretest          SoalPretest        @relation(fields: [pretestQuestionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     knowledgeComponentId String
-    knowledgeComponent   KnowledgeComponent @relation(fields: [knowledgeComponentId], references: [id])
+    knowledgeComponent   KnowledgeComponent @relation(fields: [knowledgeComponentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     weight               Float              @default(1.0) // bobot skill di soal
 
     createdAt DateTime @default(now())
@@ -296,9 +296,9 @@ model Rating {
     komentar String? @db.Text
 
     siswaId String
-    siswa   Siswa  @relation(fields: [siswaId], references: [id])
+    siswa   Siswa  @relation(fields: [siswaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-    modul   Modul?  @relation(fields: [modulId], references: [id])
+    modul   Modul?  @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     modulId String?
 }
 

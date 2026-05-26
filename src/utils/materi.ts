@@ -13,6 +13,7 @@ import type {
 export const createMateri = async (
   payload: CreateMateriRecord,
   tutorId?: string,
+  userRole?: string,
 ) => {
   if (!tutorId) {
     throw new AppError(401, 'Akses ditolak.');
@@ -23,7 +24,9 @@ export const createMateri = async (
     include: { modul: true },
   });
 
-  if (!topik || topik.modul.tutorId !== tutorId) {
+  if (!topik) throw new AppError(404, 'Topik tidak ditemukan.');
+
+  if (userRole !== 'admin' && topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menambah materi ke topik ini.',
@@ -38,7 +41,7 @@ export const createMateri = async (
     article?: string | null;
   } = {
     topikId: payload.topik_id,
-    tutorId: tutorId,
+    tutorId: userRole === 'admin' ? topik.modul.tutorId : tutorId,
     isVideo: payload.is_video ?? false,
   };
 
@@ -48,7 +51,7 @@ export const createMateri = async (
   const newMaterial = await prisma.materi.create({ data });
 
   console.log(
-    `[MATERI] Materi baru dibuat oleh Tutor ${tutorId}: ${newMaterial.id}`,
+    `[MATERI] Materi baru dibuat oleh ${userRole || 'Tutor'} ${tutorId}: ${newMaterial.id}`,
   );
 
   return newMaterial;
@@ -68,6 +71,7 @@ export const updateMateri = async (
   materiId: string,
   payload: UpdateMateriRecord,
   tutorId?: string,
+  userRole?: string,
 ) => {
   const materi = await prisma.materi.findUnique({
     where: { id: materiId },
@@ -78,7 +82,7 @@ export const updateMateri = async (
     throw new AppError(404, 'Materi tidak ditemukan.');
   }
 
-  if (materi.topik.modul.tutorId !== tutorId) {
+  if (userRole !== 'admin' && materi.topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak mengubah materi ini.',
@@ -100,12 +104,12 @@ export const updateMateri = async (
     data,
   });
 
-  console.log(`[MATERI] Materi diupdate oleh Tutor ${tutorId}: ${materiId}`);
+  console.log(`[MATERI] Materi diupdate oleh ${userRole || 'Tutor'} ${tutorId}: ${materiId}`);
 
   return updatedMaterial;
 };
 
-export const deleteMateri = async (materiId: string, tutorId?: string) => {
+export const deleteMateri = async (materiId: string, tutorId?: string, userRole?: string) => {
   const materi = await prisma.materi.findUnique({
     where: { id: materiId },
     include: { topik: { include: { modul: true } } },
@@ -115,7 +119,7 @@ export const deleteMateri = async (materiId: string, tutorId?: string) => {
     throw new AppError(404, 'Materi tidak ditemukan.');
   }
 
-  if (materi.topik.modul.tutorId !== tutorId) {
+  if (userRole !== 'admin' && materi.topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menghapus materi ini.',
@@ -123,7 +127,7 @@ export const deleteMateri = async (materiId: string, tutorId?: string) => {
   }
 
   await prisma.materi.delete({ where: { id: materiId } });
-  console.log(`[MATERI] Materi dihapus oleh Tutor ${tutorId}: ${materiId}`);
+  console.log(`[MATERI] Materi dihapus oleh ${userRole || 'Tutor'} ${tutorId}: ${materiId}`);
 
   return { message: 'Materi berhasil dihapus' };
 };

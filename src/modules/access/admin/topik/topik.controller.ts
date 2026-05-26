@@ -17,7 +17,7 @@ type TopikAction = 'create' | 'get' | 'update' | 'delete';
 
 export const createTopic = async (req: Request, res: Response) => {
   try {
-    const payload = await createTopik(req.body, req.user?.id);
+    const payload = await createTopik(req.body, req.user?.id, req.user?.role);
 
     return res.status(201).json(payload);
   } catch (error) {
@@ -41,6 +41,7 @@ export const updateTopic = async (req: Request, res: Response) => {
       req.params.id as string,
       req.body,
       req.user?.id,
+      req.user?.role,
     );
 
     return res.status(200).json(payload);
@@ -51,7 +52,11 @@ export const updateTopic = async (req: Request, res: Response) => {
 
 export const deleteTopic = async (req: Request, res: Response) => {
   try {
-    const payload = await deleteTopik(req.params.id as string, req.user?.id);
+    const payload = await deleteTopik(
+      req.params.id as string,
+      req.user?.id,
+      req.user?.role,
+    );
 
     return res.status(200).json(payload);
   } catch (error) {

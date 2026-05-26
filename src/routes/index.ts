@@ -8,6 +8,8 @@ import docsRoutes from '../modules/docs/docs.routes';
 
 const router = Router();
 
+router.use('/api/v1', router);
+
 router.use('/auth', authRoutes);
 router.use('/admin', adminRouter);
 router.use('/tutor', tutorRouter);

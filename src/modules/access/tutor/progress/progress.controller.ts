@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import {
-  getStudentProgressByModules as getProgressByModulesFunc,
+  getAllStudentProgress as getProgressByModulesFunc,
   getProgressByStudentId as getProgressByStudentIdFunc,
   analyzeComputationalThinking as analyzeComputationalThinkingFunc,
 } from '@/utils/progress';
@@ -63,8 +63,7 @@ export const analyzeComputationalThinking = async (
 ) => {
   try {
     const { studentId } = req.params;
-    const payload =
-      await analyzeComputationalThinkingFunc(studentId as string);
+    const payload = await analyzeComputationalThinkingFunc(studentId as string);
 
     return res.status(200).json(payload);
   } catch (err) {

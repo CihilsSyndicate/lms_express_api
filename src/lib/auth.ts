@@ -6,7 +6,7 @@ export interface UserTokenPayload {
   id: string;
   name: string;
   email: string;
-  role: 'siswa' | 'tutor' | 'admin';
+  role: 'siswa' | 'tutor' | 'admin' | 'umum';
 }
 
 declare global {
@@ -53,7 +53,7 @@ export const verifyToken = (
   }
 };
 
-export const requireRole = (role: 'siswa' | 'tutor' | 'admin') => {
+export const requireRole = (role: 'siswa' | 'tutor' | 'admin' | 'umum') => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res
