@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import {
-  getStudentProgressByModules as getProgressByModulesFunc,
+  getAllStudentProgress as getProgressByModulesFunc,
   getProgressByStudentId as getProgressByStudentIdFunc,
   analyzeComputationalThinking as analyzeComputationalThinkingFunc,
 } from '@/utils/progress';
@@ -11,30 +11,18 @@ export const getStudentProgressByModules = async (
   res: Response,
 ) => {
   try {
-    const tutorId = req?.user?.id;
-
-    if (!tutorId) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const { limit, cursor } = parsePaginationQuery(req.query);
+    const { limit, cursor } = parsePaginationQuery(req.body);
 
     const progressByModules = await getProgressByModulesFunc(
-      tutorId,
-      limit,
+      undefined,
+      Number(limit),
       cursor,
     );
-
     return res.status(200).json(progressByModules);
   } catch (err: any) {
-    console.error('Error fetching student progress:', err);
-    if (
-      err.message === 'Invalid limit parameter' ||
-      err.message === 'Invalid cursor'
-    ) {
-      return res.status(400).json({ message: err.message });
-    }
-    res.status(500).json({ message: 'Failed to fetch student progress' + err });
+    res
+      .status(500)
+      .json({ message: 'Failed to fetch student progress' + err.message });
   }
 };
 
@@ -61,8 +49,7 @@ export const analyzeComputationalThinking = async (
 ) => {
   try {
     const { studentId } = req.params;
-    const payload =
-      await analyzeComputationalThinkingFunc(studentId as string);
+    const payload = await analyzeComputationalThinkingFunc(studentId as string);
 
     return res.status(200).json(payload);
   } catch (err) {

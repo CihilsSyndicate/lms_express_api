@@ -25,14 +25,14 @@ model Tutor {
 model Signature {
     id      String @id @default(cuid())
     tutorId String
-    tutor   Tutor  @relation(fields: [tutorId], references: [id])
+    tutor   Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     fileUrl String
 }
 
 model SocialMedia {
     id       String @id @default(cuid())
     tutorId  String
-    tutor    Tutor  @relation(fields: [tutorId], references: [id])
+    tutor    Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     platform String
     url      String
 

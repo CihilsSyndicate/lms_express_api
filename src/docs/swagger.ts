@@ -1,5 +1,5 @@
 type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
-type Role = 'admin' | 'tutor' | 'siswa';
+type Role = 'admin' | 'tutor' | 'siswa' | 'umum';
 
 const bearerSecurity = [{ BearerAuth: [] }];
 
@@ -368,20 +368,21 @@ const examples = {
     cvPathUrl: 'https://example.com/cv.pdf',
   },
   moduleCreate: {
-    nama_modul: 'Algoritma Dasar',
+    moduleName: 'Algoritma Dasar',
     subtitle: 'Pengantar algoritma',
-    deskripsi: 'Materi dasar algoritma untuk pemula.',
-    target_waktu: 120,
-    tingkat_kesulitan: 'Beginner',
-    is_berbayar: false,
-    harga_modul: null,
-    jenjang: 'SMA',
-    kelas_sekolah: '10',
-    tutor_id: 'tutor_123',
+    description: 'Materi dasar algoritma untuk pemula.',
+    targetTime: 120,
+    difficulty: 'Beginner',
+    isPaid: false,
+    modulPrice: null,
+    level: 'SMA',
+    class: '10',
+    modulType: 'SISWA',
+    tutorId: 'tutor_123',
   },
   moduleUpdate: {
-    nama_modul: 'Algoritma Dasar Revisi',
-    deskripsi: 'Materi dasar algoritma yang diperbarui.',
+    moduleName: 'Algoritma Dasar Revisi',
+    description: 'Materi dasar algoritma yang diperbarui.',
   },
   assignModule: { moduleId: 'modul_123', studentId: 'siswa_123' },
   materialCreate: {
@@ -417,6 +418,17 @@ const examples = {
     answers: [{ questionId: 'question_123', answer: 'Urutan langkah' }],
   },
   rating: { rating: 5, komentar: 'Materinya mudah dipahami.' },
+  umumRegister: {
+    role: 'umum',
+    email: 'umum@example.com',
+    password: 'secret123',
+    nama_lengkap: 'User Umum',
+  },
+  quizSubmit: {
+    quizId: 'quiz_123',
+    answer: 'A',
+    knowledgeComponentId: 'kc_123',
+  },
 };
 
 const componentSchemas = {
@@ -469,7 +481,7 @@ const componentSchemas = {
     description: 'JWT access and refresh tokens are set as HTTP-only cookies by the implementation.',
     properties: {
       user: { $ref: '#/components/schemas/UserSession' },
-      role: { type: 'string', enum: ['siswa', 'tutor', 'admin'], example: 'siswa' },
+      role: { type: 'string', enum: ['siswa', 'tutor', 'admin', 'umum'], example: 'siswa' },
     },
     required: ['user', 'role'],
   },
@@ -478,7 +490,7 @@ const componentSchemas = {
     properties: {
       id: { type: 'string', example: 'siswa_123' },
       email: { type: 'string', format: 'email', example: 'siswa@example.com' },
-      role: { type: 'string', enum: ['siswa', 'tutor', 'admin'], example: 'siswa' },
+      role: { type: 'string', enum: ['siswa', 'tutor', 'admin', 'umum'], example: 'siswa' },
       nama_lengkap: { type: 'string', example: 'Budi Santoso' },
       fullName: { type: 'string', example: 'Dr. Tutor' },
     },
@@ -557,50 +569,61 @@ const componentSchemas = {
       profileImg: { type: 'string', nullable: true, example: null },
     },
   },
+  UmumRegisterRequest: {
+    type: 'object',
+    properties: {
+      role: { type: 'string', enum: ['umum'], default: 'umum', example: 'umum' },
+      nama_lengkap: { type: 'string', example: 'User Umum' },
+      email: { type: 'string', format: 'email', example: 'umum@example.com' },
+      password: { type: 'string', minLength: 6, example: 'secret123' },
+    },
+    required: ['role', 'nama_lengkap', 'email', 'password'],
+  },
   PublicRegisterRequest: {
     oneOf: [
       { $ref: '#/components/schemas/SiswaRegisterRequest' },
       { $ref: '#/components/schemas/TutorRegisterRequest' },
+      { $ref: '#/components/schemas/UmumRegisterRequest' },
     ],
     discriminator: { propertyName: 'role' },
   },
   ModuleCreateRequest: {
     type: 'object',
     properties: {
-      nama_modul: { type: 'string', example: 'Algoritma Dasar' },
+      moduleName: { type: 'string', example: 'Algoritma Dasar' },
       subtitle: { type: 'string', example: 'Pengantar algoritma' },
-      deskripsi: { type: 'string', example: 'Materi dasar algoritma untuk pemula.' },
-      target_waktu: { type: 'integer', example: 120 },
-      tingkat_kesulitan: { type: 'string', example: 'Beginner' },
-      is_berbayar: { type: 'boolean', default: false, example: false },
-      harga_modul: { type: 'number', nullable: true, example: null },
-      jenjang: { type: 'string', example: 'SMA' },
-      kelas_sekolah: { type: 'string', example: '10' },
-      tutor_id: { type: 'string', example: 'tutor_123' },
+      description: { type: 'string', example: 'Materi dasar algoritma untuk pemula.' },
+      targetTime: { type: 'integer', example: 120 },
+      difficulty: { type: 'string', example: 'Beginner' },
+      isPaid: { type: 'boolean', default: false, example: false },
+      modulPrice: { type: 'number', nullable: true, example: null },
+      level: { type: 'string', example: 'SMA' },
+      class: { type: 'string', example: '10' },
+      modulType: { type: 'string', enum: ['SISWA', 'UMUM'], example: 'SISWA' },
+      tutorId: { type: 'string', example: 'tutor_123' },
     },
     required: [
-      'nama_modul',
+      'moduleName',
       'subtitle',
-      'deskripsi',
-      'target_waktu',
-      'tingkat_kesulitan',
-      'jenjang',
-      'kelas_sekolah',
-      'tutor_id',
+      'description',
+      'targetTime',
+      'difficulty',
+      'tutorId',
     ],
   },
   ModuleUpdateRequest: {
     type: 'object',
     properties: {
-      nama_modul: { type: 'string', example: 'Algoritma Dasar Revisi' },
+      moduleName: { type: 'string', example: 'Algoritma Dasar Revisi' },
       subtitle: { type: 'string', example: 'Pengantar algoritma' },
-      deskripsi: { type: 'string', example: 'Materi dasar algoritma revisi.' },
-      target_waktu: { type: 'integer', example: 90 },
-      tingkat_kesulitan: { type: 'string', example: 'Intermediate' },
-      is_berbayar: { type: 'boolean', example: false },
-      harga_modul: { type: 'number', nullable: true, example: null },
-      jenjang: { type: 'string', example: 'SMA' },
-      kelas_sekolah: { type: 'string', example: '10' },
+      description: { type: 'string', example: 'Materi dasar algoritma revisi.' },
+      targetTime: { type: 'integer', example: 90 },
+      difficulty: { type: 'string', example: 'Intermediate' },
+      isPaid: { type: 'boolean', example: false },
+      modulPrice: { type: 'number', nullable: true, example: null },
+      level: { type: 'string', example: 'SMA' },
+      class: { type: 'string', example: '10' },
+      modulType: { type: 'string', enum: ['SISWA', 'UMUM'], example: 'SISWA' },
     },
   },
   AssignModuleRequest: {
@@ -713,6 +736,23 @@ const componentSchemas = {
     },
     required: ['rating'],
   },
+  QuizSubmitRequest: {
+    type: 'object',
+    properties: {
+      quizId: { type: 'string', example: 'quiz_123' },
+      answer: { type: 'string', example: 'A' },
+      knowledgeComponentId: { type: 'string', example: 'kc_123' },
+    },
+    required: ['quizId', 'answer', 'knowledgeComponentId'],
+  },
+  QuizSubmitResponse: {
+    type: 'object',
+    properties: {
+      message: { type: 'string', example: 'Quiz submitted successfully' },
+      isCorrect: { type: 'boolean', example: true },
+      quizId: { type: 'string', example: 'quiz_123' },
+    },
+  },
   QuizPayloadRequest: {
     type: 'object',
     properties: {
@@ -776,6 +816,7 @@ const componentSchemas = {
       modulPrice: { type: 'number', nullable: true, example: null },
       level: { type: 'string', nullable: true, example: 'SMA' },
       class: { type: 'string', nullable: true, example: '10' },
+      modulType: { type: 'string', enum: ['SISWA', 'UMUM'], example: 'SISWA' },
       tutorId: { type: 'string', example: 'tutor_123' },
       isDraft: { type: 'boolean', example: true },
       createdAt: { type: 'string', format: 'date-time' },
@@ -1096,6 +1137,9 @@ export const swaggerSpec = {
     { name: 'Siswa - Rating' },
     { name: 'Siswa - Submateri' },
     { name: 'Siswa - Topik' },
+    { name: 'Umum - Modul' },
+    { name: 'Umum - Kuis' },
+    { name: 'Umum - Progress' },
   ],
   paths: {
     '/auth/register': op('post', 'Auth', 'Register a new siswa or tutor', {
@@ -1312,6 +1356,54 @@ export const swaggerSpec = {
       parameters: [idParam('modulId', 'Module ID.', 'modul_123')],
       responseSchema: 'Topic',
       responseIsArray: true,
+    }),
+    '/siswa/modul/{id}/enroll': op('post', 'Siswa - Modul', 'Enroll in a module', {
+      role: 'siswa',
+      parameters: [idParam('id', 'Module ID.', 'modul_123')],
+      responseSchema: 'MessageResponse',
+      successStatus: 200,
+    }),
+    '/siswa/kuis/submit': op('post', 'Siswa - Kuis', 'Submit quiz answer', {
+      role: 'siswa',
+      requestSchema: 'QuizSubmitRequest',
+      requestExample: examples.quizSubmit,
+      responseSchema: 'QuizSubmitResponse',
+      successStatus: 200,
+    }),
+
+    // --- UMUM ROLE ---
+    '/umum/modul': op('get', 'Umum - Modul', 'Get available modules for general users', {
+      role: 'umum',
+      parameters: paginationParams,
+      responseSchema: 'PaginatedModulesResponse',
+    }),
+    '/umum/modul/{id}': op('get', 'Umum - Modul', 'Get module by ID for general users', {
+      role: 'umum',
+      parameters: [idParam('id', 'Module ID.', 'modul_123')],
+      responseSchema: 'Module',
+    }),
+    '/umum/modul/{id}/enroll': op('post', 'Umum - Modul', 'Enroll in a module for general users', {
+      role: 'umum',
+      parameters: [idParam('id', 'Module ID.', 'modul_123')],
+      responseSchema: 'MessageResponse',
+      successStatus: 200,
+    }),
+    '/umum/kuis/submit': op('post', 'Umum - Kuis', 'Submit quiz answer for general users', {
+      role: 'umum',
+      requestSchema: 'QuizSubmitRequest',
+      requestExample: examples.quizSubmit,
+      responseSchema: 'QuizSubmitResponse',
+      successStatus: 200,
+    }),
+    '/umum/progress': op('get', 'Umum - Progress', 'Get all personal progress for general users', {
+      role: 'umum',
+      responseSchema: 'ObjectResponse',
+      responseIsArray: true,
+    }),
+    '/umum/progress/{modulId}': op('get', 'Umum - Progress', 'Get progress by module for general users', {
+      role: 'umum',
+      parameters: [idParam('modulId', 'Module ID.', 'modul_123')],
+      responseSchema: 'Progress',
     }),
   },
 };

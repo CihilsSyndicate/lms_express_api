@@ -101,7 +101,7 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { role } = req.body;
 
-    const validRoles = ['siswa', 'tutor'];
+    const validRoles = ['siswa', 'tutor', 'umum'];
 
     if (!validRoles.includes(role)) {
       return res.status(400).json({

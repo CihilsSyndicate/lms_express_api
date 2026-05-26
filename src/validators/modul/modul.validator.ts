@@ -2,28 +2,29 @@ import { z } from 'zod';
 
 export const modulBaseSchema = z.object({
   id: z.string().cuid(),
-  nama_modul: z.string().min(1),
+  moduleName: z.string().min(1),
   subtitle: z.string().min(1),
-  deskripsi: z.string().min(1),
-  target_waktu: z.number().int(),
-  tingkat_kesulitan: z.string().min(1),
-  is_berbayar: z.boolean().default(false),
-  harga_modul: z.number().optional().nullable(),
-  jenjang: z.string().min(1),
-  kelas_sekolah: z.string().min(1),
-  tutor_id: z.string().cuid(),
-  pretest_id: z.string().cuid().optional().nullable(),
-  posttest_id: z.string().cuid().optional().nullable(),
+  description: z.string().min(1),
+  targetTime: z.number().int(),
+  difficulty: z.string().min(1),
+  isPaid: z.boolean().default(false),
+  modulPrice: z.number().optional().default(0),
+  level: z.string().min(1).optional(),
+  class: z.string().min(1).optional(),
+  modulType: z.enum(['SISWA', 'UMUM']).default('SISWA'),
+  tutorId: z.string().cuid(),
+  pretestId: z.string().cuid().optional().nullable(),
+  posttestId: z.string().cuid().optional().nullable(),
 });
 
 export const createModulSchema = modulBaseSchema.omit({
   id: true,
-  pretest_id: true,
-  posttest_id: true,
+  pretestId: true,
+  posttestId: true,
 });
 export const updateModulSchema = modulBaseSchema
   .partial()
-  .omit({ id: true, tutor_id: true });
+  .omit({ id: true, tutorId: true });
 
 export type Modul = z.infer<typeof modulBaseSchema>;
 export type CreateModulRecord = z.infer<typeof createModulSchema>;

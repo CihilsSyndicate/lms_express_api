@@ -17,7 +17,7 @@ type MateriAction = 'create' | 'get' | 'update' | 'delete';
 
 export const createMaterial = async (req: Request, res: Response) => {
   try {
-    const payload = await createMateri(req.body, req.user?.id);
+    const payload = await createMateri(req.body, req.user?.id, req.user?.role);
 
     return res.status(201).json(payload);
   } catch (error) {
@@ -41,6 +41,7 @@ export const updateMaterial = async (req: Request, res: Response) => {
       req.params.id as string,
       req.body,
       req.user?.id,
+      req.user?.role,
     );
 
     return res.status(200).json(payload);
@@ -51,7 +52,11 @@ export const updateMaterial = async (req: Request, res: Response) => {
 
 export const deleteMaterial = async (req: Request, res: Response) => {
   try {
-    const payload = await deleteMateri(req.params.id as string, req.user?.id);
+    const payload = await deleteMateri(
+      req.params.id as string,
+      req.user?.id,
+      req.user?.role,
+    );
 
     return res.status(200).json(payload);
   } catch (error) {

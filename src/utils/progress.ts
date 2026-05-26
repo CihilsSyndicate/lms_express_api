@@ -6,8 +6,8 @@ import {
   decodeCursor,
 } from './pagination';
 
-export const getStudentProgressByModules = async (
-  tutorId: string,
+export const getAllStudentProgress = async (
+  tutorId?: string,
   limit: number = 10,
   cursor?: string,
 ) => {
@@ -22,7 +22,7 @@ export const getStudentProgressByModules = async (
             progress: {
               some: {
                 modul: {
-                  tutorId: tutorId,
+                  tutorId: tutorId ? tutorId : '',
                 },
               },
             },
@@ -39,7 +39,7 @@ export const getStudentProgressByModules = async (
             quizScores: true,
             siswa: {
               select: {
-                name: true,
+                nama_lengkap: true,
                 email: true,
               },
             },

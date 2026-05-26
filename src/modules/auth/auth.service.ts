@@ -17,7 +17,7 @@ import {
 
 export const loginService = async (email: string, password: string) => {
   let foundUser: any = null;
-  let role: 'siswa' | 'tutor' | 'admin' = 'siswa';
+  let role: 'siswa' | 'tutor' | 'admin' | 'umum';
 
   const siswa = await prisma.siswa.findUnique({ where: { email } });
 
@@ -25,7 +25,7 @@ export const loginService = async (email: string, password: string) => {
     const isMatch = await comparePassword(password, siswa.password);
     if (!isMatch) return null;
     foundUser = siswa;
-    role = 'siswa';
+    role = siswa.role as 'siswa' | 'umum';
   } else {
     const tutor = await prisma.tutor.findUnique({ where: { email } });
     if (tutor) {
@@ -46,9 +46,12 @@ export const loginService = async (email: string, password: string) => {
 
   const tokenPayload: UserTokenPayload = {
     id: foundUser.id,
-    name: role === 'siswa' ? foundUser.nama_lengkap : foundUser.fullName,
+    name:
+      role === 'siswa' || role === 'umum'
+        ? foundUser.nama_lengkap
+        : foundUser.fullName,
     email: foundUser.email,
-    role,
+    role: role as 'siswa' | 'tutor' | 'admin' | 'umum',
   };
 
   const tokens = generateToken(tokenPayload);
@@ -65,10 +68,10 @@ export const loginService = async (email: string, password: string) => {
 
 export const getCurrentUserService = async (
   userId: string,
-  role: 'siswa' | 'tutor' | 'admin',
+  role: 'siswa' | 'tutor' | 'admin' | 'umum',
 ) => {
   let user;
-  if (role === 'siswa') {
+  if (role === 'siswa' || role === 'umum') {
     user = await prisma.siswa.findUnique({ where: { id: userId } });
   } else if (role === 'tutor') {
     user = await prisma.tutor.findUnique({ where: { id: userId } });
@@ -83,12 +86,12 @@ export const getCurrentUserService = async (
 
 export const verifyPasswordService = async (
   userId: string,
-  role: 'siswa' | 'tutor' | 'admin',
+  role: 'siswa' | 'tutor' | 'admin' | 'umum',
   password: string,
 ) => {
   try {
     let user;
-    if (role === 'siswa') {
+    if (role === 'siswa' || role === 'umum') {
       user = await prisma.siswa.findUnique({ where: { id: userId } });
     } else if (role === 'tutor') {
       user = await prisma.tutor.findUnique({ where: { id: userId } });
@@ -229,11 +232,11 @@ export const updateAdminProfileService = async (
 
 export const registerUserService = async (
   data: CreateAdminRecord | CreateSiswaRecord | CreateTutorRecord,
-  role: 'siswa' | 'tutor' | 'admin',
+  role: 'siswa' | 'tutor' | 'admin' | 'umum',
 ) => {
   try {
     let newUser;
-    if (role === 'siswa') {
+    if (role === 'siswa' || role === 'umum') {
       newUser = await registerSiswaService(data as CreateSiswaRecord);
     } else if (role === 'tutor') {
       newUser = await registerTutorService(data as CreateTutorRecord);
@@ -243,9 +246,11 @@ export const registerUserService = async (
       );
     }
     return newUser;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[REGISTER-USER-ERROR] Gagal mendaftarkan user:', error);
-    throw new Error('Gagal mendaftarkan user.' + error);
+    throw new Error(
+      error instanceof Error ? error.message : 'An unknown error occurred',
+    );
   }
 };
 
@@ -262,9 +267,11 @@ export const registerSiswaService = async (data: CreateSiswaRecord) => {
       data,
     });
     return newSiswa;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[REGISTER-SISWA-ERROR] Gagal mendaftarkan siswa:', error);
-    throw new Error('Gagal mendaftarkan siswa.' + error);
+    throw new Error(
+      error instanceof Error ? error.message : 'An unknown error occurred',
+    );
   }
 };
 
@@ -310,6 +317,17 @@ export const deactivateStudentService = async (studentId: string) => {
     },
     data: {
       isActive: false,
+    },
+  });
+};
+
+export const activateStudentService = async (studentId: string) => {
+  return prisma.siswa.update({
+    where: {
+      id: studentId,
+    },
+    data: {
+      isActive: true,
     },
   });
 };

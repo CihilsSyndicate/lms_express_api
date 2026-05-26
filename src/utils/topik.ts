@@ -5,14 +5,60 @@ import type {
   UpdateTopikRecord,
 } from '@/validators/topik/topik.validator';
 
+import { validateTopikItemPolymorphism } from '@/validators/topikItem/topikItem.validator';
+
 /**
  * Domain/Business Logic Functions for Topik (Topic)
  * These functions contain business rules, data validation, and orchestration.
  */
 
+export const createTopikItem = async (
+  payload: {
+    topikId: string;
+    itemId: string;
+    itemType: 'ARTICLE' | 'QUIZ';
+    orderNumber: number;
+  },
+  tutorId?: string,
+  userRole?: string,
+) => {
+  if (!tutorId) {
+    throw new AppError(401, 'Akses ditolak.');
+  }
+
+  const topik = await prisma.topik.findUnique({
+    where: { id: payload.topikId },
+    include: { modul: true },
+  });
+
+  if (!topik) throw new AppError(404, 'Topik tidak ditemukan.');
+
+  if (userRole !== 'admin' && topik.modul.tutorId !== tutorId) {
+    throw new AppError(
+      403,
+      'Akses ditolak. Anda tidak berhak menambah item ke topik ini.',
+    );
+  }
+
+  // Phase 1: Domain Validation for Polymorphic Relationship
+  await validateTopikItemPolymorphism(payload.itemId, payload.itemType);
+
+  const newItem = await prisma.topikItem.create({
+    data: {
+      topikId: payload.topikId,
+      itemId: payload.itemId,
+      itemType: payload.itemType,
+      orderNumber: payload.orderNumber,
+    },
+  });
+
+  return newItem;
+};
+
 export const createTopik = async (
   payload: CreateTopikRecord,
   tutorId?: string,
+  userRole?: string,
 ) => {
   if (!tutorId) {
     throw new AppError(401, 'Akses ditolak.');
@@ -22,7 +68,9 @@ export const createTopik = async (
     where: { id: payload.modul_id },
   });
 
-  if (!modul || modul.tutorId !== tutorId) {
+  if (!modul) throw new AppError(404, 'Modul tidak ditemukan.');
+
+  if (userRole !== 'admin' && modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menambah topik ke modul ini.',
@@ -37,7 +85,7 @@ export const createTopik = async (
   });
 
   console.log(
-    `[TOPIK] Topik baru dibuat oleh Tutor ${tutorId}: ${newTopic.id}`,
+    `[TOPIK] Topik baru dibuat oleh ${userRole || 'Tutor'} ${tutorId}: ${newTopic.id}`,
   );
 
   return newTopic;
@@ -53,6 +101,7 @@ export const updateTopik = async (
   topikId: string,
   payload: UpdateTopikRecord,
   tutorId?: string,
+  userRole?: string,
 ) => {
   const topik = await prisma.topik.findUnique({
     where: { id: topikId },
@@ -63,7 +112,7 @@ export const updateTopik = async (
     throw new AppError(404, 'Topik tidak ditemukan.');
   }
 
-  if (topik.modul.tutorId !== tutorId) {
+  if (userRole !== 'admin' && topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak mengubah topik ini.',
@@ -78,12 +127,12 @@ export const updateTopik = async (
     data,
   });
 
-  console.log(`[TOPIK] Topik diupdate oleh Tutor ${tutorId}: ${topikId}`);
+  console.log(`[TOPIK] Topik diupdate oleh ${userRole || 'Tutor'} ${tutorId}: ${topikId}`);
 
   return updatedTopic;
 };
 
-export const deleteTopik = async (topikId: string, tutorId?: string) => {
+export const deleteTopik = async (topikId: string, tutorId?: string, userRole?: string) => {
   const topik = await prisma.topik.findUnique({
     where: { id: topikId },
     include: { modul: true },
@@ -93,7 +142,7 @@ export const deleteTopik = async (topikId: string, tutorId?: string) => {
     throw new AppError(404, 'Topik tidak ditemukan.');
   }
 
-  if (topik.modul.tutorId !== tutorId) {
+  if (userRole !== 'admin' && topik.modul.tutorId !== tutorId) {
     throw new AppError(
       403,
       'Akses ditolak. Anda tidak berhak menghapus topik ini.',
@@ -101,7 +150,7 @@ export const deleteTopik = async (topikId: string, tutorId?: string) => {
   }
 
   await prisma.topik.delete({ where: { id: topikId } });
-  console.log(`[TOPIK] Topik dihapus oleh Tutor ${tutorId}: ${topikId}`);
+  console.log(`[TOPIK] Topik dihapus oleh ${userRole || 'Tutor'} ${tutorId}: ${topikId}`);
 
   return { message: 'Topik berhasil dihapus' };
 };

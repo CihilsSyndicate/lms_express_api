@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireRole, verifyToken } from '@/lib/auth';
+import kuisRouter from './kuis/kuis.routes';
 import progressRouter from './progress/progress.routes';
 import certificateRouter from './certificates/certificates.routes';
 import dashboardRouter from './dashboard/dashboards.routes';
@@ -26,3 +27,4 @@ siswaRouter.use('/pretest', pretestRouter);
 siswaRouter.use('/rating', ratingRouter);
 siswaRouter.use('/submateri', submateriRouter);
 siswaRouter.use('/topik', topikRouter);
+siswaRouter.use('/kuis', kuisRouter);

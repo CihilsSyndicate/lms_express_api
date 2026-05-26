@@ -14,16 +14,11 @@ export const createModule = async (payload: CreateModulRecord) => {
   try {
     const newModule = await prisma.modul.create({
       data: {
-        moduleName: payload.nama_modul,
-        description: payload.deskripsi,
-        subtitle: payload.subtitle,
-        targetTime: payload.target_waktu,
-        difficulty: payload.tingkat_kesulitan,
-        isPaid: payload.is_berbayar,
-        modulPrice: payload.harga_modul ?? null,
-        level: payload.jenjang,
-        class: payload.kelas_sekolah,
-        tutorId: payload.tutor_id,
+        ...payload,
+        isPaid: payload.isPaid ?? false,
+        level: payload.level ?? null,
+        class: payload.class ?? null,
+        modulPrice: payload.modulPrice ?? 0,
       },
     });
 
@@ -34,10 +29,18 @@ export const createModule = async (payload: CreateModulRecord) => {
   }
 };
 
-export const getModules = async (limit: number = 10, cursor?: string) => {
+export const getModules = async (
+  limit: number = 10,
+  cursor?: string,
+  modulType?: 'SISWA' | 'UMUM',
+) => {
   try {
     const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
     const where = buildCursorWhere(cursorPayload);
+
+    if (modulType) {
+      (where as any).modulType = modulType;
+    }
 
     const modules = await prisma.modul.findMany({
       where,
@@ -96,22 +99,27 @@ export const updateModule = async (
       throw new Error('Unauthorized to update this module');
     }
 
+    if (payload?.isPaid && Number(payload?.modulPrice) < 1) {
+      throw new Error(
+        'Module price must be a positive number if the module is paid',
+      );
+    }
     const updatedModule = await prisma.modul.update({
       where: { id },
       data: {
-        moduleName: payload.nama_modul ?? existingModule.moduleName,
-        description: payload.deskripsi ?? existingModule.description,
-        targetTime: payload.target_waktu ?? existingModule.targetTime,
-        difficulty: payload.tingkat_kesulitan ?? existingModule.difficulty,
-        isPaid: payload.is_berbayar ?? existingModule.isPaid,
-        modulPrice:
-          payload.harga_modul === undefined
-            ? existingModule.modulPrice === null
-              ? null
-              : Number(existingModule.modulPrice as any)
-            : payload.harga_modul,
-        level: payload.jenjang ?? existingModule.level,
-        class: payload.kelas_sekolah ?? (existingModule as any).class,
+        ...payload,
+        modulType: payload.modulType ?? existingModule.modulType,
+        subtitle: payload.subtitle ?? existingModule.subtitle,
+        moduleName: payload.moduleName ?? existingModule.moduleName,
+        description: payload.description ?? existingModule.description,
+        targetTime: payload.targetTime ?? existingModule.targetTime,
+        difficulty: payload.difficulty ?? existingModule.difficulty,
+        isPaid: payload.isPaid ?? existingModule.isPaid,
+        modulPrice: payload.modulPrice ?? existingModule.modulPrice,
+        level: payload.level ?? existingModule.level,
+        class: payload.class ?? existingModule.class,
+        pretestId: payload.pretestId ?? existingModule.pretestId,
+        posttestId: payload.posttestId ?? existingModule.posttestId,
       },
     });
 
@@ -160,12 +168,43 @@ export const unassignStudentFromModule = async (
   moduleId: string,
   studentId: string,
 ) => {
-  await prisma.progress.deleteMany({
-    where: {
-      modulId: moduleId,
-      siswaId: studentId,
-    },
-  });
+  try {
+    const findAssigned = await findAssignedStudents(moduleId, studentId);
+    if (findAssigned.length < 1) {
+      throw new Error(
+        'Student is not assigned to this module or progress not found',
+      );
+    }
 
-  return { message: 'Student unassigned from module successfully' };
+    const deleteProgress = await prisma.progress.deleteMany({
+      where: {
+        modulId: moduleId,
+        siswaId: studentId,
+      },
+    });
+
+    return deleteProgress;
+  } catch (error) {
+    console.error('Error unassigning student from module:', error);
+    throw error;
+  }
+};
+
+export const findAssignedStudents = async (
+  moduleId: string,
+  studentId: string,
+) => {
+  try {
+    const assignedStudents = await prisma.progress.findMany({
+      where: {
+        modulId: moduleId,
+        siswaId: studentId,
+      },
+      select: { siswaId: true },
+    });
+    return assignedStudents;
+  } catch (error) {
+    console.error('Error finding assigned students:', error);
+    throw error;
+  }
 };
