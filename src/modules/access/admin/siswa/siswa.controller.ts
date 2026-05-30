@@ -8,6 +8,31 @@ import {
 } from '@/modules/auth/auth.service';
 import { prisma } from '@/lib/prisma';
 
+export const searchSiswa = async (req: Request, res: Response) => {
+  try {
+    const q = req.query.q as string;
+    if (!q || q.length < 2) {
+      return res.status(400).json({ message: 'Kata kunci minimal 2 karakter.' });
+    }
+
+    const siswa = await prisma.siswa.findMany({
+      where: {
+        OR: [
+          { nama_lengkap: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.status(200).json(siswa);
+  } catch (error) {
+    console.error('[SEARCH-SISWA-ERROR]', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const getAllSiswa = async (req: Request, res: Response) => {
   try {
     const siswaList = await prisma.siswa.findMany();

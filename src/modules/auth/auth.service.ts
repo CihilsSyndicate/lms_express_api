@@ -1,11 +1,10 @@
 import { prisma } from '../../lib/prisma';
-import { comparePassword, generateToken } from '@/lib/auth';
+import { comparePassword, generateToken, generateResetToken, verifyResetToken, hashPassword } from '@/lib/auth';
 import { UserTokenPayload } from '@/lib/auth';
 import type {
   CreateSiswaRecord,
   UpdateSiswaRecord,
 } from '@/validators/user/siswa.validator';
-import { hashPassword } from '@/lib/auth';
 import {
   CreateTutorRecord,
   UpdateTutorRecord,
@@ -64,24 +63,6 @@ export const loginService = async (email: string, password: string) => {
     },
     tokens,
   };
-};
-
-export const getCurrentUserService = async (
-  userId: string,
-  role: 'siswa' | 'tutor' | 'admin' | 'umum',
-) => {
-  let user;
-  if (role === 'siswa' || role === 'umum') {
-    user = await prisma.siswa.findUnique({ where: { id: userId } });
-  } else if (role === 'tutor') {
-    user = await prisma.tutor.findUnique({ where: { id: userId } });
-  } else {
-    user = await prisma.admin.findUnique({ where: { id: userId } });
-  }
-
-  if (!user) return null;
-  const { password: _, ...userWithoutPassword } = user;
-  return { ...userWithoutPassword, role };
 };
 
 export const verifyPasswordService = async (
@@ -319,6 +300,50 @@ export const deactivateStudentService = async (studentId: string) => {
       isActive: false,
     },
   });
+};
+
+export const forgotPasswordService = async (email: string) => {
+  const user = await findUserByEmail(email);
+  if (!user) throw new Error('Email tidak ditemukan.');
+
+  const resetToken = generateResetToken(user.email, user.role);
+
+  return { message: 'Link reset password telah dikirim ke email.', resetToken };
+};
+
+export const resetPasswordService = async (token: string, newPassword: string) => {
+  let payload: { email: string; role: string };
+  try {
+    payload = verifyResetToken(token);
+  } catch {
+    throw new Error('Token tidak valid atau kadaluarsa.');
+  }
+
+  const { email, role } = payload;
+  const hashed = await hashPassword(newPassword);
+
+  if (role === 'siswa' || role === 'umum') {
+    await prisma.siswa.update({ where: { email }, data: { password: hashed } });
+  } else if (role === 'tutor') {
+    await prisma.tutor.update({ where: { email }, data: { password: hashed } });
+  } else if (role === 'admin') {
+    await prisma.admin.update({ where: { email }, data: { password: hashed } });
+  } else {
+    throw new Error('Role tidak dikenal.');
+  }
+};
+
+const findUserByEmail = async (email: string) => {
+  const siswa = await prisma.siswa.findUnique({ where: { email } });
+  if (siswa) return { ...siswa, role: 'siswa' };
+
+  const tutor = await prisma.tutor.findUnique({ where: { email } });
+  if (tutor) return { ...tutor, role: 'tutor' };
+
+  const admin = await prisma.admin.findUnique({ where: { email } });
+  if (admin) return { ...admin, role: 'admin' };
+
+  return null;
 };
 
 export const activateStudentService = async (studentId: string) => {

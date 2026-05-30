@@ -8,6 +8,31 @@ import {
 import { UpdateTutorRecord } from '@/validators/user/tutor.validator';
 import { prisma } from '@/lib/prisma';
 
+export const searchTutor = async (req: Request, res: Response) => {
+  try {
+    const q = req.query.q as string;
+    if (!q || q.length < 2) {
+      return res.status(400).json({ message: 'Kata kunci minimal 2 karakter.' });
+    }
+
+    const tutors = await prisma.tutor.findMany({
+      where: {
+        OR: [
+          { fullName: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      take: 20,
+      orderBy: { id: 'desc' },
+    });
+
+    return res.status(200).json(tutors);
+  } catch (error) {
+    console.error('[SEARCH-TUTOR-ERROR]', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const getAllTutors = async (req: Request, res: Response) => {
   try {
     const tutors = await prisma.tutor.findMany();

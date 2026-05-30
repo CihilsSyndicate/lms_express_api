@@ -5,6 +5,7 @@ import {
   buildCursorWhere,
   decodeCursor,
 } from '../../../../utils/pagination';
+import { pushNotification } from '../../../../utils/realtime';
 
 /**
  * Initialize progress saat siswa mulai modul.
@@ -159,6 +160,21 @@ export const markSubmateriCompletedService = async (
     (submateri.materi as any).topik.modulId,
   );
 
+  const modulId = (submateri.materi as any).topik.modulId;
+  const progress = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    include: { modul: true },
+  });
+  if (progress) {
+    await pushNotification(
+      siswaId,
+      'progress',
+      'Progres Modul',
+      `Progres Anda "${progress.modul?.moduleName}" mencapai ${progress.progressPercentage.toFixed(0)}%.`,
+      { modulId, progressPercentage: progress.progressPercentage },
+    );
+  }
+
   return { message: 'Submateri berhasil ditandai selesai.' };
 };
 
@@ -312,7 +328,7 @@ export const generateCertificateIfEligibleService = async (
 
   const certificateCode = `CERT-${siswaId.slice(-4)}-${modulId.slice(-4)}-${Date.now()}`;
 
-  return await prisma.certificate.create({
+  const certificate = await prisma.certificate.create({
     data: {
       siswaId: siswaId,
       modulId: modulId,
@@ -320,6 +336,16 @@ export const generateCertificateIfEligibleService = async (
       certificateUrl: `https://example.com/cert/${certificateCode}`, // Placeholder
     },
   });
+
+  await pushNotification(
+    siswaId,
+    'certificate',
+    'Sertifikat Terbit',
+    `Selamat! Sertifikat untuk modul "${progress.modul.moduleName}" telah terbit.`,
+    { modulId, certificateCode },
+  );
+
+  return certificate;
 };
 
 export class ProgressService {

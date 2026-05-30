@@ -1046,6 +1046,29 @@ const componentSchemas = {
       certificateUrl: { type: 'string', example: 'https://example.com/cert/CERT-0001' },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' },
+      modul: {
+        type: 'object',
+        properties: {
+          moduleName: { type: 'string', example: 'Algoritma Dasar' },
+          tutor: {
+            type: 'object',
+            properties: {
+              fullName: { type: 'string', example: 'Dr. Budi Santoso' },
+              signatures: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', example: 'sig_123' },
+                    tutorId: { type: 'string', example: 'tutor_123' },
+                    fileUrl: { type: 'string', example: 'https://storage.example.com/signature/tutor_123.png' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   },
   PaginatedModulesResponse: {
@@ -1072,6 +1095,37 @@ const componentSchemas = {
     },
     required: ['items', 'next_cursor'],
   },
+  EnrolledModule: {
+    allOf: [
+      { $ref: '#/components/schemas/Module' },
+      {
+        type: 'object',
+        properties: {
+          progress: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'progress_123' },
+              progressPercentage: { type: 'number', example: 45 },
+              status: { type: 'string', example: 'IN_PROGRESS' },
+              isGraduated: { type: 'boolean', example: false },
+              pretestScore: { type: 'integer', nullable: true, example: 70 },
+              posttestScore: { type: 'integer', nullable: true, example: null },
+              finalScore: { type: 'number', nullable: true, example: null },
+              lastAccessed: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+    ],
+  },
+  PaginatedEnrolledModulesResponse: {
+    type: 'object',
+    properties: {
+      items: { type: 'array', items: { $ref: '#/components/schemas/EnrolledModule' } },
+      next_cursor: { type: 'string', nullable: true, example: null },
+    },
+    required: ['items', 'next_cursor'],
+  },
   PaginatedStudentProgressResponse: {
     type: 'object',
     properties: {
@@ -1087,6 +1141,151 @@ const componentSchemas = {
       next_cursor: { type: 'string', nullable: true, example: null },
     },
     required: ['items', 'next_cursor'],
+  },
+
+  AdminProfile: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', example: 'admin_123' },
+      email: { type: 'string', format: 'email', example: 'admin@example.com' },
+      username: { type: 'string', example: 'admin123' },
+      fullName: { type: 'string', example: 'Admin Name' },
+      gender: { type: 'string', example: 'Laki-laki' },
+      whatsappNumber: { type: 'string', example: '08123456789' },
+      profileImg: { type: 'string', nullable: true, example: null },
+      role: { type: 'string', example: 'admin' },
+    },
+    required: ['id', 'email', 'username', 'fullName', 'role'],
+  },
+  TutorProfile: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', example: 'tutor_123' },
+      fullName: { type: 'string', example: 'Dr. Tutor' },
+      email: { type: 'string', format: 'email', example: 'tutor@example.com' },
+      gender: { type: 'string', example: 'L' },
+      pekerjaan: { type: 'string', example: 'Guru' },
+      whatsappNumber: { type: 'string', example: '6281234567890' },
+      lastEducation: { type: 'string', example: 'S2' },
+      institution: { type: 'string', example: 'Universitas Contoh' },
+      biografi: { type: 'string', nullable: true, example: 'Pengajar algoritma.' },
+      prodi: { type: 'string', example: 'Pendidikan Matematika' },
+      cvPathUrl: { type: 'string', example: 'https://example.com/cv.pdf' },
+      profileImg: { type: 'string', nullable: true, example: null },
+      role: { type: 'string', example: 'tutor' },
+      socialMedias: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            platform: { type: 'string', example: 'Instagram' },
+            url: { type: 'string', example: 'https://instagram.com/tutor' },
+          },
+        },
+      },
+      signatures: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            fileUrl: { type: 'string', example: 'https://example.com/signature.png' },
+          },
+        },
+      },
+    },
+    required: ['id', 'fullName', 'email', 'role'],
+  },
+  SiswaProfile: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', example: 'siswa_123' },
+      nama_lengkap: { type: 'string', example: 'Budi Santoso' },
+      email: { type: 'string', format: 'email', example: 'siswa@example.com' },
+      jenjang: { type: 'string', example: 'SMA' },
+      kelas_sekolah: { type: 'string', example: '10' },
+      profileImage: { type: 'string', nullable: true, example: null },
+      role: { type: 'string', example: 'siswa' },
+      studentType: { type: 'string', enum: ['SISWA', 'GURU'], example: 'SISWA' },
+      createdAt: { type: 'string', format: 'date-time' },
+    },
+    required: ['id', 'nama_lengkap', 'email', 'jenjang', 'kelas_sekolah', 'role', 'studentType'],
+  },
+  UmumProfile: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', example: 'umum_123' },
+      nama_lengkap: { type: 'string', example: 'User Umum' },
+      email: { type: 'string', format: 'email', example: 'umum@example.com' },
+      jenjang: { type: 'string', example: 'SMA' },
+      kelas_sekolah: { type: 'string', example: '10' },
+      profileImage: { type: 'string', nullable: true, example: null },
+      role: { type: 'string', example: 'umum' },
+      studentType: { type: 'string', enum: ['SISWA', 'GURU'], example: 'GURU' },
+      createdAt: { type: 'string', format: 'date-time' },
+    },
+    required: ['id', 'nama_lengkap', 'email', 'jenjang', 'kelas_sekolah', 'role', 'studentType'],
+  },
+  ForgotPasswordRequest: {
+    type: 'object',
+    properties: {
+      email: { type: 'string', format: 'email', example: 'siswa@example.com' },
+    },
+    required: ['email'],
+  },
+  ResetPasswordRequest: {
+    type: 'object',
+    properties: {
+      token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIs...' },
+      password: { type: 'string', minLength: 6, example: 'newSecret123' },
+    },
+    required: ['token', 'password'],
+  },
+  Notification: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', example: 'notif_123' },
+      userId: { type: 'string', example: 'siswa_123' },
+      title: { type: 'string', example: 'Pendaftaran Modul' },
+      message: { type: 'string', example: 'Anda berhasil mendaftar modul "Algoritma Dasar".' },
+      read: { type: 'boolean', example: false },
+      createdAt: { type: 'string', format: 'date-time' },
+    },
+    required: ['id', 'userId', 'title', 'message', 'read', 'createdAt'],
+  },
+  UnreadCountResponse: {
+    type: 'object',
+    properties: {
+      unreadCount: { type: 'integer', example: 3 },
+    },
+    required: ['unreadCount'],
+  },
+  PaginatedNotificationsResponse: {
+    type: 'object',
+    properties: {
+      items: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/Notification' },
+      },
+      next_cursor: { type: 'string', nullable: true, example: null },
+    },
+    required: ['items', 'next_cursor'],
+  },
+  UploadResponse: {
+    type: 'object',
+    properties: {
+      message: { type: 'string', example: 'File berhasil diupload.' },
+      url: { type: 'string', example: 'profile-images/abc123.jpg' },
+      fileName: { type: 'string', example: 'foto.jpg' },
+    },
+    required: ['message', 'url', 'fileName'],
+  },
+  SearchSiswaResponse: {
+    type: 'array',
+    items: { $ref: '#/components/schemas/Siswa' },
+  },
+  SearchTutorResponse: {
+    type: 'array',
+    items: { $ref: '#/components/schemas/Tutor' },
   },
 };
 
@@ -1140,6 +1339,14 @@ export const swaggerSpec = {
     { name: 'Umum - Modul' },
     { name: 'Umum - Kuis' },
     { name: 'Umum - Progress' },
+    { name: 'Admin - Profile' },
+    { name: 'Tutor - Profile' },
+    { name: 'Siswa - Profile' },
+    { name: 'Umum - Profile' },
+    { name: 'Guest' },
+    { name: 'Siswa - Kuis' },
+    { name: 'Notifikasi' },
+    { name: 'Upload' },
   ],
   paths: {
     '/auth/register': op('post', 'Auth', 'Register a new siswa or tutor', {
@@ -1165,13 +1372,42 @@ export const swaggerSpec = {
       successStatus: 200,
       description: 'Requires a valid refreshToken cookie and sets a new access-token cookie.',
     }),
-    '/auth/me': op('get', 'Auth', 'Get current user', {
-      responseSchema: 'UserSession',
-    }),
     '/auth/update': op('put', 'Auth', 'Update current user profile', {
       requestSchema: 'PublicRegisterRequest',
       responseSchema: 'UserSession',
       successStatus: 200,
+    }),
+    '/auth/forgot-password': op('post', 'Auth', 'Request password reset link', {
+      public: true,
+      description: 'Mengirim token reset password ke email (dev mode: token dikembalikan langsung).',
+      requestSchema: 'ForgotPasswordRequest',
+      responseSchema: 'MessageResponse',
+      successStatus: 200,
+    }),
+    '/auth/reset-password': op('post', 'Auth', 'Reset password with token', {
+      public: true,
+      description: 'Reset password menggunakan token yang diterima dari forgot-password.',
+      requestSchema: 'ResetPasswordRequest',
+      responseSchema: 'MessageResponse',
+      successStatus: 200,
+    }),
+
+    // --- PROFILE ENDPOINTS (role-specific, replaces old /auth/me) ---
+    '/admin/profile': op('get', 'Admin - Profile', 'Get admin profile', {
+      role: 'admin',
+      responseSchema: 'AdminProfile',
+    }),
+    '/tutor/profile': op('get', 'Tutor - Profile', 'Get tutor profile with social medias and signatures', {
+      role: 'tutor',
+      responseSchema: 'TutorProfile',
+    }),
+    '/siswa/profile': op('get', 'Siswa - Profile', 'Get student profile', {
+      role: 'siswa',
+      responseSchema: 'SiswaProfile',
+    }),
+    '/umum/profile': op('get', 'Umum - Profile', 'Get general user profile', {
+      role: 'umum',
+      responseSchema: 'UmumProfile',
     }),
 
     '/admin/dashboard': op('get', 'Admin - Dashboard', 'Get dashboard statistics', {
@@ -1212,6 +1448,22 @@ export const swaggerSpec = {
     ...materialCrud('/admin/materi', 'Admin - Materi', 'admin'),
     ...adminModuleCrud('/admin/modul'),
     ...adminModuleCrud('/admin/manage/module'),
+    '/admin/modul/assigned': op('get', 'Admin - Modul', 'Find assigned students to a module', {
+      role: 'admin',
+      description: 'Cari siswa yang ditugaskan ke modul tertentu.',
+      requestSchema: 'AssignModuleRequest',
+      requestExample: examples.assignModule,
+      responseSchema: 'ObjectResponse',
+      responseIsArray: true,
+    }),
+    '/admin/manage/module/assigned': op('get', 'Admin - Modul', 'Find assigned students to a module', {
+      role: 'admin',
+      description: 'Cari siswa yang ditugaskan ke modul tertentu.',
+      requestSchema: 'AssignModuleRequest',
+      requestExample: examples.assignModule,
+      responseSchema: 'ObjectResponse',
+      responseIsArray: true,
+    }),
     '/admin/progress': op('get', 'Admin - Progress', 'Get student progress grouped by module', {
       role: 'admin',
       parameters: paginationParams,
@@ -1230,9 +1482,87 @@ export const swaggerSpec = {
     }),
     ...accountManagement('/admin/siswa', 'Admin - Siswa', 'siswa'),
     ...accountManagement('/admin/manage/siswa', 'Admin - Siswa', 'siswa'),
+    '/admin/siswa': merge(
+      op('get', 'Admin - Siswa', 'Get all siswa', {
+        role: 'admin',
+        responseSchema: 'ObjectResponse',
+        responseIsArray: true,
+      }),
+      op('post', 'Admin - Siswa', 'Register siswa', {
+        role: 'admin',
+        requestSchema: 'SiswaRegisterRequest',
+        requestExample: examples.siswaRegister,
+        responseSchema: 'Siswa',
+      }),
+    ),
+    '/admin/siswa/search': op('get', 'Admin - Siswa', 'Search siswa by name or email', {
+      role: 'admin',
+      description: 'Cari siswa berdasarkan nama_lengkap atau email. Minimal 2 karakter.',
+      parameters: [
+        { name: 'q', in: 'query', required: true, description: 'Kata kunci pencarian.', schema: { type: 'string', minLength: 2 }, example: 'Budi' },
+      ],
+      responseSchema: 'SearchSiswaResponse',
+    }),
+    '/admin/siswa/{id}/activate': op('patch', 'Admin - Siswa', 'Activate siswa', {
+      role: 'admin',
+      parameters: [idParam('id', 'Student ID.', 'siswa_123')],
+      responseSchema: 'MessageResponse',
+    }),
+    '/admin/manage/siswa': op('get', 'Admin - Siswa', 'Get all siswa', {
+      role: 'admin',
+      responseSchema: 'ObjectResponse',
+      responseIsArray: true,
+    }),
+    '/admin/manage/siswa/search': op('get', 'Admin - Siswa', 'Search siswa by name or email', {
+      role: 'admin',
+      description: 'Cari siswa berdasarkan nama_lengkap atau email. Minimal 2 karakter.',
+      parameters: [
+        { name: 'q', in: 'query', required: true, description: 'Kata kunci pencarian.', schema: { type: 'string', minLength: 2 }, example: 'Budi' },
+      ],
+      responseSchema: 'SearchSiswaResponse',
+    }),
+    '/admin/manage/siswa/{id}/activate': op('patch', 'Admin - Siswa', 'Activate siswa', {
+      role: 'admin',
+      parameters: [idParam('id', 'Student ID.', 'siswa_123')],
+      responseSchema: 'MessageResponse',
+    }),
     ...topicCrud('/admin/topik', 'Admin - Topik', 'admin'),
     ...accountManagement('/admin/tutor', 'Admin - Tutor', 'tutor'),
     ...accountManagement('/admin/manage/tutor', 'Admin - Tutor', 'tutor'),
+    '/admin/tutor': merge(
+      op('get', 'Admin - Tutor', 'Get all tutors', {
+        role: 'admin',
+        responseSchema: 'ObjectResponse',
+        responseIsArray: true,
+      }),
+      op('post', 'Admin - Tutor', 'Register tutor', {
+        role: 'admin',
+        requestSchema: 'TutorRegisterRequest',
+        requestExample: examples.tutorRegister,
+        responseSchema: 'Tutor',
+      }),
+    ),
+    '/admin/tutor/search': op('get', 'Admin - Tutor', 'Search tutor by name or email', {
+      role: 'admin',
+      description: 'Cari tutor berdasarkan fullName atau email. Minimal 2 karakter.',
+      parameters: [
+        { name: 'q', in: 'query', required: true, description: 'Kata kunci pencarian.', schema: { type: 'string', minLength: 2 }, example: 'Dr' },
+      ],
+      responseSchema: 'SearchTutorResponse',
+    }),
+    '/admin/manage/tutor': op('get', 'Admin - Tutor', 'Get all tutors', {
+      role: 'admin',
+      responseSchema: 'ObjectResponse',
+      responseIsArray: true,
+    }),
+    '/admin/manage/tutor/search': op('get', 'Admin - Tutor', 'Search tutor by name or email', {
+      role: 'admin',
+      description: 'Cari tutor berdasarkan fullName atau email. Minimal 2 karakter.',
+      parameters: [
+        { name: 'q', in: 'query', required: true, description: 'Kata kunci pencarian.', schema: { type: 'string', minLength: 2 }, example: 'Dr' },
+      ],
+      responseSchema: 'SearchTutorResponse',
+    }),
 
     '/tutor/dashboard': op('get', 'Tutor - Dashboard', 'Get tutor dashboard', {
       role: 'tutor',
@@ -1301,6 +1631,11 @@ export const swaggerSpec = {
       role: 'siswa',
       parameters: paginationParams,
       responseSchema: 'PaginatedModulesResponse',
+    }),
+    '/siswa/modul/enrolled': op('get', 'Siswa - Modul', 'Get enrolled modules with progress', {
+      role: 'siswa',
+      parameters: paginationParams,
+      responseSchema: 'PaginatedEnrolledModulesResponse',
     }),
     '/siswa/modul/{id}': op('get', 'Siswa - Modul', 'Get module by ID', {
       role: 'siswa',
@@ -1377,6 +1712,11 @@ export const swaggerSpec = {
       parameters: paginationParams,
       responseSchema: 'PaginatedModulesResponse',
     }),
+    '/umum/modul/enrolled': op('get', 'Umum - Modul', 'Get enrolled modules with progress for general users', {
+      role: 'umum',
+      parameters: paginationParams,
+      responseSchema: 'PaginatedEnrolledModulesResponse',
+    }),
     '/umum/modul/{id}': op('get', 'Umum - Modul', 'Get module by ID for general users', {
       role: 'umum',
       parameters: [idParam('id', 'Module ID.', 'modul_123')],
@@ -1404,6 +1744,63 @@ export const swaggerSpec = {
       role: 'umum',
       parameters: [idParam('modulId', 'Module ID.', 'modul_123')],
       responseSchema: 'Progress',
+    }),
+
+    // --- GUEST ENDPOINTS (no auth required) ---
+    '/guest/modules': op('get', 'Guest', 'Get all modules with cursor pagination', {
+      public: true,
+      description: 'Guest accessible. No authentication required. Returns all modules with cursor-based pagination.',
+      parameters: paginationParams,
+      responseSchema: 'PaginatedModulesResponse',
+    }),
+    '/guest/modules/{id}': op('get', 'Guest', 'Get module by ID', {
+      public: true,
+      description: 'Guest accessible. No authentication required. Returns module detail by ID.',
+      parameters: [idParam('id', 'Module ID.', 'modul_123')],
+      responseSchema: 'Module',
+    }),
+    '/guest/modules/search': op('get', 'Guest', 'Search public modules', {
+      public: true,
+      description: 'Guest accessible. Cari modul berdasarkan kata kunci (name, subtitle, description). Minimal 2 karakter.',
+      parameters: [
+        {
+          name: 'q',
+          in: 'query',
+          required: true,
+          description: 'Kata kunci pencarian (min 2 karakter).',
+          schema: { type: 'string', minLength: 2 },
+          example: 'Algoritma',
+        },
+      ],
+      responseSchema: 'ObjectResponse',
+      responseIsArray: true,
+    }),
+
+    // --- UPLOAD (authenticated) ---
+    '/upload': op('post', 'Upload', 'Upload a file', {
+      description: 'Upload file (gambar, video, CV) ke penyimpanan lokal. Menggunakan multipart/form-data. File di field "file". Tipe opsional di field "fileType".',
+      requestSchema: 'ObjectResponse',
+      responseSchema: 'UploadResponse',
+    }),
+
+    // --- NOTIFICATION (authenticated) ---
+    '/notifications': merge(
+      op('get', 'Notifikasi', 'Get notifications with cursor pagination', {
+        parameters: paginationParams,
+        responseSchema: 'PaginatedNotificationsResponse',
+      }),
+      op('patch', 'Notifikasi', 'Mark all notifications as read', {
+        responseSchema: 'MessageResponse',
+        successStatus: 200,
+      }),
+    ),
+    '/notifications/unread-count': op('get', 'Notifikasi', 'Get unread notification count', {
+      responseSchema: 'UnreadCountResponse',
+    }),
+    '/notifications/{id}/read': op('patch', 'Notifikasi', 'Mark a notification as read', {
+      parameters: [idParam('id', 'Notification ID.', 'notif_123')],
+      responseSchema: 'MessageResponse',
+      successStatus: 200,
     }),
   },
 };

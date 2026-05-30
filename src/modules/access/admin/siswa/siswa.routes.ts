@@ -6,10 +6,12 @@ import {
   updateSiswa,
   getAllSiswa,
   activateSiswa,
+  searchSiswa,
 } from './siswa.controller';
 
 export const pengelolaanSiswaRouter = Router();
 
+pengelolaanSiswaRouter.get('/search', searchSiswa);
 pengelolaanSiswaRouter.get('/', getAllSiswa);
 pengelolaanSiswaRouter.post('/', registerSiswa);
 pengelolaanSiswaRouter.put('/:id', updateSiswa);
