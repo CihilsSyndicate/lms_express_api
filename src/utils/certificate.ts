@@ -19,27 +19,20 @@ export const getStudentCertificates = async (
         AND: [
           {
             siswaId: userId,
-            progress: {
-              status: 'completed',
-            },
           },
           cursorWhere,
         ],
       },
-      take: limit + 1,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         modul: {
           select: {
             moduleName: true,
-            level: true,
-            class: true,
-          },
-        },
-        progress: {
-          select: {
-            status: true,
-            updatedAt: true,
+            tutor: {
+              select: {
+                fullName: true,
+                signatures: true,
+              },
+            },
           },
         },
       },
@@ -57,7 +50,7 @@ export const getStudentCertificates = async (
 export const getStudentCertificateById = async (certificateId: string) => {
   try {
     const certificate = await prisma.certificate.findUnique({
-      where: { id: certificateId, progress: { status: 'completed' } },
+      where: { id: certificateId },
       include: {
         siswa: true,
         modul: {

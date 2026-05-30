@@ -8,6 +8,7 @@ import progressRouter from './progress/progress.routes';
 import { pengelolaanSiswaRouter } from './siswa/siswa.routes';
 import topikRouter from './topik/topik.routes';
 import tutorRouter from './tutor/tutor.routes';
+import adminProfileRouter from './profile/profile.routes';
 
 export const adminRouter = Router();
 
@@ -25,3 +26,4 @@ adminRouter.use('/manage/siswa', pengelolaanSiswaRouter);
 adminRouter.use('/topik', topikRouter);
 adminRouter.use('/tutor', tutorRouter);
 adminRouter.use('/manage/tutor', tutorRouter);
+adminRouter.use('/profile', adminProfileRouter);

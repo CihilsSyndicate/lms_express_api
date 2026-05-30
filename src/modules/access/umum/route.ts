@@ -3,6 +3,7 @@ import { requireRole, verifyToken } from '@/lib/auth';
 import umumModulRouter from './modul/modul.routes';
 import umumKuisRouter from './kuis/kuis.routes';
 import umumProgressRouter from './progress/progress.routes';
+import umumProfileRouter from './profile/profile.routes';
 
 export const umumRouter = Router();
 
@@ -12,3 +13,4 @@ umumRouter.use(verifyToken, requireRole('umum'));
 umumRouter.use('/modul', umumModulRouter);
 umumRouter.use('/kuis', umumKuisRouter);
 umumRouter.use('/progress', umumProgressRouter);
+umumRouter.use('/profile', umumProfileRouter);

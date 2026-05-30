@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
 import { getModules, getModuleById } from '@/utils/modul';
-import { parsePaginationQuery } from '@/utils/pagination';
+import {
+  parsePaginationQuery,
+  buildCursorWhere,
+  decodeCursor,
+  buildCursorPaginatedResponse,
+} from '@/utils/pagination';
 import { prisma } from '@/lib/prisma';
+import { pushNotification, triggerAdminEvent } from '@/utils/realtime';
 
 export const getModulesController = async (req: Request, res: Response) => {
   try {
@@ -66,9 +72,74 @@ export const enrollModuleController = async (req: Request, res: Response) => {
       },
     });
 
+    await pushNotification(
+      siswaId,
+      'enrollment',
+      'Pendaftaran Modul',
+      `Anda berhasil mendaftar modul "${module.moduleName}".`,
+    );
+    triggerAdminEvent('admin.enrollment', {
+      userId: siswaId,
+      moduleName: module.moduleName,
+      action: 'self-enroll',
+    });
+
     return res.status(200).json({ message: 'Enrolled successfully' });
   } catch (error) {
     console.error('[ENROLL-ERROR]', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getEnrolledModulesController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const siswaId = req.user?.id;
+    if (!siswaId)
+      return res.status(401).json({ message: 'Unauthorized' });
+
+    const { limit, cursor } = parsePaginationQuery(req.query);
+
+    const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
+    const cursorWhere = buildCursorWhere(cursorPayload);
+
+    const enrolled = await prisma.progress.findMany({
+      where: { AND: [{ siswaId }, cursorWhere] },
+      take: limit + 1,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        modul: {
+          include: {
+            tutor: { select: { fullName: true } },
+          },
+        },
+      },
+    });
+
+    const items = enrolled.map((p) => ({
+      ...p.modul,
+      progress: {
+        id: p.id,
+        progressPercentage: p.progressPercentage,
+        status: p.status,
+        isGraduated: p.isGraduated,
+        pretestScore: p.pretestScore,
+        posttestScore: p.posttestScore,
+        finalScore: p.finalScore,
+        lastAccessed: p.lastAccessed,
+      },
+    }));
+
+    return res.status(200).json(
+      buildCursorPaginatedResponse(items, limit, (item) => ({
+        createdAt: item.createdAt,
+        id: item.id,
+      })),
+    );
+  } catch (error) {
+    console.error('[ENROLLED-MODULES-ERROR]', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

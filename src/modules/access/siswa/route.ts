@@ -11,6 +11,7 @@ import pretestRouter from './pretest/pretest.routes';
 import { ratingRouter } from './rating/rating.route';
 import submateriRouter from './submateri/submateri.routes';
 import topikRouter from './topik/topik.routes';
+import siswaProfileRouter from './profile/profile.routes';
 
 export const siswaRouter = Router();
 
@@ -28,3 +29,4 @@ siswaRouter.use('/rating', ratingRouter);
 siswaRouter.use('/submateri', submateriRouter);
 siswaRouter.use('/topik', topikRouter);
 siswaRouter.use('/kuis', kuisRouter);
+siswaRouter.use('/profile', siswaProfileRouter);

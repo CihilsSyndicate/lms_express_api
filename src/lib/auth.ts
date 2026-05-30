@@ -74,6 +74,16 @@ export const hashPassword = async (password: string) => {
   return hash(password, salt);
 };
 
+export const generateResetToken = (email: string, role: string) => {
+  const secretKey = process.env.JWT_SECRET as string;
+  return jwt.sign({ email, role }, secretKey, { expiresIn: '1h' });
+};
+
+export const verifyResetToken = (token: string) => {
+  const secretKey = process.env.JWT_SECRET as string;
+  return jwt.verify(token, secretKey) as { email: string; role: string };
+};
+
 export const comparePassword = async (
   password: string,
   hashedPassword: string,

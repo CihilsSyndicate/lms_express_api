@@ -12,6 +12,7 @@ import {
 
 import { parsePaginationQuery } from '@/utils/pagination';
 import { getUserById as getStudentById } from '@/utils/user';
+import { pushNotification } from '@/utils/realtime';
 
 export const findAssignedStudents = async (req: Request, res: Response) => {
   try {
@@ -53,6 +54,13 @@ export const assignStudentToModule = async (req: Request, res: Response) => {
     }
 
     const payload = await assignStudentToModuleFunc(moduleId, studentId);
+
+    await pushNotification(
+      studentId,
+      'enrollment',
+      'Ditambahkan ke Modul',
+      `Admin menambahkan Anda ke modul "${findModule.moduleName}".`,
+    );
 
     res.status(200).json(payload);
   } catch (error) {

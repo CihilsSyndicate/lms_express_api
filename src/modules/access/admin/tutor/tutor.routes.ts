@@ -5,10 +5,12 @@ import {
   deleteTutor,
   deactivateTutor,
   getAllTutors,
+  searchTutor,
 } from './tutor.controller';
 
 const tutorRouter = Router();
 
+tutorRouter.get('/search', searchTutor);
 tutorRouter.post('/', registerTutor);
 tutorRouter.get('/', getAllTutors);
 tutorRouter.put('/:id', updateTutor);

@@ -46,27 +46,6 @@ export const logout = (req: Request, res: Response) => {
   return res.status(200).json({ message: 'Logout berhasil.' });
 };
 
-export const me = async (req: Request, res: Response) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Unauthenticated' });
-    }
-
-    const user = await authService.getCurrentUserService(
-      req.user.id,
-      req.user.role,
-    );
-    if (!user) {
-      return res.status(404).json({ message: 'User tidak ditemukan.' });
-    }
-
-    return res.status(200).json(user);
-  } catch (error) {
-    console.error('[AUTH-CONTROLLER] Get Me error:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
-
 export const refresh = async (req: Request, res: Response) => {
   try {
     const rToken = req.cookies?.refreshToken;
@@ -115,6 +94,28 @@ export const register = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[AUTH-CONTROLLER] Register error:', error);
     return res.status(error.message.includes('Email sudah terdaftar') ? 400 : 500).json({ message: error.message || 'Internal server error.' });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email wajib diisi.' });
+    const result = await authService.forgotPasswordService(email);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ message: 'Token dan password baru wajib diisi.' });
+    await authService.resetPasswordService(token, password);
+    return res.status(200).json({ message: 'Password berhasil direset.' });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
   }
 };
 

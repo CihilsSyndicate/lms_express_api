@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { AppError } from '@/errors/app.error';
 import * as bktService from '@/modules/access/siswa/learning/bkt/bkt.service';
+import { pushNotification } from '@/utils/realtime';
 
 export const submitQuizAnswer = async (
   siswaId: string,
@@ -66,8 +67,16 @@ export const submitQuizAnswer = async (
   return { isCorrect, quizId };
 };
 
-// Placeholder for WebSocket notification
-export function notifyStateUpdate(siswaId: string, modulId: string, kcId: string) {
-  console.log(`[WS-EMIT] State updated for student ${siswaId} in module ${modulId}, KC ${kcId}`);
-  // Real implementation would use a WS server instance
+export async function notifyStateUpdate(siswaId: string, modulId: string, kcId: string) {
+  try {
+    await pushNotification(
+      siswaId,
+      'quiz',
+      'Update Quiz',
+      `Knowledge state diperbarui untuk modul ini.`,
+      { modulId, knowledgeComponentId: kcId },
+    );
+  } catch (err) {
+    console.error('[WS-EMIT-ERROR] Gagal mengirim notifikasi realtime:', err);
+  }
 }
