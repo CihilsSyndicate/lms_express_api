@@ -165,15 +165,15 @@ export const markSubmateriCompletedService = async (
     where: { siswaId_modulId: { siswaId, modulId } },
     include: { modul: true },
   });
-  if (progress) {
-    await pushNotification(
-      siswaId,
-      'progress',
-      'Progres Modul',
-      `Progres Anda "${progress.modul?.moduleName}" mencapai ${progress.progressPercentage.toFixed(0)}%.`,
-      { modulId, progressPercentage: progress.progressPercentage },
-    );
-  }
+  // if (progress) {
+  //   await pushNotification(
+  //     siswaId,
+  //     'progress',
+  //     'Progres Modul',
+  //     `Progres Anda "${progress.modul?.moduleName}" mencapai ${progress.progressPercentage.toFixed(0)}%.`,
+  //     { modulId, progressPercentage: progress.progressPercentage },
+  //   );
+  // }
 
   return { message: 'Submateri berhasil ditandai selesai.' };
 };
@@ -214,7 +214,8 @@ export const calculatePretestScoreService = async (
 
   if (!pretest) return 0;
 
-  let totalScore = 0;
+  let totalRawScore = 0;
+  let maxRawScore = 0;
   const answerLogs: { questionId: string; isCorrect: boolean }[] = [];
 
   for (const answer of answers) {
@@ -223,7 +224,9 @@ export const calculatePretestScoreService = async (
     );
     if (question) {
       const isCorrect = question.correctAnswer === answer.answer;
-      if (isCorrect) totalScore += question.skor;
+      // accumulate raw scores
+      maxRawScore += question.skor;
+      if (isCorrect) totalRawScore += question.skor;
 
       answerLogs.push({ questionId: answer.questionId, isCorrect });
 
@@ -239,6 +242,10 @@ export const calculatePretestScoreService = async (
       });
     }
   }
+
+  // Normalize raw score to a 0-100 scale (if no questions, score 0)
+  const totalScore =
+    maxRawScore > 0 ? Math.round((totalRawScore / maxRawScore) * 100) : 0;
 
   // Update progress skor pretest
   await prisma.progress.updateMany({

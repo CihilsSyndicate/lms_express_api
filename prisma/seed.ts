@@ -539,22 +539,46 @@ async function main() {
   const pretestQuestions = [
     {
       pertanyaan: 'Apa itu algoritma?',
-      jawaban_benar: 'Urutan langkah sistematis',
+      options: [
+        'Urutan langkah sistematis',
+        'Kumpulan kode program',
+        'Bahasa pemrograman',
+        'Perangkat keras komputer',
+      ],
+      correctAnswerIdx: 0,
       skor: 10,
     },
     {
       pertanyaan: 'Simbol flowchart untuk proses adalah...',
-      jawaban_benar: 'Persegi panjang',
+      options: [
+        'Lingkaran',
+        'Persegi panjang',
+        'Belah ketupat',
+        'Jajar genjang',
+      ],
+      correctAnswerIdx: 1,
       skor: 10,
     },
     {
       pertanyaan: 'Struktur data LIFO adalah...',
-      jawaban_benar: 'Stack',
+      options: [
+        'Queue',
+        'Array',
+        'Stack',
+        'Linked List',
+      ],
+      correctAnswerIdx: 2,
       skor: 10,
     },
     {
       pertanyaan: 'Kompleksitas Binary Search adalah...',
-      jawaban_benar: 'O(log n)',
+      options: [
+        'O(n)',
+        'O(n\u00B2)',
+        'O(1)',
+        'O(log n)',
+      ],
+      correctAnswerIdx: 3,
       skor: 10,
     },
   ];
@@ -566,35 +590,23 @@ async function main() {
         data: {
           pretestId: pt.id,
           pertanyaan: q.pertanyaan,
-          correctAnswer: q.jawaban_benar,
+          correctAnswer: q.options[q.correctAnswerIdx],
           skor: q.skor,
         },
       });
+
+      await Promise.all(
+        q.options.map((option) =>
+          prisma.pretestAnswerOptions.create({
+            data: { soalPretestId: soal.id, option },
+          }),
+        ),
+      );
+
       allSoalPretest.push({ id: soal.id, pretestId: pt.id });
     }
   }
-  console.log(`10. SoalPretest: ${allSoalPretest.length} records`);
-
-  // =====================================================
-  // 11. PRETEST ANSWER OPTIONS (4 per soal = 80 records)
-  // =====================================================
-  for (const soal of allSoalPretest) {
-    await Promise.all([
-      prisma.pretestAnswerOptions.create({
-        data: { soalPretestId: soal.id, option: 'Pilihan A' },
-      }),
-      prisma.pretestAnswerOptions.create({
-        data: { soalPretestId: soal.id, option: 'Pilihan B' },
-      }),
-      prisma.pretestAnswerOptions.create({
-        data: { soalPretestId: soal.id, option: 'Pilihan C' },
-      }),
-      prisma.pretestAnswerOptions.create({
-        data: { soalPretestId: soal.id, option: 'Pilihan D' },
-      }),
-    ]);
-  }
-  console.log('11. PretestAnswerOptions: 80 records');
+  console.log(`10. SoalPretest: ${allSoalPretest.length} records (80 answer options)`);
 
   // =====================================================
   // 12. PRETEST SETTING (1 per pretest = 5 records)
@@ -761,8 +773,121 @@ async function main() {
   console.log('17. TopikItem: 40 records');
 
   // =====================================================
-  // 18. QUIZ (1 per modul, distributed across terkait materi = 10 records)
+  // 18. QUIZ (1 per modul = 10 records)
   // =====================================================
+  const quizQuestions = [
+    {
+      question: 'Apa langkah pertama dalam menyusun algoritma?',
+      options: [
+        'Mendefinisikan masalah',
+        'Menulis kode program',
+        'Menguji program',
+        'Menginstal compiler',
+      ],
+      correctAnswer: 'Mendefinisikan masalah',
+      skor: 10,
+    },
+    {
+      question: 'Struktur data yang menggunakan prinsip LIFO adalah...',
+      options: [
+        'Queue',
+        'Stack',
+        'Array',
+        'Tree',
+      ],
+      correctAnswer: 'Stack',
+      skor: 10,
+    },
+    {
+      question: 'Tag HTML untuk membuat heading terbesar adalah...',
+      options: [
+        '<heading>',
+        '<h6>',
+        '<h1>',
+        '<head>',
+      ],
+      correctAnswer: '<h1>',
+      skor: 10,
+    },
+    {
+      question: 'Perintah SQL untuk mengambil data dari tabel adalah...',
+      options: [
+        'INSERT',
+        'UPDATE',
+        'DELETE',
+        'SELECT',
+      ],
+      correctAnswer: 'SELECT',
+      skor: 10,
+    },
+    {
+      question: 'Apa kepanjangan dari IDE?',
+      options: [
+        'Integrated Development Environment',
+        'Internet Data Exchange',
+        'Internal Design Engine',
+        'Integrated Debugging Engine',
+      ],
+      correctAnswer: 'Integrated Development Environment',
+      skor: 10,
+    },
+    {
+      question: 'Himpunan kosong dilambangkan dengan...',
+      options: [
+        '{0}',
+        '{}',
+        '\u2205',
+        'None',
+      ],
+      correctAnswer: '\u2205',
+      skor: 10,
+    },
+    {
+      question: 'Algoritma Machine Learning untuk prediksi nilai kontinu adalah...',
+      options: [
+        'Klasifikasi',
+        'Regresi',
+        'Clustering',
+        'Asosiasi',
+      ],
+      correctAnswer: 'Regresi',
+      skor: 10,
+    },
+    {
+      question: 'Protokol yang digunakan untuk mengirim email adalah...',
+      options: [
+        'HTTP',
+        'FTP',
+        'SMTP',
+        'SSH',
+      ],
+      correctAnswer: 'SMTP',
+      skor: 10,
+    },
+    {
+      question: 'Aplikasi untuk membuat presentasi interaktif adalah...',
+      options: [
+        'Microsoft Word',
+        'Microsoft Excel',
+        'Microsoft PowerPoint',
+        'Microsoft OneNote',
+      ],
+      correctAnswer: 'Microsoft PowerPoint',
+      skor: 10,
+    },
+    {
+      question: 'Ukuran pemusatan data yang paling sering muncul disebut...',
+      options: [
+        'Mean',
+        'Median',
+        'Modus',
+        'Range',
+      ],
+      correctAnswer: 'Modus',
+      skor: 10,
+    },
+  ];
+
   const quizzes: { id: string }[] = [];
   for (let i = 0; i < moduls.length; i++) {
     const modulMateris = materis.filter((m) => {
@@ -770,39 +895,28 @@ async function main() {
       return topik && topik.modulId === moduls[i].id;
     });
     if (modulMateris.length > 0) {
+      const q = quizQuestions[i];
       const quiz = await prisma.quiz.create({
         data: {
           materiId: modulMateris[0].id,
-          question: `Soal quiz untuk modul ${moduls[i].moduleName}?`,
-          correctAnswer: 'A',
-          skor: 10,
+          question: q.question,
+          correctAnswer: q.correctAnswer,
+          skor: q.skor,
         },
       });
+
+      await Promise.all(
+        q.options.map((option) =>
+          prisma.quizAnswerOption.create({
+            data: { quizId: quiz.id, option },
+          }),
+        ),
+      );
+
       quizzes.push(quiz);
     }
   }
-  console.log(`18. Quiz: ${quizzes.length} records`);
-
-  // =====================================================
-  // 19. QUIZ ANSWER OPTIONS (4 per quiz = 40 records)
-  // =====================================================
-  for (const quiz of quizzes) {
-    await Promise.all([
-      prisma.quizAnswerOption.create({
-        data: { quizId: quiz.id, option: 'Pilihan A' },
-      }),
-      prisma.quizAnswerOption.create({
-        data: { quizId: quiz.id, option: 'Pilihan B' },
-      }),
-      prisma.quizAnswerOption.create({
-        data: { quizId: quiz.id, option: 'Pilihan C' },
-      }),
-      prisma.quizAnswerOption.create({
-        data: { quizId: quiz.id, option: 'Pilihan D' },
-      }),
-    ]);
-  }
-  console.log('19. QuizAnswerOption: 40 records');
+  console.log(`18. Quiz: ${quizzes.length} records (40 answer options)`);
 
   // =====================================================
   // 20. QUIZ SETTING (1 per quiz = 10 records)
