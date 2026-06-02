@@ -13,7 +13,10 @@ app.use(cookieParser());
 app.use(passport.initialize());
 app.use(
   cors({
-    origin: process.env.FRONTEND_APP_URL,
+    // If FRONTEND_APP_URL is set (can be comma-separated), use it;
+    // otherwise allow requests from any origin but keep credentials support
+    // by echoing the request origin (true) instead of using '*'.
+    origin: process.env.FRONTEND_APP_URL ? process.env.FRONTEND_APP_URL : true,
     credentials: true,
   }),
 );
