@@ -51,13 +51,9 @@ export const getAllQuiz = async (limit: number = 10, cursor?: string) => {
       take: limit + 1,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
+        tutor: true,
         topiks: {
           include: {
-            modul: {
-              include: {
-                tutor: true,
-              },
-            },
             materis: {
               include: {
                 quizzes: true,
