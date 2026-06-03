@@ -29,6 +29,32 @@ export const createModule = async (payload: CreateModulRecord) => {
   }
 };
 
+export const getTutorModules = async (
+  tutorId: string,
+  limit: number = 10,
+  cursor?: string,
+) => {
+  try {
+    const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
+    const where = buildCursorWhere(cursorPayload);
+    const modules = await prisma.modul.findMany({
+      where: {
+        ...where,
+        tutorId,
+      },
+      take: limit + 1,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+    return buildCursorPaginatedResponse(modules, limit, (item) => ({
+      createdAt: item.createdAt,
+      id: item.id,
+    }));
+  } catch (error) {
+    console.error('Error fetching tutor modules:', error);
+    throw error;
+  }
+};
+
 export const getModules = async (
   limit: number = 10,
   cursor?: string,

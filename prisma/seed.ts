@@ -304,21 +304,21 @@ async function main() {
       email: 'umum1@lms.test',
       jenjang: 'SMA',
       kelas_sekolah: 'Umum',
-      studentType: 'GURU' as const,
+      studentType: 'UMUM' as const,
     },
     {
       nama_lengkap: 'Kartika Wijaya',
       email: 'umum2@lms.test',
       jenjang: 'SMA',
       kelas_sekolah: 'Umum',
-      studentType: 'GURU' as const,
+      studentType: 'UMUM' as const,
     },
     {
       nama_lengkap: 'Eko Prasetyo',
       email: 'umum3@lms.test',
       jenjang: 'SMA',
       kelas_sekolah: 'Umum',
-      studentType: 'GURU' as const,
+      studentType: 'UMUM' as const,
     },
   ];
 
@@ -561,23 +561,13 @@ async function main() {
     },
     {
       pertanyaan: 'Struktur data LIFO adalah...',
-      options: [
-        'Queue',
-        'Array',
-        'Stack',
-        'Linked List',
-      ],
+      options: ['Queue', 'Array', 'Stack', 'Linked List'],
       correctAnswerIdx: 2,
       skor: 10,
     },
     {
       pertanyaan: 'Kompleksitas Binary Search adalah...',
-      options: [
-        'O(n)',
-        'O(n\u00B2)',
-        'O(1)',
-        'O(log n)',
-      ],
+      options: ['O(n)', 'O(n\u00B2)', 'O(1)', 'O(log n)'],
       correctAnswerIdx: 3,
       skor: 10,
     },
@@ -606,7 +596,9 @@ async function main() {
       allSoalPretest.push({ id: soal.id, pretestId: pt.id });
     }
   }
-  console.log(`10. SoalPretest: ${allSoalPretest.length} records (80 answer options)`);
+  console.log(
+    `10. SoalPretest: ${allSoalPretest.length} records (80 answer options)`,
+  );
 
   // =====================================================
   // 12. PRETEST SETTING (1 per pretest = 5 records)
@@ -789,34 +781,19 @@ async function main() {
     },
     {
       question: 'Struktur data yang menggunakan prinsip LIFO adalah...',
-      options: [
-        'Queue',
-        'Stack',
-        'Array',
-        'Tree',
-      ],
+      options: ['Queue', 'Stack', 'Array', 'Tree'],
       correctAnswer: 'Stack',
       skor: 10,
     },
     {
       question: 'Tag HTML untuk membuat heading terbesar adalah...',
-      options: [
-        '<heading>',
-        '<h6>',
-        '<h1>',
-        '<head>',
-      ],
+      options: ['<heading>', '<h6>', '<h1>', '<head>'],
       correctAnswer: '<h1>',
       skor: 10,
     },
     {
       question: 'Perintah SQL untuk mengambil data dari tabel adalah...',
-      options: [
-        'INSERT',
-        'UPDATE',
-        'DELETE',
-        'SELECT',
-      ],
+      options: ['INSERT', 'UPDATE', 'DELETE', 'SELECT'],
       correctAnswer: 'SELECT',
       skor: 10,
     },
@@ -833,34 +810,20 @@ async function main() {
     },
     {
       question: 'Himpunan kosong dilambangkan dengan...',
-      options: [
-        '{0}',
-        '{}',
-        '\u2205',
-        'None',
-      ],
+      options: ['{0}', '{}', '\u2205', 'None'],
       correctAnswer: '\u2205',
       skor: 10,
     },
     {
-      question: 'Algoritma Machine Learning untuk prediksi nilai kontinu adalah...',
-      options: [
-        'Klasifikasi',
-        'Regresi',
-        'Clustering',
-        'Asosiasi',
-      ],
+      question:
+        'Algoritma Machine Learning untuk prediksi nilai kontinu adalah...',
+      options: ['Klasifikasi', 'Regresi', 'Clustering', 'Asosiasi'],
       correctAnswer: 'Regresi',
       skor: 10,
     },
     {
       question: 'Protokol yang digunakan untuk mengirim email adalah...',
-      options: [
-        'HTTP',
-        'FTP',
-        'SMTP',
-        'SSH',
-      ],
+      options: ['HTTP', 'FTP', 'SMTP', 'SSH'],
       correctAnswer: 'SMTP',
       skor: 10,
     },
@@ -877,12 +840,7 @@ async function main() {
     },
     {
       question: 'Ukuran pemusatan data yang paling sering muncul disebut...',
-      options: [
-        'Mean',
-        'Median',
-        'Modus',
-        'Range',
-      ],
+      options: ['Mean', 'Median', 'Modus', 'Range'],
       correctAnswer: 'Modus',
       skor: 10,
     },

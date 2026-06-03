@@ -4,6 +4,7 @@ import { getDashboardStatsService } from './dashboard.service';
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
     const payload = await getDashboardStatsService();
+    // console.log(payload);
     return res.status(200).json(payload);
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);

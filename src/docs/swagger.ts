@@ -1413,6 +1413,16 @@ export const swaggerSpec = {
     '/admin/dashboard': op('get', 'Admin - Dashboard', 'Get dashboard statistics', {
       role: 'admin',
       responseSchema: 'DashboardStats',
+      responseExample: {
+        activeStudents: 10,
+        activeQuizzes: 10,
+        activeTutors: 10,
+        activeModules: 9,
+        activeUserPercentage: 86.95652173913044,
+        inactiveUserPercentage: 13.043478260869565,
+        countAllUsers: 23,
+        activeClass: 9
+      },
     }),
     '/admin/kuis': merge(
       op('get', 'Admin - Kuis', 'Get all quizzes with cursor pagination', {

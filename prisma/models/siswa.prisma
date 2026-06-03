@@ -120,5 +120,5 @@ model ModuleUnlockRule {
 
 enum StudentType {
     SISWA
-    GURU
+    UMUM
 }

@@ -5,6 +5,7 @@ import {
   createModule as createModuleFunc,
   deleteModule as deleteModuleFunc,
   getModules as getModulesFunc,
+  getTutorModules as getTutorModulesFunc,
 } from '@/utils/modul';
 import { parsePaginationQuery } from '@/utils/pagination';
 
@@ -22,6 +23,23 @@ export const getModules = async (req: Request, res: Response) => {
       return res.status(400).json({ message: error.message });
     }
     res.status(500).json({ error: 'Failed to fetch modules' });
+  }
+};
+
+export const getTutorModules = async (req: Request, res: Response) => {
+  try {
+    const tutorId = req.user?.id;
+    const { limit, cursor } = parsePaginationQuery(req.query);
+    const modules = await getTutorModulesFunc(tutorId as string, limit, cursor);
+    res.status(200).json(modules);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching tutor modules:', error);
+      res.status(500).json({
+        error: 'Failed to fetch tutor modules',
+        message: error.message,
+      });
+    }
   }
 };
 
