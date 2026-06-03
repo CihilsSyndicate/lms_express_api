@@ -1,6 +1,7 @@
 import { AppError } from '@/errors/app.error';
 import { prisma } from '@/lib/prisma';
 import { ProgressService } from '@/modules/access/siswa/progress/progress.service';
+import { calculateUnlockedCount } from './pretestUnlock';
 
 type TestAnswer = { questionId: string; answer: string };
 
@@ -111,5 +112,33 @@ export const submitPretestAnswer = async (
     answers,
   );
 
-  return { score };
+  const { unlocked_count, total_submodules } = await prisma.$transaction(
+    async (tx) => {
+      const totalSubmodules = await tx.topik.count({
+        where: { modulId },
+      });
+
+      const unlockedCount = calculateUnlockedCount(totalSubmodules, score);
+
+      const progressPercentage =
+        totalSubmodules > 0
+          ? Math.round((unlockedCount / totalSubmodules) * 100)
+          : 0;
+
+      await tx.progress.updateMany({
+        where: { siswaId: siswaId as string, modulId: modulId as string },
+        data: {
+          status: 'IN_PROGRESS',
+          progressPercentage,
+        },
+      });
+
+      return {
+        unlocked_count: unlockedCount,
+        total_submodules: totalSubmodules,
+      };
+    },
+  );
+
+  return { score, unlocked_count, total_submodules };
 };

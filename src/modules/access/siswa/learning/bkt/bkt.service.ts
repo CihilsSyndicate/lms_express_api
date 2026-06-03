@@ -276,6 +276,7 @@ export const syncModuleProgressSummary = async (
   await prisma.progress.update({
     where: { id: progress.id },
     data: {
+      progressPercentage: Math.round(completionRate * 100),
       finalScore: finalScore,
       isGraduated: isPassed,
     },

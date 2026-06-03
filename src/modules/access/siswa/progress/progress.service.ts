@@ -45,7 +45,6 @@ export const getProgressByModuleService = async (
 
   if (!progress) return null;
 
-  // Hitung completion rate
   const totalSubmaterials = await prisma.submateri.count({
     where: { materi: { topik: { modulId: modulId } } },
   });
@@ -60,7 +59,7 @@ export const getProgressByModuleService = async (
 
   const completionRate =
     totalSubmaterials > 0
-      ? (completedSubmaterials / totalSubmaterials) * 100
+      ? Math.round((completedSubmaterials / totalSubmaterials) * 100)
       : 0;
 
   return {
@@ -118,7 +117,7 @@ export const updateLastAccessedService = async (
 export const markSubmateriCompletedService = async (
   siswaId: string,
   submateriId: string,
-): Promise<{ message: string }> => {
+) => {
   const submateri = await prisma.submateri.findUnique({
     where: { id: submateriId },
     include: { materi: { include: { topik: { include: { modul: true } } } } },
@@ -165,6 +164,8 @@ export const markSubmateriCompletedService = async (
     where: { siswaId_modulId: { siswaId, modulId } },
     include: { modul: true },
   });
+
+  // console.log(progress);
   // if (progress) {
   //   await pushNotification(
   //     siswaId,
@@ -175,7 +176,7 @@ export const markSubmateriCompletedService = async (
   //   );
   // }
 
-  return { message: 'Submateri berhasil ditandai selesai.' };
+  return { message: 'Submateri berhasil ditandai selesai.', progress };
 };
 
 /**

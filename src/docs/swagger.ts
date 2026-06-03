@@ -821,6 +821,23 @@ const componentSchemas = {
       isDraft: { type: 'boolean', example: true },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' },
+      tutor: {
+        type: 'object',
+        properties: {
+          fullName: { type: 'string', example: 'Dr. Tutor' },
+        },
+        required: ['fullName'],
+      },
+      progress: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            siswaId: { type: 'string', example: 'siswa_123' },
+          },
+        },
+      },
+      totalSiswa: { type: 'integer', example: 0 },
     },
   },
   Topic: {
@@ -937,8 +954,10 @@ const componentSchemas = {
     type: 'object',
     properties: {
       score: { type: 'number', example: 80 },
+      unlocked_count: { type: 'integer', example: 7 },
+      total_submodules: { type: 'integer', example: 10 },
     },
-    required: ['score'],
+    required: ['score', 'unlocked_count', 'total_submodules'],
   },
   PosttestSubmitResponse: {
     type: 'object',
@@ -992,6 +1011,7 @@ const componentSchemas = {
       status: { type: 'string', example: 'IN_PROGRESS' },
       isGraduated: { type: 'boolean', example: false },
       progressPercentage: { type: 'number', example: 50 },
+      completionRate: { type: 'number', example: 30 },
     },
   },
   ProgressByStudent: {
@@ -1579,6 +1599,11 @@ export const swaggerSpec = {
       responseSchema: 'TutorDashboard',
     }),
     ...moduleCrud('/tutor/modul', 'Tutor - Modul', 'tutor'),
+    '/tutor/modul/my-modules': op('get', 'Tutor - Modul', 'Get my modules with cursor pagination', {
+      role: 'tutor',
+      parameters: paginationParams,
+      responseSchema: 'PaginatedModulesResponse',
+    }),
     ...materialCrud('/tutor/materi', 'Tutor - Materi', 'tutor'),
     ...topicCrud('/tutor/topik', 'Tutor - Topik', 'tutor'),
     ...submaterialCrud('/tutor/submateri', 'Tutor - Submateri'),

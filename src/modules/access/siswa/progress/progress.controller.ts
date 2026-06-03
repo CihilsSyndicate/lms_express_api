@@ -15,7 +15,7 @@ export const getProgressByModule = async (req: Request, res: Response) => {
     if (!progress) {
       return res.status(404).json({ message: 'Progress tidak ditemukan.' });
     }
-    // console.log(progress);`
+    // console.log(progress);
     res.status(200).json(progress);
   } catch (error) {
     console.error('[PROGRESS-ERROR] Gagal mengambil progress:', error);
@@ -57,7 +57,7 @@ export const markSubmateriCompleted = async (req: Request, res: Response) => {
     const { submateriId } = req.params;
     const siswaId = req.user?.id;
 
-    console.log(submateriId, siswaId);
+    // console.log(submateriId, siswaId);
 
     const payload = await progressService.markSubmateriCompletedService(
       siswaId as string,

@@ -72,17 +72,17 @@ export const enrollModuleController = async (req: Request, res: Response) => {
       },
     });
 
-    await pushNotification(
-      siswaId,
-      'enrollment',
-      'Pendaftaran Modul',
-      `Anda berhasil mendaftar modul "${module.moduleName}".`,
-    );
-    triggerAdminEvent('admin.enrollment', {
-      userId: siswaId,
-      moduleName: module.moduleName,
-      action: 'self-enroll',
-    });
+    // await pushNotification(
+    //   siswaId,
+    //   'enrollment',
+    //   'Pendaftaran Modul',
+    //   `Anda berhasil mendaftar modul "${module.moduleName}".`,
+    // );
+    // triggerAdminEvent('admin.enrollment', {
+    //   userId: siswaId,
+    //   moduleName: module.moduleName,
+    //   action: 'self-enroll',
+    // });
 
     return res.status(200).json({ message: 'Enrolled successfully' });
   } catch (error) {
@@ -97,8 +97,7 @@ export const getEnrolledModulesController = async (
 ) => {
   try {
     const siswaId = req.user?.id;
-    if (!siswaId)
-      return res.status(401).json({ message: 'Unauthorized' });
+    if (!siswaId) return res.status(401).json({ message: 'Unauthorized' });
 
     const { limit, cursor } = parsePaginationQuery(req.query);
 
