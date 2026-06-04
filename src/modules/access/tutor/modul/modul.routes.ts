@@ -1,6 +1,5 @@
 import Router from 'express';
 import { verifyToken } from '@/lib/auth';
-import { upload } from '@/middleware/upload';
 import {
   createModule,
   getModules,
@@ -15,6 +14,6 @@ export const modulRouter = Router();
 modulRouter.get('/', getModules);
 modulRouter.get('/my-modules', getTutorModules);
 modulRouter.get('/:id', getModuleById);
-modulRouter.post('/', upload.single('modulImg'), createModule);
+modulRouter.post('/', createModule);
 modulRouter.put('/:id', updateModule);
 modulRouter.delete('/:id', deleteModule);

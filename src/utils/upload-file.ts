@@ -7,6 +7,10 @@ export enum UploadFileType {
   SIGNATURE_IMAGE = 'SIGNATURE_IMAGE',
   VIDEO = 'VIDEO',
   CV_FILE = 'CV_FILE',
+  MODULE_IMAGE = 'MODULE_IMAGE',
+  SOAL_IMAGE = 'SOAL_IMAGE',
+  MATERI_IMAGE = 'MATERI_IMAGE',
+  MATERI_VIDEO = 'MATERI_VIDEO',
 }
 
 export interface UploadFileInput {
@@ -29,6 +33,10 @@ const uploadDirectories: Record<UploadFileType, string> = {
   [UploadFileType.SIGNATURE_IMAGE]: 'signature-images',
   [UploadFileType.VIDEO]: 'videos',
   [UploadFileType.CV_FILE]: 'cv-files',
+  [UploadFileType.MODULE_IMAGE]: 'module-images',
+  [UploadFileType.SOAL_IMAGE]: 'soal-images',
+  [UploadFileType.MATERI_IMAGE]: 'materi-images',
+  [UploadFileType.MATERI_VIDEO]: 'materi-videos',
 };
 
 function getFileExtension(originalname: string, mimetype: string): string {
