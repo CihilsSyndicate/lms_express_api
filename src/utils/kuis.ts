@@ -106,6 +106,53 @@ export const updateQuiz = async (quizId: string, payload: CreateQuizInput) => {
   }
 };
 
+interface CreateQuizTxInput {
+  quiz: CreateQuizInput;
+  answerOptions: { option: string }[];
+  setting: Omit<CreateQuizSettingInput, 'quizId'>;
+}
+
+export const createQuizWithTransaction = async (
+  payload: CreateQuizTxInput,
+) => {
+  const { quiz, answerOptions, setting } = payload;
+
+  return prisma.$transaction(async (tx) => {
+    const newQuiz = await tx.quiz.create({
+      data: {
+        materiId: quiz.materiId,
+        quizImgQuestionUrl: quiz.quizImgQuestionUrl ?? null,
+        question: quiz.question,
+        correctAnswer: quiz.correctAnswer,
+        skor: quiz.skor,
+      },
+    });
+
+    if (answerOptions.length > 0) {
+      await tx.quizAnswerOption.createMany({
+        data: answerOptions.map((opt) => ({
+          quizId: newQuiz.id,
+          option: opt.option,
+        })),
+      });
+    }
+
+    await tx.quizSetting.create({
+      data: {
+        quizId: newQuiz.id,
+        timeLimit: setting.timeLimit ?? null,
+        allowMultipleAttempts: setting.allowMultipleAttempts ?? false,
+        isComputationalThinkingEnabled:
+          setting.isComputationalThinkingEnabled ?? false,
+        minScoreTreshold: setting.minScoreTreshold ?? null,
+        standardScorePerQuestion: setting.standardScorePerQuestion ?? 100,
+      },
+    });
+
+    return newQuiz;
+  });
+};
+
 export const deleteQuiz = async (quizId: string) => {
   try {
     await prisma.quiz.delete({

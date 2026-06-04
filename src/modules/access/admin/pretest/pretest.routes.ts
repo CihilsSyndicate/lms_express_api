@@ -1,28 +1,28 @@
-import Router from 'express';
+import { Router } from 'express';
 import {
   createPretest,
   addSoalPretest,
   getPretestByModul,
-  getAllTutorPretest,
-  getTutorPretestById,
-  updateTutorPretest,
-  deleteTutorPretest,
+  getAllPretest,
+  getPretestByIdHandler,
+  updatePretest,
+  deletePretest,
   updateSoalPretest,
   deleteSoalPretest,
-  updateTutorPretestSettings,
+  updatePretestSettings,
 } from './pretest.controller';
 
 const pretestRouter = Router();
 
 pretestRouter.post('/', createPretest);
-pretestRouter.get('/', getAllTutorPretest);
-pretestRouter.get('/detail/:pretestId', getTutorPretestById);
+pretestRouter.get('/', getAllPretest);
+pretestRouter.get('/detail/:pretestId', getPretestByIdHandler);
 pretestRouter.get('/:modulId', getPretestByModul);
-pretestRouter.put('/:id', updateTutorPretest);
-pretestRouter.delete('/:id', deleteTutorPretest);
+pretestRouter.put('/:id', updatePretest);
+pretestRouter.delete('/:id', deletePretest);
 pretestRouter.post('/soal', addSoalPretest);
 pretestRouter.put('/soal/:soalId', updateSoalPretest);
 pretestRouter.delete('/soal/:soalId', deleteSoalPretest);
-pretestRouter.put('/settings/:pretestId', updateTutorPretestSettings);
+pretestRouter.put('/settings/:pretestId', updatePretestSettings);
 
 export default pretestRouter;

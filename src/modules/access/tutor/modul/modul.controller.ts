@@ -8,6 +8,7 @@ import {
   getTutorModules as getTutorModulesFunc,
 } from '@/utils/modul';
 import { parsePaginationQuery } from '@/utils/pagination';
+import { uploadToCloudinary } from '@/middleware/upload';
 
 export const getModules = async (req: Request, res: Response) => {
   try {
@@ -59,7 +60,25 @@ export const getModuleById = async (req: Request, res: Response) => {
 
 export const createModule = async (req: Request, res: Response) => {
   try {
-    const payload = req.body;
+    const tutorId = req.user?.id;
+    let moduleImgUrl: string | null = null;
+
+    if (req.file) {
+      moduleImgUrl = await uploadToCloudinary(
+        req.file.buffer,
+        'lms/modules',
+      );
+    }
+
+    const payload = {
+      ...req.body,
+      tutorId,
+      moduleImgUrl,
+      isPaid: req.body.isPaid === 'true' || req.body.isPaid === true,
+      modulPrice: req.body.modulPrice ? Number(req.body.modulPrice) : 0,
+      targetTime: req.body.targetTime ? Number(req.body.targetTime) : undefined,
+    };
+
     const newModule = await createModuleFunc(payload);
     res.status(201).json(newModule);
   } catch (error) {

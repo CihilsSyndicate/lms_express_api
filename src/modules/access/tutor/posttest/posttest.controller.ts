@@ -4,10 +4,26 @@ import {
   createPosttestRecord,
   addPosttestQuestion,
   getPosttestQuestions,
-  submitPosttestAnswer,
+  getAllPosttest,
+  getPosttestById,
+  updatePosttestRecord,
+  deletePosttestRecord,
+  updatePosttestQuestion,
+  deletePosttestQuestion,
 } from '@/utils/posttest';
+import { parsePaginationQuery } from '@/utils/pagination';
 
-type PosttestAction = 'create' | 'addQuestion' | 'get' | 'submit';
+type PosttestAction =
+  | 'create'
+  | 'addQuestion'
+  | 'get'
+  | 'getAll'
+  | 'getById'
+  | 'update'
+  | 'delete'
+  | 'updateSoal'
+  | 'deleteSoal'
+  | 'submit';
 
 /**
  * Thin HTTP adapter for Tutor's posttest management operations.
@@ -49,6 +65,80 @@ export const getPosttestByModul = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllTutorPosttest = async (req: Request, res: Response) => {
+  try {
+    const tutorId = req.user?.id;
+    const { limit, cursor } = parsePaginationQuery(req.query);
+    const payload = await getAllPosttest(tutorId as string, limit, cursor);
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handlePosttestError(error, res, 'getAll');
+  }
+};
+
+export const getTutorPosttestById = async (req: Request, res: Response) => {
+  try {
+    const payload = await getPosttestById(
+      req.params.posttestId as string,
+      req.user?.id,
+    );
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handlePosttestError(error, res, 'getById');
+  }
+};
+
+export const updateTutorPosttest = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const payload = await updatePosttestRecord(
+      id as string,
+      req.body,
+      req.user?.id,
+    );
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handlePosttestError(error, res, 'update');
+  }
+};
+
+export const deleteTutorPosttest = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const payload = await deletePosttestRecord(id as string, req.user?.id);
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handlePosttestError(error, res, 'delete');
+  }
+};
+
+export const updateSoalPosttest = async (req: Request, res: Response) => {
+  try {
+    const { soalId } = req.params;
+    const payload = await updatePosttestQuestion(
+      soalId as string,
+      req.body,
+      req.user?.id,
+    );
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handlePosttestError(error, res, 'updateSoal');
+  }
+};
+
+export const deleteSoalPosttest = async (req: Request, res: Response) => {
+  try {
+    const { soalId } = req.params;
+    const payload = await deletePosttestQuestion(
+      soalId as string,
+      req.user?.id,
+    );
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handlePosttestError(error, res, 'deleteSoal');
+  }
+};
+
 export const submitPosttest = async (req: Request, res: Response) => {
   return res.status(403).json({
     message: 'Tutor tidak memiliki akses untuk submit posttest.',
@@ -77,6 +167,12 @@ function getPosttestLogMessage(action: PosttestAction) {
     create: '[POSTTEST-ERROR] Gagal membuat posttest:',
     addQuestion: '[POSTTEST-ERROR] Gagal menambah soal posttest:',
     get: '[POSTTEST-ERROR] Gagal mengambil posttest:',
+    getAll: '[POSTTEST-ERROR] Gagal mengambil daftar posttest:',
+    getById: '[POSTTEST-ERROR] Gagal mengambil posttest by ID:',
+    update: '[POSTTEST-ERROR] Gagal mengupdate posttest:',
+    delete: '[POSTTEST-ERROR] Gagal menghapus posttest:',
+    updateSoal: '[POSTTEST-ERROR] Gagal mengupdate soal posttest:',
+    deleteSoal: '[POSTTEST-ERROR] Gagal menghapus soal posttest:',
     submit: '[POSTTEST-ERROR] Gagal submit posttest:',
   };
 
@@ -88,6 +184,12 @@ function getPosttestInternalMessage(action: PosttestAction) {
     create: 'Internal server error saat membuat posttest.',
     addQuestion: 'Internal server error saat menambah soal.',
     get: 'Internal server error saat mengambil posttest.',
+    getAll: 'Internal server error saat mengambil daftar posttest.',
+    getById: 'Internal server error saat mengambil posttest by ID.',
+    update: 'Internal server error saat mengupdate posttest.',
+    delete: 'Internal server error saat menghapus posttest.',
+    updateSoal: 'Internal server error saat mengupdate soal posttest.',
+    deleteSoal: 'Internal server error saat menghapus soal posttest.',
     submit: 'Internal server error saat submit posttest.',
   };
 

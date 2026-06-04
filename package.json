@@ -60,6 +60,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/passport-google-oauth2": "^0.1.10",
     "bcrypt-ts": "^8.0.1",
+    "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "jsonwebtoken": "^9.0.3",

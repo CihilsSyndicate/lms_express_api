@@ -322,6 +322,8 @@ const testManagement = (
 ) => {
   const responseSchema = type === 'pretest' ? 'Pretest' : 'Posttest';
   const questionSchema = type === 'pretest' ? 'PretestQuestionRequest' : 'PosttestQuestionRequest';
+  const questionResponse = type === 'pretest' ? 'PretestQuestion' : 'PosttestQuestion';
+  const questionIdLabel = type === 'pretest' ? 'pretestId' : 'posttestId';
 
   return {
     [`${basePath}/{modulId}`]: op('get', tag, `Get ${type} by module`, {
@@ -329,18 +331,150 @@ const testManagement = (
       parameters: [idParam('modulId', 'Module ID.', 'modul_123')],
       responseSchema,
     }),
-    [basePath]: op('post', tag, `Create ${type}`, {
+    [basePath]: merge(
+      op('post', tag, `Create ${type}`, {
+        role: 'tutor',
+        requestSchema: 'TestCreateRequest',
+        requestExample: examples.testCreate,
+        responseSchema,
+      }),
+      op('get', tag, `Get all ${type}s with cursor pagination`, {
+        role: 'tutor',
+        parameters: paginationParams,
+        responseSchema: type === 'pretest' ? 'PaginatedPretestsResponse' : 'PaginatedPosttestsResponse',
+      }),
+    ),
+    [`${basePath}/detail/${questionIdLabel === 'pretestId' ? '{pretestId}' : '{posttestId}'}`]: op('get', tag, `Get ${type} by ID`, {
       role: 'tutor',
-      requestSchema: 'TestCreateRequest',
-      requestExample: examples.testCreate,
+      parameters: [idParam(questionIdLabel === 'pretestId' ? 'pretestId' : 'posttestId', `${type} ID.`, `${type}_123`)],
       responseSchema,
     }),
+    [`${basePath}/{id}`]: merge(
+      op('put', tag, `Update ${type}`, {
+        role: 'tutor',
+        parameters: [idParam('id', `${type} ID.`, `${type}_123`)],
+        requestSchema: 'TestCreateRequest',
+        responseSchema,
+        successStatus: 200,
+      }),
+      op('delete', tag, `Delete ${type}`, {
+        role: 'tutor',
+        parameters: [idParam('id', `${type} ID.`, `${type}_123`)],
+        responseSchema: 'MessageResponse',
+      }),
+    ),
     [`${basePath}/soal`]: op('post', tag, `Add ${type} question`, {
       role: 'tutor',
       requestSchema: questionSchema,
       requestExample: type === 'pretest' ? examples.pretestQuestion : examples.posttestQuestion,
-      responseSchema: type === 'pretest' ? 'PretestQuestion' : 'PosttestQuestion',
+      responseSchema: questionResponse,
     }),
+    [`${basePath}/soal/{soalId}`]: merge(
+      op('put', tag, `Update ${type} question`, {
+        role: 'tutor',
+        parameters: [idParam('soalId', `Soal ${type} ID.`, `soal_123`)],
+        requestSchema: questionSchema,
+        responseSchema: questionResponse,
+        successStatus: 200,
+      }),
+      op('delete', tag, `Delete ${type} question`, {
+        role: 'tutor',
+        parameters: [idParam('soalId', `Soal ${type} ID.`, `soal_123`)],
+        responseSchema: 'MessageResponse',
+      }),
+    ),
+    ...(type === 'pretest'
+      ? {
+          [`${basePath}/settings/{pretestId}`]: op('put', tag, 'Update pretest settings', {
+            role: 'tutor',
+            parameters: [idParam('pretestId', 'Pretest ID.', 'pretest_123')],
+            requestSchema: 'PretestSettingsRequest',
+            responseSchema: 'ObjectResponse',
+            successStatus: 200,
+          }),
+        }
+      : {}),
+  };
+};
+
+const adminTestManagement = (
+  basePath: string,
+  tag: string,
+  type: 'pretest' | 'posttest',
+) => {
+  const responseSchema = type === 'pretest' ? 'Pretest' : 'Posttest';
+  const questionSchema = type === 'pretest' ? 'PretestQuestionRequest' : 'PosttestQuestionRequest';
+  const questionResponse = type === 'pretest' ? 'PretestQuestion' : 'PosttestQuestion';
+
+  return {
+    [`${basePath}/{modulId}`]: op('get', tag, `Get ${type} by module`, {
+      role: 'admin',
+      parameters: [idParam('modulId', 'Module ID.', 'modul_123')],
+      responseSchema,
+    }),
+    [basePath]: merge(
+      op('post', tag, `Create ${type}`, {
+        role: 'admin',
+        requestSchema: 'TestCreateRequest',
+        requestExample: examples.testCreate,
+        responseSchema,
+      }),
+      op('get', tag, `Get all ${type}s with cursor pagination`, {
+        role: 'admin',
+        parameters: paginationParams,
+        responseSchema: type === 'pretest' ? 'PaginatedPretestsResponse' : 'PaginatedPosttestsResponse',
+      }),
+    ),
+    [`${basePath}/detail/{pretestId}`]: op('get', tag, `Get ${type} by ID`, {
+      role: 'admin',
+      parameters: [idParam('pretestId', `${type} ID.`, `${type}_123`)],
+      responseSchema,
+    }),
+    [`${basePath}/{id}`]: merge(
+      op('put', tag, `Update ${type}`, {
+        role: 'admin',
+        parameters: [idParam('id', `${type} ID.`, `${type}_123`)],
+        requestSchema: 'TestCreateRequest',
+        responseSchema,
+        successStatus: 200,
+      }),
+      op('delete', tag, `Delete ${type}`, {
+        role: 'admin',
+        parameters: [idParam('id', `${type} ID.`, `${type}_123`)],
+        responseSchema: 'MessageResponse',
+      }),
+    ),
+    [`${basePath}/soal`]: op('post', tag, `Add ${type} question`, {
+      role: 'admin',
+      requestSchema: questionSchema,
+      requestExample: type === 'pretest' ? examples.pretestQuestion : examples.posttestQuestion,
+      responseSchema: questionResponse,
+    }),
+    [`${basePath}/soal/{soalId}`]: merge(
+      op('put', tag, `Update ${type} question`, {
+        role: 'admin',
+        parameters: [idParam('soalId', `Soal ${type} ID.`, `soal_123`)],
+        requestSchema: questionSchema,
+        responseSchema: questionResponse,
+        successStatus: 200,
+      }),
+      op('delete', tag, `Delete ${type} question`, {
+        role: 'admin',
+        parameters: [idParam('soalId', `Soal ${type} ID.`, `soal_123`)],
+        responseSchema: 'MessageResponse',
+      }),
+    ),
+    ...(type === 'pretest'
+      ? {
+          [`${basePath}/settings/{pretestId}`]: op('put', tag, 'Update pretest settings', {
+            role: 'admin',
+            parameters: [idParam('pretestId', 'Pretest ID.', 'pretest_123')],
+            requestSchema: 'PretestSettingsRequest',
+            responseSchema: 'ObjectResponse',
+            successStatus: 200,
+          }),
+        }
+      : {}),
   };
 };
 
@@ -912,8 +1046,22 @@ const componentSchemas = {
         type: 'array',
         items: { $ref: '#/components/schemas/PretestQuestion' },
       },
+      pretestSettings: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/PretestSetting' },
+      },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' },
+    },
+  },
+  PretestSetting: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', example: 'setting_123' },
+      pretestId: { type: 'string', example: 'pretest_123' },
+      duration: { type: 'integer', example: 600 },
+      countShownQuestions: { type: 'integer', example: 10 },
+      createdAt: { type: 'string', format: 'date-time' },
     },
   },
   Posttest: {
@@ -1162,6 +1310,30 @@ const componentSchemas = {
     },
     required: ['items', 'next_cursor'],
   },
+  PaginatedPretestsResponse: {
+    type: 'object',
+    properties: {
+      items: { type: 'array', items: { $ref: '#/components/schemas/Pretest' } },
+      next_cursor: { type: 'string', nullable: true, example: null },
+    },
+    required: ['items', 'next_cursor'],
+  },
+  PaginatedPosttestsResponse: {
+    type: 'object',
+    properties: {
+      items: { type: 'array', items: { $ref: '#/components/schemas/Posttest' } },
+      next_cursor: { type: 'string', nullable: true, example: null },
+    },
+    required: ['items', 'next_cursor'],
+  },
+  PretestSettingsRequest: {
+    type: 'object',
+    properties: {
+      duration: { type: 'integer', example: 600 },
+      countShownQuestions: { type: 'integer', example: 10 },
+    },
+    required: ['duration', 'countShownQuestions'],
+  },
 
   AdminProfile: {
     type: 'object',
@@ -1343,9 +1515,12 @@ export const swaggerSpec = {
     { name: 'Tutor - Materi' },
     { name: 'Tutor - Topik' },
     { name: 'Tutor - Submateri' },
+    { name: 'Tutor - Kuis' },
     { name: 'Tutor - Pretest' },
     { name: 'Tutor - Posttest' },
     { name: 'Tutor - Progress' },
+    { name: 'Admin - Pretest' },
+    { name: 'Admin - Posttest' },
     { name: 'Siswa - Dashboard' },
     { name: 'Siswa - Progress' },
     { name: 'Siswa - Certificates' },
@@ -1475,6 +1650,39 @@ export const swaggerSpec = {
         responseSchema: 'MessageResponse',
       }),
     ),
+    // --- TUTOR KUIS CRUD ---
+    '/tutor/kuis': merge(
+      op('post', 'Tutor - Kuis', 'Create quiz', {
+        role: 'tutor',
+        requestSchema: 'QuizPayloadRequest',
+        responseSchema: 'Quiz',
+      }),
+      op('get', 'Tutor - Kuis', 'Get all quizzes with cursor pagination', {
+        role: 'tutor',
+        parameters: paginationParams,
+        responseSchema: 'PaginatedQuizzesResponse',
+      }),
+    ),
+    '/tutor/kuis/{id}': merge(
+      op('get', 'Tutor - Kuis', 'Get quiz by ID', {
+        role: 'tutor',
+        parameters: [idParam('id', 'Quiz ID.', 'quiz_123')],
+        responseSchema: 'Quiz',
+      }),
+      op('put', 'Tutor - Kuis', 'Update quiz', {
+        role: 'tutor',
+        parameters: [idParam('id', 'Quiz ID.', 'quiz_123')],
+        requestSchema: 'QuizUpdateRequest',
+        responseSchema: 'Quiz',
+        successStatus: 200,
+      }),
+      op('delete', 'Tutor - Kuis', 'Delete quiz', {
+        role: 'tutor',
+        parameters: [idParam('id', 'Quiz ID.', 'quiz_123')],
+        responseSchema: 'MessageResponse',
+      }),
+    ),
+
     ...materialCrud('/admin/materi', 'Admin - Materi', 'admin'),
     ...adminModuleCrud('/admin/modul'),
     ...adminModuleCrud('/admin/manage/module'),
@@ -1609,6 +1817,12 @@ export const swaggerSpec = {
     ...submaterialCrud('/tutor/submateri', 'Tutor - Submateri'),
     ...testManagement('/tutor/pretest', 'Tutor - Pretest', 'pretest'),
     ...testManagement('/tutor/posttest', 'Tutor - Posttest', 'posttest'),
+
+    // --- ADMIN PRETEST ---
+    ...adminTestManagement('/admin/pretest', 'Admin - Pretest', 'pretest'),
+
+    // --- ADMIN POSTTEST ---
+    ...adminTestManagement('/admin/posttest', 'Admin - Posttest', 'posttest'),
     '/tutor/progress': op('get', 'Tutor - Progress', 'Get student progress grouped by module', {
       role: 'tutor',
       parameters: paginationParams,

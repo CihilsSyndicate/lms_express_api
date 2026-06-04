@@ -9,6 +9,7 @@ import pretestRouter from './pretest/pretest.routes';
 import posttestRouter from './posttest/posttest.routes';
 import progressRouter from './progress/progress.routes';
 import tutorProfileRouter from './profile/profile.routes';
+import kuisRouter from './kuis/kuis.routes';
 
 export const tutorRouter = Router();
 
@@ -23,4 +24,5 @@ tutorRouter.use('/submateri', submateriRouter);
 tutorRouter.use('/pretest', pretestRouter);
 tutorRouter.use('/posttest', posttestRouter);
 tutorRouter.use('/progress', progressRouter);
+tutorRouter.use('/kuis', kuisRouter);
 tutorRouter.use('/profile', tutorProfileRouter);
