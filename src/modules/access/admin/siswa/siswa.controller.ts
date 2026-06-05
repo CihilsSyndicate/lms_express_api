@@ -7,6 +7,12 @@ import {
   activateStudentService,
 } from '@/modules/auth/auth.service';
 import { prisma } from '@/lib/prisma';
+import {
+  parsePaginationQuery,
+  decodeCursor,
+  buildCursorWhere,
+  buildCursorPaginatedResponse,
+} from '@/utils/pagination';
 
 export const searchSiswa = async (req: Request, res: Response) => {
   try {
@@ -35,9 +41,29 @@ export const searchSiswa = async (req: Request, res: Response) => {
 
 export const getAllSiswa = async (req: Request, res: Response) => {
   try {
-    const siswaList = await prisma.siswa.findMany();
-    res.status(200).json(siswaList);
-  } catch (error) {
+    const { limit, cursor } = parsePaginationQuery(req.query);
+    const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
+    const where = buildCursorWhere(cursorPayload);
+
+    const siswaList = await prisma.siswa.findMany({
+      where,
+      take: limit + 1,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+
+    const result = buildCursorPaginatedResponse(siswaList, limit, (item) => ({
+      createdAt: item.createdAt,
+      id: item.id,
+    }));
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    if (
+      error.message === 'Invalid limit parameter' ||
+      error.message === 'Invalid cursor'
+    ) {
+      return res.status(400).json({ message: error.message });
+    }
     console.error('Error fetching siswa list:', error);
     res.status(500).json({ message: 'Internal Server Error', error });
   }

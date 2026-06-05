@@ -8,6 +8,7 @@ import {
   getModules as getModulesFunc,
   unassignStudentFromModule as unassignStudentFromModuleFunc,
   findAssignedStudents as findAssignedStudentsFunc,
+  getModuleStudents as getModuleStudentsFunc,
 } from '@/utils/modul';
 
 import { parsePaginationQuery } from '@/utils/pagination';
@@ -23,6 +24,21 @@ export const findAssignedStudents = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error finding assigned students:', error);
     res.status(500).json({ error: 'Failed to find assigned students' });
+  }
+};
+
+export const getModuleStudents = async (req: Request, res: Response) => {
+  try {
+    const modulId = req.params.modulId as string;
+    if (!modulId) {
+      return res.status(400).json({ error: 'Module ID is required' });
+    }
+    const { limit, cursor } = parsePaginationQuery(req.query);
+    const result = await getModuleStudentsFunc(modulId, limit, cursor);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error fetching module students:', error);
+    res.status(500).json({ error: 'Failed to fetch module students' });
   }
 };
 
@@ -55,12 +71,12 @@ export const assignStudentToModule = async (req: Request, res: Response) => {
 
     const payload = await assignStudentToModuleFunc(moduleId, studentId);
 
-    await pushNotification(
-      studentId,
-      'enrollment',
-      'Ditambahkan ke Modul',
-      `Admin menambahkan Anda ke modul "${findModule.moduleName}".`,
-    );
+    // await pushNotification(
+    //   studentId,
+    //   'enrollment',
+    //   'Ditambahkan ke Modul',
+    //   `Admin menambahkan Anda ke modul "${findModule.moduleName}".`,
+    // );
 
     res.status(200).json(payload);
   } catch (error) {

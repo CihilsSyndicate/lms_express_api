@@ -216,6 +216,64 @@ export const unassignStudentFromModule = async (
   }
 };
 
+export const getModuleStudents = async (
+  modulId: string,
+  limit: number = 10,
+  cursor?: string,
+) => {
+  try {
+    const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
+    const cursorWhere = buildCursorWhere(cursorPayload);
+    const where = { ...cursorWhere, modulId };
+
+    const progressRecords = await prisma.progress.findMany({
+      where,
+      take: limit + 1,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        siswa: {
+          select: {
+            id: true,
+            nama_lengkap: true,
+            email: true,
+            jenjang: true,
+            kelas_sekolah: true,
+            profileImage: true,
+            isActive: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    const items = progressRecords.map((record) => ({
+      id: record.id,
+      siswaId: record.siswaId,
+      nama_lengkap: record.siswa.nama_lengkap,
+      email: record.siswa.email,
+      jenjang: record.siswa.jenjang,
+      kelas_sekolah: record.siswa.kelas_sekolah,
+      profileImage: record.siswa.profileImage,
+      isActive: record.siswa.isActive,
+      progressPercentage: record.progressPercentage,
+      status: record.status,
+      isGraduated: record.isGraduated,
+      pretestScore: record.pretestScore,
+      posttestScore: record.posttestScore,
+      finalScore: record.finalScore,
+      createdAt: record.createdAt,
+    }));
+
+    return buildCursorPaginatedResponse(items, limit, (item) => ({
+      createdAt: item.createdAt,
+      id: item.id,
+    }));
+  } catch (error) {
+    console.error('Error fetching module students:', error);
+    throw error;
+  }
+};
+
 export const findAssignedStudents = async (
   moduleId: string,
   studentId: string,
