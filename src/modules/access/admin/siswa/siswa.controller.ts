@@ -3,7 +3,6 @@ import {
   deactivateStudentService,
   deleteStudentService,
   registerUserService,
-  updateStudentProfileService,
   activateStudentService,
 } from '@/modules/auth/auth.service';
 import { prisma } from '@/lib/prisma';
@@ -18,7 +17,9 @@ export const searchSiswa = async (req: Request, res: Response) => {
   try {
     const q = req.query.q as string;
     if (!q || q.length < 2) {
-      return res.status(400).json({ message: 'Kata kunci minimal 2 karakter.' });
+      return res
+        .status(400)
+        .json({ message: 'Kata kunci minimal 2 karakter.' });
     }
 
     const siswa = await prisma.siswa.findMany({
@@ -83,12 +84,22 @@ export const registerSiswa = async (req: Request, res: Response) => {
 
 export const updateSiswa = async (req: Request, res: Response) => {
   try {
-    const payload = await updateStudentProfileService(
-      req.params.id as string,
-      req.body,
-    );
+    const id = req.params.id as string;
+    const { nama_lengkap, jenjang, kelas_sekolah, studentType, profileImage } =
+      req.body;
 
-    res.status(200).json(payload);
+    const updatedSiswa = await prisma.siswa.update({
+      where: { id },
+      data: {
+        ...(nama_lengkap !== undefined && { nama_lengkap }),
+        ...(jenjang !== undefined && { jenjang }),
+        ...(kelas_sekolah !== undefined && { kelas_sekolah }),
+        ...(studentType !== undefined && { studentType }),
+        ...(profileImage !== undefined && { profileImage }),
+      },
+    });
+
+    res.status(200).json(updatedSiswa);
   } catch (error: any) {
     res.status(500).json({
       message: 'Gagal memperbarui profil siswa.',

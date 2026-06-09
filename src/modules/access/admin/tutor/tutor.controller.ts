@@ -3,16 +3,16 @@ import {
   deactivateTutorService,
   deleteTutorService,
   registerUserService,
-  updateTutorProfileService,
 } from '@/modules/auth/auth.service';
-import { UpdateTutorRecord } from '@/validators/user/tutor.validator';
 import { prisma } from '@/lib/prisma';
 
 export const searchTutor = async (req: Request, res: Response) => {
   try {
     const q = req.query.q as string;
     if (!q || q.length < 2) {
-      return res.status(400).json({ message: 'Kata kunci minimal 2 karakter.' });
+      return res
+        .status(400)
+        .json({ message: 'Kata kunci minimal 2 karakter.' });
     }
 
     const tutors = await prisma.tutor.findMany({
@@ -56,12 +56,37 @@ export const registerTutor = async (req: Request, res: Response) => {
 
 export const updateTutor = async (req: Request, res: Response) => {
   try {
-    const payload = await updateTutorProfileService(
-      req.params.id as string,
-      req.body as UpdateTutorRecord,
-    );
+    const id = req.params.id as string;
+    const {
+      fullName,
+      gender,
+      pekerjaan,
+      whatsappNumber,
+      lastEducation,
+      institution,
+      biografi,
+      prodi,
+      cvPathUrl,
+      profileImg,
+    } = req.body;
 
-    res.status(200).json(payload);
+    const updatedTutor = await prisma.tutor.update({
+      where: { id },
+      data: {
+        ...(fullName !== undefined && { fullName }),
+        ...(gender !== undefined && { gender }),
+        ...(pekerjaan !== undefined && { pekerjaan }),
+        ...(whatsappNumber !== undefined && { whatsappNumber }),
+        ...(lastEducation !== undefined && { lastEducation }),
+        ...(institution !== undefined && { institution }),
+        ...(biografi !== undefined && { biografi }),
+        ...(prodi !== undefined && { prodi }),
+        ...(cvPathUrl !== undefined && { cvPathUrl }),
+        ...(profileImg !== undefined && { profileImg }),
+      },
+    });
+
+    res.status(200).json(updatedTutor);
   } catch (error: any) {
     res.status(500).json({
       message: 'Gagal memperbarui profil tutor.',
