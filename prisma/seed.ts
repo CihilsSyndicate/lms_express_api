@@ -492,6 +492,7 @@ async function main() {
           modulType: m.modulType,
           tutorId: tutors[m.tutorIdx].id,
           isDraft: m.isDraft ?? false,
+          rangkumanAkhir: `Rangkuman akhir untuk modul "${m.moduleName}". Kesimpulan dari seluruh materi yang telah dipelajari dalam modul ini.`,
         },
       }),
     ),
@@ -690,7 +691,11 @@ async function main() {
   for (let i = 0; i < moduls.length; i++) {
     for (const nama of topikNames[i]) {
       const topik = await prisma.topik.create({
-        data: { nama, modulId: moduls[i].id },
+        data: {
+          nama,
+          modulId: moduls[i].id,
+          rangkumanTopik: `Rangkuman untuk topik "${nama}". Poin-poin penting yang perlu diingat dari materi ini.`,
+        },
       });
       topiks.push({ id: topik.id, modulId: topik.modulId });
     }
@@ -973,18 +978,61 @@ async function main() {
   // 24. PROGRESS (enroll siswa ke modul = 15+ records)
   // =====================================================
   const progresses: { id: string; siswaId: string; modulId: string }[] = [];
+
+  // Pre-fetch submateri & quiz IDs per modul for completedContentItems
+  const modulContentMap = new Map<string, { id: string; type: string }[]>();
+  for (const m of moduls) {
+    const subItems = (await prisma.submateri.findMany({
+      where: { materi: { topik: { modulId: m.id } } },
+      select: { id: true },
+    })).map((s) => ({ id: s.id, type: 'SUBMATERI' }));
+    const quizItems = (await prisma.quiz.findMany({
+      where: { materi: { topik: { modulId: m.id } } },
+      select: { id: true },
+    })).map((q) => ({ id: q.id, type: 'QUIZ' }));
+    modulContentMap.set(m.id, [...subItems, ...quizItems]);
+  }
+
+  function buildCompletedContentItems(modulId: string, isCompleted: boolean, seedVal: number): string {
+    const contentItems = modulContentMap.get(modulId) ?? [];
+    const items: { itemId: string; itemType: string; completedAt: string }[] = [];
+
+    const ts = (offset: number) => new Date(Date.now() - offset * 86400000).toISOString();
+
+    items.push({ itemId: 'pretest', itemType: 'PRETEST', completedAt: ts(30) });
+
+    const takeCount = isCompleted ? contentItems.length : Math.max(1, Math.floor((seedVal / 100) * contentItems.length));
+
+    for (let k = 0; k < Math.min(takeCount, contentItems.length); k++) {
+      const ci = contentItems[k];
+      items.push({ itemId: ci.id, itemType: ci.type, completedAt: ts(29 - k) });
+    }
+
+    if (isCompleted) {
+      items.push({ itemId: 'posttest', itemType: 'POSTTEST', completedAt: ts(1) });
+      items.push({ itemId: 'rating', itemType: 'RATING', completedAt: ts(0) });
+    }
+
+    return JSON.stringify(items);
+  }
+
   for (let i = 0; i < Math.min(siswas.length, 8); i++) {
     for (let j = 0; j < Math.min(moduls.length, 3); j++) {
       try {
+        const isCompleted = j !== 0;
+        const seedVal = Math.floor(Math.random() * 100);
+        const completedContentItems = buildCompletedContentItems(moduls[j].id, isCompleted, seedVal);
+
         const progress = await prisma.progress.create({
           data: {
             siswaId: siswas[i].id,
             modulId: moduls[j].id,
-            progressPercentage: Math.floor(Math.random() * 100),
-            status: j === 0 ? 'IN_PROGRESS' : 'COMPLETED',
-            isGraduated: j !== 0,
-            pretestScore: Math.floor(Math.random() * 40) + 60,
-            posttestScore: Math.floor(Math.random() * 30) + 70,
+            progressPercentage: isCompleted ? 100 : seedVal,
+            status: isCompleted ? 'COMPLETED' : 'IN_PROGRESS',
+            isGraduated: isCompleted,
+            pretestScore: isCompleted ? 85 : Math.floor(Math.random() * 40) + 60,
+            posttestScore: isCompleted ? 80 : null,
+            completedContentItems,
           },
         });
         progresses.push(progress);

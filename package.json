@@ -10,6 +10,7 @@
     "test:coverage": "cross-env JWT_SECRET=test_secret vitest run --coverage --no-fileParallelism --maxWorkers 1",
     "dev": "nodemon --watch src --ext ts --exec \"ts-node -r tsconfig-paths/register src/index.ts\"",
     "seed": "tsx prisma/seed.ts",
+    "seed:posttest": "tsx prisma/seed-posttest.ts",
     "build": "prisma generate && node build.mjs",
     "start": "node dist/index.js",
     "db:generate": "prisma generate --schema=./prisma"

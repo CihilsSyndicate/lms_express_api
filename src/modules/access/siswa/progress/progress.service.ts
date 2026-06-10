@@ -62,9 +62,20 @@ export const getProgressByModuleService = async (
       ? Math.round((completedSubmaterials / totalSubmaterials) * 100)
       : 0;
 
+  const completedContentItems: string[] = (() => {
+    try {
+      const parsed = JSON.parse(progress.completedContentItems || '[]');
+      if (Array.isArray(parsed)) return parsed.map((entry: any) => entry.itemId).filter(Boolean);
+      return [];
+    } catch {
+      return [];
+    }
+  })();
+
   return {
     ...progress,
     completionRate,
+    completedContentItems,
   };
 };
 
@@ -178,6 +189,122 @@ export const markSubmateriCompletedService = async (
 
   return { message: 'Submateri berhasil ditandai selesai.', progress };
 };
+
+/**
+ * Tandai item konten selesai (generic untuk semua tipe: QUIZ, RATING, PRETEST, POSTTEST, CERTIFICATE, SUBMATERI, SUMMARY).
+ */
+export const markItemCompletedService = async (
+  siswaId: string,
+  itemId: string,
+  itemType: string,
+  modulId: string,
+) => {
+  await initializeProgressService(siswaId, modulId);
+
+  const progress = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+  });
+
+  if (!progress) throw new Error('Progress tidak ditemukan');
+
+  const completedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
+    try {
+      return JSON.parse(progress.completedContentItems || '[]');
+    } catch {
+      return [];
+    }
+  })();
+
+  const alreadyCompleted = completedItems.some((entry) => entry.itemId === itemId);
+
+  if (!alreadyCompleted) {
+    completedItems.push({
+      itemId,
+      itemType: itemType.toUpperCase(),
+      completedAt: new Date().toISOString(),
+    });
+  }
+
+  const totalSequenceSteps = await getTotalSequenceSteps(modulId);
+  const completedCount = completedItems.length;
+  const progressPercentage = totalSequenceSteps > 0
+    ? Math.round((completedCount / totalSequenceSteps) * 100)
+    : 0;
+
+  await prisma.progress.update({
+    where: { id: progress.id },
+    data: {
+      completedContentItems: JSON.stringify(completedItems),
+      progressPercentage,
+    },
+  });
+
+  await bktService.syncModuleProgressSummary(siswaId, modulId);
+
+  const updatedProgress = await prisma.progress.findUnique({
+    where: { id: progress.id },
+    include: { modul: true },
+  });
+
+  return { message: 'Item berhasil ditandai selesai.', progress: updatedProgress };
+};
+
+/**
+ * Hitung total langkah dalam sequence (digunakan untuk progress percentage).
+ */
+async function getTotalSequenceSteps(modulId: string): Promise<number> {
+  const modul = await prisma.modul.findUnique({
+    where: { id: modulId },
+    include: {
+      topiks: {
+        include: {
+          topikItems: true,
+          materis: {
+            include: {
+              submateris: true,
+              quizzes: true,
+            },
+          },
+        },
+      },
+      pretest: true,
+      posttest: true,
+    },
+  });
+
+  if (!modul) return 1;
+
+  let count = 0;
+
+  if (modul.pretest) count += 1;
+
+  for (const topik of modul.topiks) {
+    const usedItemIds = new Set(topik.topikItems.map((ti) => ti.itemId));
+    for (const materi of topik.materis) {
+      if (usedItemIds.has(materi.id) || topik.topikItems.some((ti) => ti.itemId === materi.id)) {
+        count += materi.submateris.length;
+      }
+    }
+    // Unreferenced materis
+    for (const materi of topik.materis) {
+      if (!usedItemIds.has(materi.id)) {
+        count += materi.submateris.length;
+      }
+    }
+    const quizCount = topik.materis.reduce((sum, m) => sum + m.quizzes.length, 0);
+    count += quizCount;
+    count += 1; // topik summary
+  }
+
+  count += 1; // rangkuman-akhir
+
+  if (modul.posttest) count += 1;
+
+  count += 1; // rating
+  count += 1; // certificate (if applicable)
+
+  return Math.max(count, 1);
+}
 
 /**
  * Cek completion submateri.
@@ -362,6 +489,7 @@ export class ProgressService {
   getAllProgressForSiswa = getAllProgressForSiswaService;
   updateLastAccessed = updateLastAccessedService;
   markSubmateriCompleted = markSubmateriCompletedService;
+  markItemCompleted = markItemCompletedService;
   isSubmateriCompleted = isSubmateriCompletedService;
   calculatePretestScore = calculatePretestScoreService;
   calculatePosttestScore = calculatePosttestScoreService;

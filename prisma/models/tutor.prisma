@@ -3,14 +3,14 @@ model Tutor {
     fullName       String
     email          String        @unique
     password       String
-    gender         String?
-    pekerjaan      String?
-    whatsappNumber String?
-    lastEducation  String?
-    institution    String?
+    gender         String
+    pekerjaan      String
+    whatsappNumber String
+    lastEducation  String
+    institution    String
     biografi       String?
-    prodi          String?
-    cvPathUrl      String?
+    prodi          String
+    cvPathUrl      String
     profileImg     String?
     role           String        @default("tutor")
     moduls         Modul[]

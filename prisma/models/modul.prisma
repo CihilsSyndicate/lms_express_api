@@ -15,6 +15,7 @@ model Modul {
     hasStudyGroup          Boolean  @default(false)
     hasCertificate         Boolean  @default(false)
     moduleImgUrl           String?
+    rangkumanAkhir         String?  @db.Text
 
     modulType ModulType @default(SISWA)
 
@@ -50,6 +51,7 @@ model Topik {
     topikItems              TopikItem[]
     automaticAccessMateries AutomaticAccessMatery[]
     isComputationalThinking Boolean                 @default(false)
+    rangkumanTopik          String?                 @db.Text
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

@@ -27,7 +27,8 @@ export const getModulesController = async (req: Request, res: Response) => {
 
 export const getModuleByIdController = async (req: Request, res: Response) => {
   try {
-    const module = await getModuleById(req.params.id as string);
+    const siswaId = req.user?.id;
+    const module = await getModuleById(req.params.id as string, siswaId);
     if (!module) return res.status(404).json({ message: 'Module not found' });
     return res.status(200).json(module);
   } catch (error) {
@@ -60,8 +61,10 @@ export const enrollModuleController = async (req: Request, res: Response) => {
       where: { siswaId_modulId: { siswaId, modulId: modulId as string } },
     });
 
+    console.log(existing);
+
     if (existing) {
-      return res.status(400).json({ message: 'Already enrolled' });
+      return res.status(409).json({ message: 'Already enrolled' });
     }
 
     await prisma.progress.create({

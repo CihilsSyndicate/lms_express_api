@@ -72,3 +72,29 @@ export const markSubmateriCompleted = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const markItemCompleted = async (req: Request, res: Response) => {
+  try {
+    const { itemId } = req.params;
+    const { itemType, modulId } = req.body;
+    const siswaId = req.user?.id;
+
+    if (!itemType || !modulId) {
+      return res.status(400).json({ message: 'itemType dan modulId wajib diisi.' });
+    }
+
+    const payload = await progressService.markItemCompletedService(
+      siswaId as string,
+      itemId as string,
+      itemType as string,
+      modulId as string,
+    );
+
+    res.status(200).json(payload);
+  } catch (error: any) {
+    console.error('[PROGRESS-ERROR] Gagal menandai item selesai:', error);
+    res.status(500).json({
+      message: error.message || 'Internal server error saat menandai item selesai.',
+    });
+  }
+};

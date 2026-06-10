@@ -79,7 +79,96 @@ Base prefix: `/siswa`
     - gagal jika modul berbayar (belum ada flow pembayaran)
     - gagal jika sudah pernah enroll
 
-### C. Progress
+### C1. Study Room (Playlist + Konten Belajar)
+
+- **GET** `/siswa/study-room/:modulId`
+  - Tujuan: ambil payload lengkap untuk ruang belajar siswa — kurikulum, progres, dan soal.
+  - Auth: `verifyToken` + `requireRole('siswa')`
+  - Response:
+```json
+{
+  "modulId": "cmq...",
+  "moduleName": "Pemrograman Web Dasar",
+  "progress": {
+    "completedContentItems": ["pretest", "submateri_abc"],
+    "progressPercentage": 43,
+    "pretestScore": 85,
+    "posttestScore": null
+  },
+  "curriculum": {
+    "pretest": {
+      "id": "pretest_cmq",
+      "title": "Pre-Test HTML",
+      "questions": [
+        {
+          "id": "q1",
+          "text": "Apa itu HTML?",
+          "options": [
+            { "key": "a", "label": "Hyper Text Markup Language" },
+            { "key": "b", "label": "Home Tool Markup Language" }
+          ]
+        }
+      ]
+    },
+    "topiks": [
+      {
+        "id": "topik_cmq",
+        "nama": "HTML Dasar",
+        "items": [
+          {
+            "itemId": "submateri_1",
+            "itemType": "SUBMATERI",
+            "title": "Pengantar HTML",
+            "content": "<p>Konten submateri...</p>",
+            "hasVideo": false,
+            "videoUrl": null
+          },
+          {
+            "itemId": "quiz_cmq",
+            "itemType": "QUIZ",
+            "title": "Quiz HTML Dasar",
+            "content": null,
+            "hasVideo": false,
+            "videoUrl": null
+          },
+          {
+            "itemId": "rangkuman_topik_cmq",
+            "itemType": "RANGKUMAN_TOPIK",
+            "title": "Rangkuman HTML Dasar",
+            "content": "Teks rangkuman yang ditulis manual oleh Tutor..."
+          }
+        ]
+      }
+    ],
+    "rangkumanAkhir": {
+      "itemId": "rangkuman_akhir",
+      "title": "Rangkuman Akhir",
+      "content": "Teks rangkuman akhir manual oleh Tutor..."
+    },
+    "posttest": {
+      "id": "posttest_cmq",
+      "title": "Post-Test",
+      "questions": [
+        {
+          "id": "q99",
+          "text": "Jelaskan DOM",
+          "options": [
+            { "key": "a", "label": "Document Object Model" },
+            { "key": "b", "label": "Data Object Model" }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+  - Catatan:
+    - `RANGKUMAN_TOPIK` di-injeksi otomatis sebagai **item terakhir** di tiap topik (isi dari `Topik.rangkumanTopik`).
+    - `rangkumanAkhir` di-injeksi dari `Modul.rangkumanAkhir`.
+    - Soal pretest/posttest **tidak** menyertakan `correctAnswer` (endpoint sisi siswa).
+    - `items` diurutkan berdasarkan `TopikItem.orderNumber`.
+
+### C2. Progress
 
 - **GET** `/siswa/progress`
   - Tujuan: list progress semua modul siswa.

@@ -95,15 +95,43 @@ export const getModules = async (
   }
 };
 
-export const getModuleById = async (id: string) => {
+export const getModuleById = async (id: string, siswaId?: string) => {
   try {
     const findModuleById = await prisma.modul.findUnique({
       where: { id },
       include: {
-        tutor: { select: { fullName: true } },
+        tutor: { select: { fullName: true, profileImg: true } },
+        pretest: true,
+        posttest: true,
+        topiks: {
+          include: {
+            materis: {
+              include: {
+                submateris: true,
+                quizzes: {
+                  include: {
+                    quizAnswerOptions: true,
+                    quizSettings: true,
+                  },
+                },
+              },
+            },
+            topikItems: true,
+          },
+        },
+        computationalThinkings: true,
       },
     });
-    return findModuleById;
+    if (!findModuleById) return null;
+
+    let progress = null;
+    if (siswaId) {
+      progress = await prisma.progress.findUnique({
+        where: { siswaId_modulId: { siswaId, modulId: id } },
+      });
+    }
+
+    return { ...findModuleById, progress };
   } catch (error) {
     console.error('Error fetching module by ID:', error);
     throw error;
