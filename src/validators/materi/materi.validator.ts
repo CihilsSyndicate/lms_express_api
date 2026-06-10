@@ -5,6 +5,7 @@ export const materiBaseSchema = z.object({
   topik_id: z.string().cuid(),
   tutor_id: z.string().cuid(),
   is_video: z.boolean().default(false),
+  judul: z.string().min(1).max(255),
   video_url: z.string().url().optional().nullable(),
   article: z.string().optional().nullable(),
 });

@@ -177,14 +177,14 @@ export const updateKnowledgeStateWithObservation = async (
 };
 
 /**
- * Evaluate apakah submateri unlocked berdasarkan mastery threshold.
+ * Evaluate apakah materi unlocked berdasarkan mastery threshold.
  */
 export const evaluateUnlockedContents = async (
   siswaId: string,
   modulId: string,
 ): Promise<{
-  unlockedSubmaterialIds: string[];
-  lockedSubmaterials: {
+  unlockedMateriIds: string[];
+  lockedMateris: {
     id: string;
     reason: string;
     requiredMastery: number;
@@ -205,7 +205,7 @@ export const evaluateUnlockedContents = async (
   }[] = [];
 
   for (const rule of unlockRules) {
-    if (rule.targetType !== 'SUBMATERI') continue;
+    if (rule.targetType !== 'MATERI') continue;
 
     const state = await prisma.studentKnowledgeState.findUnique({
       where: {
@@ -230,7 +230,7 @@ export const evaluateUnlockedContents = async (
     }
   }
 
-  return { unlockedSubmaterialIds: unlocked, lockedSubmaterials: locked };
+  return { unlockedMateriIds: unlocked, lockedMateris: locked };
 };
 
 /**
@@ -246,20 +246,20 @@ export const syncModuleProgressSummary = async (
 
   if (!progress) return;
 
-  const totalSubmaterials = await prisma.submateri.count({
-    where: { materi: { topik: { modulId: modulId } } },
+  const totalMateris = await prisma.materi.count({
+    where: { topik: { modulId: modulId } },
   });
 
-  const completedSubmaterials = await prisma.progressDetail.count({
+  const completedMateris = await prisma.progressDetail.count({
     where: {
       siswaId: siswaId,
       isCompleted: true,
-      submateri: { materi: { topik: { modulId: modulId } } },
+      materi: { topik: { modulId: modulId } },
     },
   });
 
   const completionRate =
-    totalSubmaterials > 0 ? completedSubmaterials / totalSubmaterials : 0;
+    totalMateris > 0 ? completedMateris / totalMateris : 0;
 
   const averageMastery = await prisma.studentKnowledgeState.aggregate({
     where: { siswaId: siswaId, modulId: modulId },

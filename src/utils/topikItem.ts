@@ -9,10 +9,9 @@ export const getOrderedTopikItems = async (topikId: string) => {
   // Polymorphic retrieval
   const detailedItems = await Promise.all(
     items.map(async (item) => {
-      if (item.itemType === 'ARTICLE') {
+      if (item.itemType === 'MATERI') {
         const materi = await prisma.materi.findUnique({
           where: { id: item.itemId },
-          include: { submateris: true },
         });
         return { ...item, data: materi };
       } else if (item.itemType === 'QUIZ') {

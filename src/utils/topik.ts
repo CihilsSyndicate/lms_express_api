@@ -1,4 +1,5 @@
 import { AppError } from '@/errors/app.error';
+import { ItemType } from '@/generated/prisma/edge';
 import { prisma } from '@/lib/prisma';
 import type {
   CreateTopikRecord,
@@ -47,7 +48,7 @@ export const createTopikItem = async (
     data: {
       topikId: payload.topikId,
       itemId: payload.itemId,
-      itemType: payload.itemType,
+      itemType: payload.itemType as ItemType,
       orderNumber: payload.orderNumber,
     },
   });
@@ -127,12 +128,18 @@ export const updateTopik = async (
     data,
   });
 
-  console.log(`[TOPIK] Topik diupdate oleh ${userRole || 'Tutor'} ${tutorId}: ${topikId}`);
+  console.log(
+    `[TOPIK] Topik diupdate oleh ${userRole || 'Tutor'} ${tutorId}: ${topikId}`,
+  );
 
   return updatedTopic;
 };
 
-export const deleteTopik = async (topikId: string, tutorId?: string, userRole?: string) => {
+export const deleteTopik = async (
+  topikId: string,
+  tutorId?: string,
+  userRole?: string,
+) => {
   const topik = await prisma.topik.findUnique({
     where: { id: topikId },
     include: { modul: true },
@@ -150,7 +157,9 @@ export const deleteTopik = async (topikId: string, tutorId?: string, userRole?: 
   }
 
   await prisma.topik.delete({ where: { id: topikId } });
-  console.log(`[TOPIK] Topik dihapus oleh ${userRole || 'Tutor'} ${tutorId}: ${topikId}`);
+  console.log(
+    `[TOPIK] Topik dihapus oleh ${userRole || 'Tutor'} ${tutorId}: ${topikId}`,
+  );
 
   return { message: 'Topik berhasil dihapus' };
 };

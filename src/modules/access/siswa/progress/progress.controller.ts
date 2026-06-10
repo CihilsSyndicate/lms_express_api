@@ -52,16 +52,14 @@ export const getAllProgressForSiswa = async (req: Request, res: Response) => {
   }
 };
 
-export const markSubmateriCompleted = async (req: Request, res: Response) => {
+export const markMateriCompleted = async (req: Request, res: Response) => {
   try {
-    const { submateriId } = req.params;
+    const { materiId } = req.params;
     const siswaId = req.user?.id;
 
-    // console.log(submateriId, siswaId);
-
-    const payload = await progressService.markSubmateriCompletedService(
+    const payload = await progressService.markMateriCompletedService(
       siswaId as string,
-      submateriId as string,
+      materiId as string,
     );
 
     res.status(200).json(payload);

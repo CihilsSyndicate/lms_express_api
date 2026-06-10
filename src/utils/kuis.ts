@@ -54,11 +54,8 @@ export const getAllQuiz = async (limit: number = 10, cursor?: string) => {
         tutor: true,
         topiks: {
           include: {
-            materis: {
-              include: {
-                quizzes: true,
-              },
-            },
+            materis: true,
+            quizzes: true,
           },
         },
       },
@@ -112,15 +109,13 @@ interface CreateQuizTxInput {
   setting: Omit<CreateQuizSettingInput, 'quizId'>;
 }
 
-export const createQuizWithTransaction = async (
-  payload: CreateQuizTxInput,
-) => {
+export const createQuizWithTransaction = async (payload: CreateQuizTxInput) => {
   const { quiz, answerOptions, setting } = payload;
 
   return prisma.$transaction(async (tx) => {
     const newQuiz = await tx.quiz.create({
       data: {
-        materiId: quiz.materiId,
+        topikId: quiz.topikId,
         quizImgQuestionUrl: quiz.quizImgQuestionUrl ?? null,
         question: quiz.question,
         correctAnswer: quiz.correctAnswer,

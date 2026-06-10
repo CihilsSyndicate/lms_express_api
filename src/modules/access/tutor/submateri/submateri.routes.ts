@@ -1,18 +1,9 @@
-import Router from 'express';
-import {
-  createSubmaterial,
-  getSubmaterialsByMaterial,
-  getSubmaterialDetail,
-  updateSubmaterial,
-  deleteSubmaterial,
-} from './submateri.controller';
+import { Router } from 'express';
 
 const submateriRouter = Router();
 
-submateriRouter.get('/materi/:materiId', getSubmaterialsByMaterial);
-submateriRouter.get('/:id', getSubmaterialDetail);
-submateriRouter.post('/', createSubmaterial);
-submateriRouter.put('/:id', updateSubmaterial);
-submateriRouter.delete('/:id', deleteSubmaterial);
+submateriRouter.all('*', (_req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
 
 export default submateriRouter;

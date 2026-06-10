@@ -12,18 +12,33 @@ export interface StudyRoomAssessment {
   questions: StudyRoomQuestion[];
 }
 
+export interface StudyRoomMateri {
+  id: string;
+  itemType: 'MATERI';
+  judul: string;
+  isVideo: boolean;
+  videoUrl: string | null;
+  article: string | null;
+}
+
 export interface StudyRoomItem {
-  itemId: string;
-  itemType: 'SUBMATERI' | 'QUIZ' | 'RANGKUMAN_TOPIK';
-  title: string;
-  content: string | null;
-  hasVideo?: boolean;
+  id: string;
+  itemType: 'MATERI' | 'QUIZ' | 'RANGKUMAN_TOPIK';
+  judul: string;
+  isVideo?: boolean;
   videoUrl?: string | null;
+  article?: string | null;
+  question?: string;
+  correctAnswer?: string;
+  skor?: number;
+  quizImgQuestionUrl?: string | null;
+  quizAnswerOptions?: { id: string; option: string }[];
 }
 
 export interface StudyRoomTopik {
   id: string;
   nama: string;
+  rangkumanTopik: string | null;
   items: StudyRoomItem[];
 }
 
@@ -125,12 +140,8 @@ export const getStudyRoomDataService = async (
         orderBy: { createdAt: 'asc' },
         include: {
           topikItems: { orderBy: { orderNumber: 'asc' } },
-          materis: {
-            include: {
-              submateris: { orderBy: { createdAt: 'asc' } },
-              quizzes: { include: { quizAnswerOptions: true }, orderBy: { createdAt: 'asc' } },
-            },
-          },
+          materis: true,
+          quizzes: { include: { quizAnswerOptions: true } },
         },
       },
     },
@@ -179,50 +190,33 @@ export const getStudyRoomDataService = async (
     : null;
 
   const topiks: StudyRoomTopik[] = modul.topiks.map((topik) => {
-    const usedItemIds = new Set(topik.topikItems.map((ti) => ti.itemId));
-
     const items: StudyRoomItem[] = [];
 
     for (const ti of topik.topikItems) {
-      if (ti.itemType === 'ARTICLE') {
-        const materi = topik.materis.find((m) => m.id === ti.itemId);
+      if (ti.itemType === 'MATERI') {
+        const materi = topik.materis.find((m) => ti.itemId === m.id);
         if (materi) {
-          for (const sub of materi.submateris) {
-            items.push({
-              itemId: sub.id,
-              itemType: 'SUBMATERI',
-              title: sub.judul,
-              content: sub.konten,
-              hasVideo: materi.isVideo,
-              videoUrl: materi.videoUrl,
-            });
-          }
-        }
-      } else if (ti.itemType === 'QUIZ') {
-        const quiz = topik.materis
-          .flatMap((m) => m.quizzes)
-          .find((q) => q.id === ti.itemId);
-        if (quiz) {
           items.push({
-            itemId: quiz.id,
-            itemType: 'QUIZ',
-            title: 'Quiz',
-            content: null,
+            id: materi.id,
+            itemType: 'MATERI',
+            judul: materi.judul,
+            isVideo: materi.isVideo,
+            videoUrl: materi.isVideo ? materi.videoUrl : null,
+            article: materi.isVideo ? null : materi.article,
           });
         }
-      }
-    }
-
-    for (const materi of topik.materis) {
-      if (!usedItemIds.has(materi.id)) {
-        for (const sub of materi.submateris) {
+      } else if (ti.itemType === 'QUIZ') {
+        const quiz = topik.quizzes.find((q) => ti.itemId === q.id);
+        if (quiz) {
           items.push({
-            itemId: sub.id,
-            itemType: 'SUBMATERI',
-            title: sub.judul,
-            content: sub.konten,
-            hasVideo: materi.isVideo,
-            videoUrl: materi.videoUrl,
+            id: quiz.id,
+            itemType: 'QUIZ',
+            judul: '',
+            question: quiz.question,
+            correctAnswer: quiz.correctAnswer,
+            skor: quiz.skor,
+            quizImgQuestionUrl: quiz.quizImgQuestionUrl,
+            quizAnswerOptions: quiz.quizAnswerOptions.map((o) => ({ id: o.id, option: o.option })),
           });
         }
       }
@@ -230,14 +224,19 @@ export const getStudyRoomDataService = async (
 
     if (topik.rangkumanTopik) {
       items.push({
-        itemId: `rangkuman_${topik.id}`,
+        id: `rangkuman_${topik.id}`,
         itemType: 'RANGKUMAN_TOPIK',
-        title: `Rangkuman ${topik.nama}`,
-        content: topik.rangkumanTopik,
+        judul: `Rangkuman ${topik.nama}`,
+        article: topik.rangkumanTopik,
       });
     }
 
-    return { id: topik.id, nama: topik.nama, items };
+    return {
+      id: topik.id,
+      nama: topik.nama,
+      rangkumanTopik: topik.rangkumanTopik ?? null,
+      items,
+    };
   });
 
   const rangkumanAkhir = modul.rangkumanAkhir

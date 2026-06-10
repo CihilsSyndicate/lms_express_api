@@ -45,21 +45,21 @@ export const getProgressByModuleService = async (
 
   if (!progress) return null;
 
-  const totalSubmaterials = await prisma.submateri.count({
-    where: { materi: { topik: { modulId: modulId } } },
+  const totalMateris = await prisma.materi.count({
+    where: { topik: { modulId: modulId } },
   });
 
-  const completedSubmaterials = await prisma.progressDetail.count({
+  const completedMateris = await prisma.progressDetail.count({
     where: {
       siswaId: siswaId,
       isCompleted: true,
-      submateri: { materi: { topik: { modulId: modulId } } },
+      materi: { topik: { modulId: modulId } },
     },
   });
 
   const completionRate =
-    totalSubmaterials > 0
-      ? Math.round((completedSubmaterials / totalSubmaterials) * 100)
+    totalMateris > 0
+      ? Math.round((completedMateris / totalMateris) * 100)
       : 0;
 
   const completedContentItems: string[] = (() => {
@@ -125,26 +125,26 @@ export const updateLastAccessedService = async (
 /**
  * Tandai submateri completed.
  */
-export const markSubmateriCompletedService = async (
+export const markMateriCompletedService = async (
   siswaId: string,
-  submateriId: string,
+  materiId: string,
 ) => {
-  const submateri = await prisma.submateri.findUnique({
-    where: { id: submateriId },
-    include: { materi: { include: { topik: { include: { modul: true } } } } },
+  const materi = await prisma.materi.findUnique({
+    where: { id: materiId },
+    include: { topik: { include: { modul: true } } },
   });
 
-  if (!submateri) throw new Error('Submateri tidak ditemukan');
+  if (!materi) throw new Error('Materi tidak ditemukan');
 
   await initializeProgressService(
     siswaId,
-    (submateri.materi as any).topik.modulId,
+    (materi as any).topik.modulId,
   );
 
   const existingDetail = await prisma.progressDetail.findFirst({
     where: {
       siswaId: siswaId,
-      submateriId: submateriId,
+      materiId: materiId,
     },
   });
 
@@ -158,7 +158,7 @@ export const markSubmateriCompletedService = async (
     },
     create: {
       siswaId: siswaId,
-      submateriId: submateriId,
+      materiId: materiId,
       isCompleted: true,
       completed_at: new Date(),
     },
@@ -167,10 +167,10 @@ export const markSubmateriCompletedService = async (
   // Sync progress summary
   await bktService.syncModuleProgressSummary(
     siswaId,
-    (submateri.materi as any).topik.modulId,
+    (materi as any).topik.modulId,
   );
 
-  const modulId = (submateri.materi as any).topik.modulId;
+  const modulId = (materi as any).topik.modulId;
   const progress = await prisma.progress.findUnique({
     where: { siswaId_modulId: { siswaId, modulId } },
     include: { modul: true },
@@ -187,7 +187,7 @@ export const markSubmateriCompletedService = async (
   //   );
   // }
 
-  return { message: 'Submateri berhasil ditandai selesai.', progress };
+  return { message: 'Materi berhasil ditandai selesai.', progress };
 };
 
 /**
@@ -259,12 +259,7 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
       topiks: {
         include: {
           topikItems: true,
-          materis: {
-            include: {
-              submateris: true,
-              quizzes: true,
-            },
-          },
+          materis: true,
         },
       },
       pretest: true,
@@ -279,20 +274,14 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
   if (modul.pretest) count += 1;
 
   for (const topik of modul.topiks) {
-    const usedItemIds = new Set(topik.topikItems.map((ti) => ti.itemId));
-    for (const materi of topik.materis) {
-      if (usedItemIds.has(materi.id) || topik.topikItems.some((ti) => ti.itemId === materi.id)) {
-        count += materi.submateris.length;
+    for (const ti of topik.topikItems) {
+      if (ti.itemType === 'MATERI') {
+        const materi = topik.materis.find(m => m.id === ti.itemId);
+        if (materi) count += 1;
+      } else if (ti.itemType === 'QUIZ') {
+        count += 1;
       }
     }
-    // Unreferenced materis
-    for (const materi of topik.materis) {
-      if (!usedItemIds.has(materi.id)) {
-        count += materi.submateris.length;
-      }
-    }
-    const quizCount = topik.materis.reduce((sum, m) => sum + m.quizzes.length, 0);
-    count += quizCount;
     count += 1; // topik summary
   }
 
@@ -309,14 +298,14 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
 /**
  * Cek completion submateri.
  */
-export const isSubmateriCompletedService = async (
+export const isMateriCompletedService = async (
   siswaId: string,
-  submateriId: string,
+  materiId: string,
 ): Promise<boolean> => {
   const detail = await prisma.progressDetail.findFirst({
     where: {
       siswaId: siswaId,
-      submateriId: submateriId,
+      materiId: materiId,
     },
   });
 
@@ -488,9 +477,9 @@ export class ProgressService {
   getProgressByModule = getProgressByModuleService;
   getAllProgressForSiswa = getAllProgressForSiswaService;
   updateLastAccessed = updateLastAccessedService;
-  markSubmateriCompleted = markSubmateriCompletedService;
+  markMateriCompleted = markMateriCompletedService;
   markItemCompleted = markItemCompletedService;
-  isSubmateriCompleted = isSubmateriCompletedService;
+  isMateriCompleted = isMateriCompletedService;
   calculatePretestScore = calculatePretestScoreService;
   calculatePosttestScore = calculatePosttestScoreService;
   generateCertificateIfEligible = generateCertificateIfEligibleService;

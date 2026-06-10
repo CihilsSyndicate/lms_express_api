@@ -61,8 +61,8 @@ model QuizScore {
 model ProgressDetail {
     id           String    @id @default(cuid())
     siswaId      String
-    submateriId  String
-    submateri    Submateri @relation(fields: [submateriId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    materiId     String
+    materi       Materi @relation(fields: [materiId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     isCompleted  Boolean   @default(false)
     completed_at DateTime?
 
@@ -110,8 +110,8 @@ model ModuleUnlockRule {
     id                   String             @id @default(cuid())
     modulId              String
     modul                Modul              @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    targetType           String // "SUBMATERI" | "MATERI"
-    targetId             String // id submateri/materi
+    targetType           String // "MATERI" | "QUIZ"
+    targetId             String // id materi/quiz
     knowledgeComponentId String
     knowledgeComponent   KnowledgeComponent @relation(fields: [knowledgeComponentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     materyTreshold       Float              @default(0.8)

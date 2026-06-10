@@ -14,6 +14,7 @@ export const getStudyRoomData = async (req: Request, res: Response) => {
       modulId as string,
       siswaId as string,
     );
+    console.log(payload);
     res.status(200).json(payload);
   } catch (error: any) {
     console.error('[STUDY-ROOM-ERROR]', error);

@@ -1,16 +1,17 @@
 import { z } from 'zod';
 
 export const submateriBaseSchema = z.object({
-  id: z.string().cuid(),
-  materi_id: z.string().cuid(),
-  judul: z.string().min(1),
-  konten: z.string().min(1),
+  id: z.string(),
+  message: z.string(),
 });
 
-export const createSubmateriSchema = submateriBaseSchema.omit({ id: true });
-export const updateSubmateriSchema = submateriBaseSchema
-  .partial()
-  .omit({ id: true, materi_id: true });
+export const createSubmateriSchema = z.object({
+  message: z.string(),
+});
+
+export const updateSubmateriSchema = z.object({
+  message: z.string(),
+});
 
 export type Submateri = z.infer<typeof submateriBaseSchema>;
 export type CreateSubmateriRecord = z.infer<typeof createSubmateriSchema>;

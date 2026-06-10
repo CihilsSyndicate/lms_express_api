@@ -36,12 +36,14 @@ export const createMateri = async (
   const data: {
     topikId: string;
     tutorId: string;
+    judul: string;
     isVideo: boolean;
     videoUrl?: string | null;
     article?: string | null;
   } = {
     topikId: payload.topik_id,
     tutorId: userRole === 'admin' ? topik.modul.tutorId : tutorId,
+    judul: payload.judul,
     isVideo: payload.is_video ?? false,
   };
 
@@ -57,11 +59,23 @@ export const createMateri = async (
   return newMaterial;
 };
 
+export const getTopiksWithMateri = async (modulId: string) => {
+  return prisma.topik.findMany({
+    where: { modulId },
+    include: {
+      materis: {
+        include: {
+          tutor: { select: { fullName: true } },
+        },
+      },
+    },
+  });
+};
+
 export const getMateriList = async (modulId: string) => {
   return prisma.materi.findMany({
     where: { topik: { modulId: modulId } },
     include: {
-      submateris: true,
       tutor: { select: { fullName: true } },
     },
   });
@@ -104,12 +118,18 @@ export const updateMateri = async (
     data,
   });
 
-  console.log(`[MATERI] Materi diupdate oleh ${userRole || 'Tutor'} ${tutorId}: ${materiId}`);
+  console.log(
+    `[MATERI] Materi diupdate oleh ${userRole || 'Tutor'} ${tutorId}: ${materiId}`,
+  );
 
   return updatedMaterial;
 };
 
-export const deleteMateri = async (materiId: string, tutorId?: string, userRole?: string) => {
+export const deleteMateri = async (
+  materiId: string,
+  tutorId?: string,
+  userRole?: string,
+) => {
   const materi = await prisma.materi.findUnique({
     where: { id: materiId },
     include: { topik: { include: { modul: true } } },
@@ -127,7 +147,9 @@ export const deleteMateri = async (materiId: string, tutorId?: string, userRole?
   }
 
   await prisma.materi.delete({ where: { id: materiId } });
-  console.log(`[MATERI] Materi dihapus oleh ${userRole || 'Tutor'} ${tutorId}: ${materiId}`);
+  console.log(
+    `[MATERI] Materi dihapus oleh ${userRole || 'Tutor'} ${tutorId}: ${materiId}`,
+  );
 
   return { message: 'Materi berhasil dihapus' };
 };

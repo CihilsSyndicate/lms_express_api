@@ -12,7 +12,7 @@ export const submitQuizAnswer = async (
   const quiz = await prisma.quiz.findUnique({
     where: { id: quizId },
     include: {
-      materi: { include: { topik: true } },
+      topik: { include: { modul: true } },
       quizSettings: true,
     },
   });
@@ -32,12 +32,15 @@ export const submitQuizAnswer = async (
       },
     });
     if (existingAttempt) {
-      throw new AppError(400, 'Multiple attempts are not allowed for this quiz.');
+      throw new AppError(
+        400,
+        'Multiple attempts are not allowed for this quiz.',
+      );
     }
   }
 
   const isCorrect = quiz.correctAnswer === answer;
-  const modulId = quiz.materi.topik.modulId;
+  const modulId = quiz.topik.modul.id;
 
   // 1. Record the answer log
   await prisma.studentAnswerLog.create({
@@ -57,7 +60,7 @@ export const submitQuizAnswer = async (
     siswaId,
     modulId,
     knowledgeComponentId,
-    isCorrect
+    isCorrect,
   );
 
   // 3. Emit WebSocket Event (Mocked or real)
@@ -67,7 +70,11 @@ export const submitQuizAnswer = async (
   return { isCorrect, quizId };
 };
 
-export async function notifyStateUpdate(siswaId: string, modulId: string, kcId: string) {
+export async function notifyStateUpdate(
+  siswaId: string,
+  modulId: string,
+  kcId: string,
+) {
   try {
     await pushNotification(
       siswaId,

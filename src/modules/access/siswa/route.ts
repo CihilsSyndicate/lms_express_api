@@ -10,7 +10,6 @@ import posttestRouter from './posttest/posttest.routes';
 import pretestRouter from './pretest/pretest.routes';
 import { ratingRouter } from './rating/rating.route';
 import studyRoomRouter from './study-room/study-room.routes';
-import submateriRouter from './submateri/submateri.routes';
 import topikRouter from './topik/topik.routes';
 import siswaProfileRouter from './profile/profile.routes';
 
@@ -28,7 +27,6 @@ siswaRouter.use('/modul', modulRouter);
 siswaRouter.use('/posttest', posttestRouter);
 siswaRouter.use('/pretest', pretestRouter);
 siswaRouter.use('/rating', ratingRouter);
-siswaRouter.use('/submateri', submateriRouter);
 siswaRouter.use('/topik', topikRouter);
 siswaRouter.use('/kuis', kuisRouter);
 siswaRouter.use('/profile', siswaProfileRouter);

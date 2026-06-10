@@ -147,8 +147,8 @@ export const submitPretestAnswer = async (
 
   const { unlocked_count, total_submodules } = await prisma.$transaction(
     async (tx) => {
-      const totalSubmodules = await tx.submateri.count({
-        where: { materi: { topik: { modulId } } },
+      const totalSubmodules = await tx.materi.count({
+        where: { topik: { modulId } },
       });
 
       const unlockedCount = calculateUnlockedCount(totalSubmodules, score);

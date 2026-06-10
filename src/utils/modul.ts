@@ -105,15 +105,11 @@ export const getModuleById = async (id: string, siswaId?: string) => {
         posttest: true,
         topiks: {
           include: {
-            materis: {
+            materis: true,
+            quizzes: {
               include: {
-                submateris: true,
-                quizzes: {
-                  include: {
-                    quizAnswerOptions: true,
-                    quizSettings: true,
-                  },
-                },
+                quizAnswerOptions: true,
+                quizSettings: true,
               },
             },
             topikItems: true,

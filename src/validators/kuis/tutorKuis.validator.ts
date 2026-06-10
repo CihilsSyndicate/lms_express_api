@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const tutorQuizSchema = z.object({
   quiz: z.object({
-    materiId: z.string().min(1),
+    topikId: z.string().min(1),
     quizImgQuestionUrl: z.string().nullable().optional(),
     question: z.string().min(1),
     correctAnswer: z.string().min(1),

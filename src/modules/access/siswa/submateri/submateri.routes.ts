@@ -1,12 +1,12 @@
 import Router from 'express';
-import {
-  getSubmaterialsByMaterial,
-  getSubmaterialDetail,
-} from './submateri.controller';
 
 const submateriRouter = Router();
 
-submateriRouter.get('/materi/:materiId', getSubmaterialsByMaterial);
-submateriRouter.get('/:id', getSubmaterialDetail);
+submateriRouter.get('/materi/:materiId', (req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
+submateriRouter.get('/:id', (req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
 
 export default submateriRouter;

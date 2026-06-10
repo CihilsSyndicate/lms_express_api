@@ -1,34 +1,22 @@
 import Router from 'express';
-import {
-  createSubmaterial,
-  getSubmaterialsByMaterial,
-  getSubmaterialDetail,
-  updateSubmaterial,
-  deleteSubmaterial,
-} from './submateri.controller';
-import { verifyToken, requireRole } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth';
 
 const submateriRouter = Router();
 
-submateriRouter.get(
-  '/materi/:materiId',
-  verifyToken,
-  getSubmaterialsByMaterial,
-);
-submateriRouter.get('/:id', verifyToken, getSubmaterialDetail);
-
-submateriRouter.post('/', verifyToken, requireRole('tutor'), createSubmaterial);
-submateriRouter.put(
-  '/:id',
-  verifyToken,
-  requireRole('tutor'),
-  updateSubmaterial,
-);
-submateriRouter.delete(
-  '/:id',
-  verifyToken,
-  requireRole('tutor'),
-  deleteSubmaterial,
-);
+submateriRouter.get('/materi/:materiId', verifyToken, (req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
+submateriRouter.get('/:id', verifyToken, (req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
+submateriRouter.post('/', verifyToken, (req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
+submateriRouter.put('/:id', verifyToken, (req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
+submateriRouter.delete('/:id', verifyToken, (req, res) => {
+  res.status(410).json({ message: 'Submateri has been removed. Use Materi API instead.' });
+});
 
 export default submateriRouter;

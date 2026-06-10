@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Quiz Validator
 export const quizSchema = z.object({
   id: z.string().cuid(),
-  materiId: z.string(),
+  topikId: z.string(),
   quizImgQuestionUrl: z.string().optional().nullable(),
   question: z.string(),
   correctAnswer: z.string(),
@@ -21,7 +21,7 @@ export const createQuizSchema = quizSchema.omit({
 export const updateQuizSchema = quizSchema
   .omit({
     id: true,
-    materiId: true,
+    topikId: true,
     createdAt: true,
     updatedAt: true,
   })

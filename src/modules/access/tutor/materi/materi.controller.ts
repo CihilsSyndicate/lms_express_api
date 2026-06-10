@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { AppError } from '@/errors/app.error';
 import {
   createMateri,
-  getMateriList,
+  getTopiksWithMateri,
   updateMateri,
   deleteMateri,
 } from '@/utils/materi';
@@ -27,7 +27,7 @@ export const createMaterial = async (req: Request, res: Response) => {
 
 export const getMaterialsByModule = async (req: Request, res: Response) => {
   try {
-    const payload = await getMateriList(req.params.modulId as string);
+    const payload = await getTopiksWithMateri(req.params.modulId as string);
 
     return res.status(200).json(payload);
   } catch (error) {
