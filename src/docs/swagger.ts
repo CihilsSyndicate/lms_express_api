@@ -280,40 +280,7 @@ const materialCrud = (basePath: string, tag: string, role: 'admin' | 'tutor') =>
   ),
 });
 
-const submaterialCrud = (basePath: string, tag: string) => ({
-  [`${basePath}/materi/{materiId}`]: op('get', tag, 'Get submaterials by material', {
-    role: 'tutor',
-    parameters: [idParam('materiId', 'Material ID.', 'materi_123')],
-    responseSchema: 'Submaterial',
-    responseIsArray: true,
-  }),
-  [`${basePath}/{id}`]: merge(
-    op('get', tag, 'Get submaterial detail', {
-      role: 'tutor',
-      parameters: [idParam('id', 'Submaterial ID.', 'submateri_123')],
-      responseSchema: 'Submaterial',
-    }),
-    op('put', tag, 'Update submaterial', {
-      role: 'tutor',
-      parameters: [idParam('id', 'Submaterial ID.', 'submateri_123')],
-      requestSchema: 'SubmaterialUpdateRequest',
-      requestExample: examples.submaterialUpdate,
-      responseSchema: 'Submaterial',
-      successStatus: 200,
-    }),
-    op('delete', tag, 'Delete submaterial', {
-      role: 'tutor',
-      parameters: [idParam('id', 'Submaterial ID.', 'submateri_123')],
-      responseSchema: 'MessageResponse',
-    }),
-  ),
-  [basePath]: op('post', tag, 'Create submaterial', {
-    role: 'tutor',
-    requestSchema: 'SubmaterialCreateRequest',
-    requestExample: examples.submaterialCreate,
-    responseSchema: 'Submaterial',
-  }),
-});
+// Submateri has been removed. Use Materi API instead.
 
 const testManagement = (
   basePath: string,
@@ -527,12 +494,7 @@ const examples = {
   materialUpdate: { article: 'Isi materi yang diperbarui.' },
   topicCreate: { modul_id: 'modul_123', nama: 'Pengenalan Algoritma' },
   topicUpdate: { nama: 'Pengenalan Algoritma Revisi' },
-  submaterialCreate: {
-    materi_id: 'materi_123',
-    judul: 'Konsep Dasar',
-    konten: 'Konten submateri.',
-  },
-  submaterialUpdate: { judul: 'Konsep Dasar Revisi', konten: 'Konten baru.' },
+  // Submateri examples removed (model has been deleted)
   testCreate: { modul_id: 'modul_123' },
   pretestQuestion: {
     pretest_id: 'pretest_123',
@@ -800,22 +762,7 @@ const componentSchemas = {
       nama: { type: 'string', example: 'Pengenalan Algoritma Revisi' },
     },
   },
-  SubmaterialCreateRequest: {
-    type: 'object',
-    properties: {
-      materi_id: { type: 'string', example: 'materi_123' },
-      judul: { type: 'string', example: 'Konsep Dasar' },
-      konten: { type: 'string', example: 'Konten submateri.' },
-    },
-    required: ['materi_id', 'judul', 'konten'],
-  },
-  SubmaterialUpdateRequest: {
-    type: 'object',
-    properties: {
-      judul: { type: 'string', example: 'Konsep Dasar Revisi' },
-      konten: { type: 'string', example: 'Konten baru.' },
-    },
-  },
+  // SubmaterialCreateRequest and SubmaterialUpdateRequest removed (model has been deleted)
   TestCreateRequest: {
     type: 'object',
     properties: {
@@ -902,13 +849,13 @@ const componentSchemas = {
   QuizCreateRequest: {
     type: 'object',
     properties: {
-      materiId: { type: 'string', example: 'materi_123' },
+      topikId: { type: 'string', example: 'topik_123' },
       quizImgQuestionUrl: { type: 'string', nullable: true, example: null },
       question: { type: 'string', example: 'Apa output dari algoritma ini?' },
       correctAnswer: { type: 'string', example: 'A' },
       skor: { type: 'integer', default: 10, example: 10 },
     },
-    required: ['materiId', 'question', 'correctAnswer'],
+    required: ['topikId', 'question', 'correctAnswer'],
   },
   QuizAnswerOptionRequest: {
     type: 'object',
@@ -994,18 +941,6 @@ const componentSchemas = {
       isVideo: { type: 'boolean', example: false },
       videoUrl: { type: 'string', nullable: true, example: null },
       article: { type: 'string', nullable: true, example: 'Isi materi.' },
-      submateris: { type: 'array', items: { $ref: '#/components/schemas/Submaterial' } },
-      createdAt: { type: 'string', format: 'date-time' },
-      updatedAt: { type: 'string', format: 'date-time' },
-    },
-  },
-  Submaterial: {
-    type: 'object',
-    properties: {
-      id: { type: 'string', example: 'submateri_123' },
-      materiId: { type: 'string', example: 'materi_123' },
-      judul: { type: 'string', example: 'Konsep Dasar' },
-      konten: { type: 'string', example: 'Konten submateri.' },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' },
     },
@@ -1014,7 +949,7 @@ const componentSchemas = {
     type: 'object',
     properties: {
       id: { type: 'string', example: 'quiz_123' },
-      materiId: { type: 'string', example: 'materi_123' },
+      topikId: { type: 'string', example: 'topik_123' },
       question: { type: 'string', example: 'Apa output dari algoritma ini?' },
       correctAnswer: { type: 'string', example: 'A' },
       skor: { type: 'integer', example: 10 },
@@ -1514,7 +1449,6 @@ export const swaggerSpec = {
     { name: 'Tutor - Modul' },
     { name: 'Tutor - Materi' },
     { name: 'Tutor - Topik' },
-    { name: 'Tutor - Submateri' },
     { name: 'Tutor - Kuis' },
     { name: 'Tutor - Pretest' },
     { name: 'Tutor - Posttest' },
@@ -1529,7 +1463,6 @@ export const swaggerSpec = {
     { name: 'Siswa - Posttest' },
     { name: 'Siswa - Pretest' },
     { name: 'Siswa - Rating' },
-    { name: 'Siswa - Submateri' },
     { name: 'Siswa - Topik' },
     { name: 'Umum - Modul' },
     { name: 'Umum - Kuis' },
@@ -1814,7 +1747,7 @@ export const swaggerSpec = {
     }),
     ...materialCrud('/tutor/materi', 'Tutor - Materi', 'tutor'),
     ...topicCrud('/tutor/topik', 'Tutor - Topik', 'tutor'),
-    ...submaterialCrud('/tutor/submateri', 'Tutor - Submateri'),
+    // Submateri routes removed — use Materi API instead
     ...testManagement('/tutor/pretest', 'Tutor - Pretest', 'pretest'),
     ...testManagement('/tutor/posttest', 'Tutor - Posttest', 'posttest'),
 
@@ -1854,12 +1787,7 @@ export const swaggerSpec = {
       parameters: [idParam('modulId', 'Module ID.', 'modul_123')],
       responseSchema: 'Progress',
     }),
-    '/siswa/progress/submateri/{submateriId}/complete': op('post', 'Siswa - Progress', 'Mark submaterial completed', {
-      role: 'siswa',
-      parameters: [idParam('submateriId', 'Submaterial ID.', 'submateri_123')],
-      responseSchema: 'MessageResponse',
-      successStatus: 200,
-    }),
+    // Submateri progress route removed — use Materi API instead
     '/siswa/certificates': op('get', 'Siswa - Certificates', 'Get personal certificates with cursor pagination', {
       role: 'siswa',
       parameters: paginationParams,
@@ -1924,17 +1852,7 @@ export const swaggerSpec = {
       requestExample: examples.rating,
       responseSchema: 'Rating',
     }),
-    '/siswa/submateri/materi/{materiId}': op('get', 'Siswa - Submateri', 'Get submaterials by material', {
-      role: 'siswa',
-      parameters: [idParam('materiId', 'Material ID.', 'materi_123')],
-      responseSchema: 'Submaterial',
-      responseIsArray: true,
-    }),
-    '/siswa/submateri/{id}': op('get', 'Siswa - Submateri', 'Get submaterial detail', {
-      role: 'siswa',
-      parameters: [idParam('id', 'Submaterial ID.', 'submateri_123')],
-      responseSchema: 'Submaterial',
-    }),
+    // Siswa submateri routes removed — use Materi API instead
     '/siswa/topik/{modulId}': op('get', 'Siswa - Topik', 'Get topics by module', {
       role: 'siswa',
       parameters: [idParam('modulId', 'Module ID.', 'modul_123')],

@@ -4,14 +4,10 @@ import {
   getStudentCertificateById,
 } from '@/utils/certificate';
 import { parsePaginationQuery } from '@/utils/pagination';
-import { generateCertificateIfEligibleService } from '@/modules/access/siswa/progress/progress.service';
-
-interface CertificateRow {
-  id: string;
-  kode_sertif: string;
-  certificateUrl: string;
-  issued_at: Date;
-}
+import {
+  generateCertificateIfEligibleService,
+  ClaimResult,
+} from '@/modules/access/siswa/progress/progress.service';
 
 export const getCertificatesForSiswa = async (req: Request, res: Response) => {
   try {
@@ -50,20 +46,42 @@ export const claimCertificate = async (req: Request, res: Response) => {
     if (req.user?.role !== 'siswa') {
       return res.status(403).json({ message: 'Hanya siswa yang bisa mengklaim sertifikat.' });
     }
-    const siswaId = req.user.id;
+
+    const siswaId = req.user.id as string;
     const { modulId } = req.body as { modulId: string };
     if (!modulId || typeof modulId !== 'string') {
       return res.status(400).json({ message: 'modulId wajib diisi.' });
     }
-    const row = await generateCertificateIfEligibleService(siswaId, modulId) as CertificateRow | null;
-    if (!row) {
-      return res.status(403).json({ message: 'Belum memenuhi syarat untuk mendapatkan sertifikat.' });
+
+    const result = await generateCertificateIfEligibleService(siswaId, modulId);
+
+    if (!result) {
+      return res.status(400).json({
+        message: 'Belum memenuhi syarat untuk mendapatkan sertifikat. Pastikan Anda sudah lulus modul dan modul memiliki fitur sertifikat.',
+      });
     }
-    return res.status(200).json({
-      id: row.id,
-      certificateUrl: row.certificateUrl,
-      kode_sertif: row.kode_sertif,
-      issued_at: row.issued_at instanceof Date ? row.issued_at.toISOString() : String(row.issued_at),
+
+    if (result.status === 'already_claimed') {
+      return res.status(409).json({
+        message: 'Sertifikat sudah pernah diklaim sebelumnya.',
+        certificate: {
+          id: result.certificate.id,
+          certificateUrl: result.certificate.certificateUrl,
+          kode_sertif: result.certificate.kode_sertif,
+          issued_at: result.certificate.issued_at instanceof Date
+            ? result.certificate.issued_at.toISOString()
+            : String(result.certificate.issued_at),
+        },
+      });
+    }
+
+    return res.status(201).json({
+      id: result.certificate.id,
+      certificateUrl: result.certificate.certificateUrl,
+      kode_sertif: result.certificate.kode_sertif,
+      issued_at: result.certificate.issued_at instanceof Date
+        ? result.certificate.issued_at.toISOString()
+        : String(result.certificate.issued_at),
     });
   } catch (error) {
     console.error('[CERTIFICATE-CLAIM-ERROR]', error);

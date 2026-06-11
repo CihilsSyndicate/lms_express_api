@@ -21,7 +21,7 @@ export const getOrderedTopikItems = async (topikId: string) => {
         });
         return { ...item, data: quiz };
       }
-      return item;
+      return { ...item, data: null };
     }),
   );
 

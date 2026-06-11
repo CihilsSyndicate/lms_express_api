@@ -10,7 +10,6 @@ describe('Student Learning Flow E2E', () => {
   let moduleId: string;
   let topikId: string;
   let materiId: string;
-  let submateriId: string;
   let quizId: string;
   let kcId: string;
 
@@ -86,23 +85,15 @@ describe('Student Learning Flow E2E', () => {
       data: {
         tutorId: tutor.id,
         topikId: topik.id,
+        judul: 'E2E Materi',
         article: 'E2E Article',
       },
     });
     materiId = materi.id;
 
-    const submateri = await prisma.submateri.create({
-      data: {
-        materiId: materi.id,
-        judul: 'E2E Submateri',
-        konten: 'Content',
-      },
-    });
-    submateriId = submateri.id;
-
     const quiz = await prisma.quiz.create({
       data: {
-        materiId: materi.id,
+        topikId: topik.id,
         question: 'E2E Question',
         correctAnswer: 'A',
       },
@@ -128,9 +119,9 @@ describe('Student Learning Flow E2E', () => {
     expect(resModul.status).toBe(200);
     expect(resModul.body.moduleName).toBe('E2E Modul');
 
-    // 2. Mark submaterial as complete
+    // 2. Mark material as complete
     const resComplete = await request(app)
-      .post(`/siswa/progress/submateri/${submateriId}/complete`)
+      .post(`/siswa/progress/materi/${materiId}/complete`)
       .set('Cookie', [`token=${studentToken}`]);
 
     expect(resComplete.status).toBe(200);

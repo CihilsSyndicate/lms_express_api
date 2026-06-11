@@ -153,6 +153,69 @@ export const getProgressByStudentId = async (studentId: string) => {
   }
 };
 
+export const getModuleProgress = async (
+  modulId: string,
+  tutorId: string,
+) => {
+  const modul = await prisma.modul.findUnique({ where: { id: modulId } });
+
+  if (!modul) {
+    const err = new Error('Modul tidak ditemukan');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  if (modul.tutorId !== tutorId) {
+    const err = new Error('Akses ditolak');
+    (err as any).statusCode = 403;
+    throw err;
+  }
+
+  const records = await prisma.progress.findMany({
+    where: { modulId },
+    include: {
+      siswa: {
+        select: {
+          id: true,
+          nama_lengkap: true,
+          email: true,
+          profileImage: true,
+        },
+      },
+      quizScores: true,
+    },
+  });
+
+  return records.map((p) => {
+    const scores = p.quizScores.map((q) => q.score);
+    const avgQuiz =
+      scores.length > 0
+        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+        : 0;
+
+    let recommendation = 'Perlu Penguatan';
+    if (p.posttestScore && p.posttestScore >= 75) {
+      recommendation = 'Siap Pengayaan';
+    } else if (p.posttestScore && p.posttestScore >= 60) {
+      recommendation = 'Perlu Remedial';
+    }
+
+    return {
+      siswaId: p.siswa.id,
+      siswaName: p.siswa.nama_lengkap,
+      email: p.siswa.email,
+      profileImage: p.siswa.profileImage,
+      pretestScore: p.pretestScore,
+      posttestScore: p.posttestScore,
+      averageQuizScore: avgQuiz,
+      progressPercentage: p.progressPercentage,
+      status: p.status,
+      isGraduated: p.isGraduated,
+      recommendation,
+    };
+  });
+};
+
 export const analyzeComputationalThinking = async (studentId: string) => {
   try {
     const studentComputationalThinking = await prisma.progress.findMany({

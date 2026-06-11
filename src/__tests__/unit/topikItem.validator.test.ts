@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { AppError } from '@/errors/app.error';
 
 describe('TopikItem Validator Polymorphism', () => {
-  it('should throw error if Materi does not exist for ARTICLE type', async () => {
-    await expect(validateTopikItemPolymorphism('non-existent-id', 'ARTICLE'))
+  it('should throw error if Materi does not exist for MATERI type', async () => {
+    await expect(validateTopikItemPolymorphism('non-existent-id', 'MATERI'))
       .rejects.toThrow(AppError);
   });
 
@@ -14,7 +14,7 @@ describe('TopikItem Validator Polymorphism', () => {
       .rejects.toThrow(AppError);
   });
 
-  it('should pass if Materi exists for ARTICLE type', async () => {
+  it('should pass if Materi exists for MATERI type', async () => {
     // Setup
     const tutor = await prisma.tutor.create({
       data: {
@@ -53,11 +53,12 @@ describe('TopikItem Validator Polymorphism', () => {
       data: {
         tutorId: tutor.id,
         topikId: topik.id,
+        judul: 'Test Materi',
         article: 'Test Article',
       },
     });
 
-    await expect(validateTopikItemPolymorphism(materi.id, 'ARTICLE'))
+    await expect(validateTopikItemPolymorphism(materi.id, 'MATERI'))
       .resolves.not.toThrow();
   });
 
@@ -100,13 +101,14 @@ describe('TopikItem Validator Polymorphism', () => {
       data: {
         tutorId: tutor.id,
         topikId: topik.id,
+        judul: 'Test Materi 2',
         article: 'Test Article 2',
       },
     });
 
     const quiz = await prisma.quiz.create({
       data: {
-        materiId: materi.id,
+        topikId: topik.id,
         question: 'Test Question',
         correctAnswer: 'A',
       },

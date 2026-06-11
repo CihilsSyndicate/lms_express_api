@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   getAllStudentProgress as getProgressByModulesFunc,
   getProgressByStudentId as getProgressByStudentIdFunc,
+  getModuleProgress as getModuleProgressFunc,
   analyzeComputationalThinking as analyzeComputationalThinkingFunc,
 } from '@/utils/progress';
 import { parsePaginationQuery } from '@/utils/pagination';
@@ -37,6 +38,29 @@ export const getStudentProgressByModules = async (
     return res
       .status(500)
       .json({ message: 'Failed to fetch student progress' + err });
+  }
+};
+
+export const getModuleStudentProgress = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const tutorId = req?.user?.id;
+    if (!tutorId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { modulId } = req.params;
+    const data = await getModuleProgressFunc(modulId as string, tutorId);
+
+    return res.status(200).json(data);
+  } catch (err: any) {
+    console.error('Error fetching module student progress:', err);
+    const status = err.statusCode || 500;
+    return res
+      .status(status)
+      .json({ message: err.message || 'Gagal mengambil data progres siswa' });
   }
 };
 

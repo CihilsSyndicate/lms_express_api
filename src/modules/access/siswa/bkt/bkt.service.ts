@@ -164,14 +164,14 @@ export class BKTService {
   }
 
   /**
-   * Evaluate apakah submateri unlocked berdasarkan mastery threshold.
+   * Evaluate apakah materi unlocked berdasarkan mastery threshold.
    */
   async evaluateUnlockedContents(
     siswaId: string,
     modulId: string,
   ): Promise<{
-    unlockedSubmaterialIds: string[];
-    lockedSubmaterials: {
+    unlockedMateriIds: string[];
+    lockedMateris: {
       id: string;
       reason: string;
       requiredMastery: number;
@@ -192,7 +192,7 @@ export class BKTService {
     }[] = [];
 
     for (const rule of unlockRules) {
-      if (rule.targetType !== 'SUBMATERI') continue;
+      if (rule.targetType !== 'MATERI') continue;
 
       const state = await prisma.studentKnowledgeState.findUnique({
         where: {
@@ -217,11 +217,11 @@ export class BKTService {
       }
     }
 
-    return { unlockedSubmaterialIds: unlocked, lockedSubmaterials: locked };
+    return { unlockedMateriIds: unlocked, lockedMateris: locked };
   }
 
   /**
-   * Sync progress summary berdasarkan completion submateri dan mastery.
+   * Sync progress summary berdasarkan completion materi dan mastery.
    */
   async syncModuleProgressSummary(
     siswaId: string,
@@ -234,20 +234,20 @@ export class BKTService {
     if (!progress) return;
 
     // Hitung completion rate
-    const totalSubmaterials = await prisma.submateri.count({
-      where: { materi: { topik: { modulId: modulId } } },
+    const totalMateris = await prisma.materi.count({
+      where: { topik: { modulId: modulId } },
     });
 
-    const completedSubmaterials = await prisma.progressDetail.count({
+    const completedMateris = await prisma.progressDetail.count({
       where: {
         siswaId: siswaId,
         isCompleted: true,
-        submateri: { materi: { topik: { modulId: modulId } } },
+        materi: { topik: { modulId: modulId } },
       },
     });
 
     const completionRate =
-      totalSubmaterials > 0 ? completedSubmaterials / totalSubmaterials : 0;
+      totalMateris > 0 ? completedMateris / totalMateris : 0;
 
     // Hitung nilai akhir berdasarkan pretest, posttest, dan mastery
     const averageMastery = await prisma.studentKnowledgeState.aggregate({
@@ -260,7 +260,7 @@ export class BKTService {
       (progress.posttestScore ?? 0) * 0.4 +
       (averageMastery._avg.p_mastery_current ?? 0) * 100 * 0.3;
 
-    const isPassed = finalScore >= 60; // Simple threshold
+    const isPassed = completionRate >= 0.8; // Simple threshold
 
     await prisma.progress.update({
       where: { id: progress.id },

@@ -123,7 +123,7 @@ export const updateLastAccessedService = async (
 };
 
 /**
- * Tandai submateri completed.
+ * Tandai materi completed.
  */
 export const markMateriCompletedService = async (
   siswaId: string,
@@ -289,7 +289,7 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
 }
 
 /**
- * Cek completion submateri.
+ * Cek completion materi.
  */
 export const isMateriCompletedService = async (
   siswaId: string,
@@ -423,46 +423,78 @@ export const calculatePosttestScoreService = async (
   return totalScore;
 };
 
+export interface ClaimResult {
+  certificate: {
+    id: string;
+    kode_sertif: string;
+    certificateUrl: string;
+    issued_at: Date;
+  };
+  status: 'claimed' | 'already_claimed';
+}
+
 /**
- * Generate certificate jika syarat terpenuhi.
+ * Generate certificate jika syarat terpenuhi (auto-claim).
+ * Menggunakan transaction agar atomic.
  */
 export const generateCertificateIfEligibleService = async (
   siswaId: string,
   modulId: string,
-): Promise<any | null> => {
-  const progress = await prisma.progress.findUnique({
-    where: { siswaId_modulId: { siswaId: siswaId, modulId: modulId } },
-    include: { siswa: true, modul: true },
+): Promise<ClaimResult | null> => {
+  return prisma.$transaction(async (tx) => {
+    const progress = await tx.progress.findUnique({
+      where: { siswaId_modulId: { siswaId: siswaId, modulId: modulId } },
+      include: { modul: true },
+    });
+
+    if (!progress || !progress.isGraduated) return null;
+    if (!progress.modul.hasCertificate) return null;
+
+    const existingCert = await tx.certificate.findFirst({
+      where: { siswaId: siswaId, modulId: modulId },
+    });
+
+    if (existingCert) {
+      return {
+        certificate: {
+          id: existingCert.id,
+          kode_sertif: existingCert.kode_sertif,
+          certificateUrl: existingCert.certificateUrl,
+          issued_at: existingCert.issued_at,
+        },
+        status: 'already_claimed',
+      } satisfies ClaimResult;
+    }
+
+    const certificateCode = `CERT-${siswaId.slice(-4)}-${modulId.slice(-4)}-${Date.now()}`;
+
+    const certificate = await tx.certificate.create({
+      data: {
+        siswaId: siswaId,
+        modulId: modulId,
+        kode_sertif: certificateCode,
+        certificateUrl: `https://storage.example.com/certificates/${certificateCode}.pdf`,
+      },
+    });
+
+    await pushNotification(
+      siswaId,
+      'certificate',
+      'Sertifikat Terbit',
+      `Selamat! Sertifikat untuk modul "${progress.modul.moduleName}" telah terbit.`,
+      { modulId, certificateCode },
+    );
+
+    return {
+      certificate: {
+        id: certificate.id,
+        kode_sertif: certificate.kode_sertif,
+        certificateUrl: certificate.certificateUrl,
+        issued_at: certificate.issued_at,
+      },
+      status: 'claimed',
+    } satisfies ClaimResult;
   });
-
-  if (!progress || !progress.isGraduated) return null;
-
-  const existingCert = await prisma.certificate.findFirst({
-    where: { siswaId: siswaId, modulId: modulId },
-  });
-
-  if (existingCert) return existingCert;
-
-  const certificateCode = `CERT-${siswaId.slice(-4)}-${modulId.slice(-4)}-${Date.now()}`;
-
-  const certificate = await prisma.certificate.create({
-    data: {
-      siswaId: siswaId,
-      modulId: modulId,
-      kode_sertif: certificateCode,
-      certificateUrl: `https://example.com/cert/${certificateCode}`, // Placeholder
-    },
-  });
-
-  await pushNotification(
-    siswaId,
-    'certificate',
-    'Sertifikat Terbit',
-    `Selamat! Sertifikat untuk modul "${progress.modul.moduleName}" telah terbit.`,
-    { modulId, certificateCode },
-  );
-
-  return certificate;
 };
 
 export class ProgressService {

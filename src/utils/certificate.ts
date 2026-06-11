@@ -30,7 +30,7 @@ export const getStudentCertificates = async (
             tutor: {
               select: {
                 fullName: true,
-                signatures: true,
+                signatureUrl: true,
               },
             },
           },

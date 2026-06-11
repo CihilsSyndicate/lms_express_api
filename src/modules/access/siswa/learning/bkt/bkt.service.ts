@@ -234,7 +234,7 @@ export const evaluateUnlockedContents = async (
 };
 
 /**
- * Sync progress summary berdasarkan completion submateri dan mastery.
+ * Sync progress summary berdasarkan completion materi dan mastery.
  */
 export const syncModuleProgressSummary = async (
   siswaId: string,

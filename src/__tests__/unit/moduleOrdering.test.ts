@@ -42,13 +42,14 @@ describe('Module Ordering & Polymorphic Retrieval', () => {
       data: {
         tutorId: tutor.id,
         topikId: topik.id,
+        judul: 'Order Materi',
         article: 'Order Article',
       },
     });
 
     const quiz = await prisma.quiz.create({
       data: {
-        materiId: materi.id,
+        topikId: topik.id,
         question: 'Order Quiz',
         correctAnswer: 'A',
       },
@@ -68,7 +69,7 @@ describe('Module Ordering & Polymorphic Retrieval', () => {
       data: {
         topikId: topik.id,
         itemId: materi.id,
-        itemType: 'ARTICLE',
+        itemType: 'MATERI',
         orderNumber: 1,
       },
     });
@@ -77,12 +78,12 @@ describe('Module Ordering & Polymorphic Retrieval', () => {
 
     expect(items).toHaveLength(2);
     expect(items[0]?.orderNumber).toBe(1);
-    expect(items[0]?.itemType).toBe('ARTICLE');
-    expect(items[0]?.data.id).toBe(materi.id);
+    expect(items[0]?.itemType).toBe('MATERI');
+    expect(items[0]?.data!.id).toBe(materi.id);
     
     expect(items[1]?.orderNumber).toBe(2);
     expect(items[1]?.itemType).toBe('QUIZ');
-    expect(items[1]?.data.id).toBe(quiz.id);
+    expect(items[1]?.data!.id).toBe(quiz.id);
   });
 
   it('should return empty list if no items exist for a topic', async () => {

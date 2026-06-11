@@ -5,7 +5,43 @@ async function main() {
   console.log('Seeding database...\n');
 
   // =====================================================
-  // 1. ADMIN (1 record)
+  // CLEANUP (hapus dalam urutan reverse dependency)
+  // =====================================================
+  console.log('Cleaning existing data...');
+  await prisma.notification.deleteMany();
+  await prisma.automaticAccessMatery.deleteMany();
+  await prisma.certificate.deleteMany();
+  await prisma.rating.deleteMany();
+  await prisma.moduleUnlockRule.deleteMany();
+  await prisma.studentKnowledgeState.deleteMany();
+  await prisma.studentAnswerLog.deleteMany();
+  await prisma.progressDetail.deleteMany();
+  await prisma.quizScore.deleteMany();
+  await prisma.progress.deleteMany();
+  await prisma.computationalThinking.deleteMany();
+  await prisma.pretestQuestionSkillMap.deleteMany();
+  await prisma.knowledgeComponent.deleteMany();
+  await prisma.quizSetting.deleteMany();
+  await prisma.quizAnswerOption.deleteMany();
+  await prisma.quiz.deleteMany();
+  await prisma.topikItem.deleteMany();
+  await prisma.materi.deleteMany();
+  await prisma.topik.deleteMany();
+  await prisma.soalPosttest.deleteMany();
+  await prisma.pretestSetting.deleteMany();
+  await prisma.pretestAnswerOptions.deleteMany();
+  await prisma.soalPretest.deleteMany();
+  await prisma.posttest.deleteMany();
+  await prisma.pretest.deleteMany();
+  await prisma.modul.deleteMany();
+  await prisma.socialMedia.deleteMany();
+  await prisma.tutor.deleteMany();
+  await prisma.siswa.deleteMany();
+  await prisma.admin.deleteMany();
+  console.log('Cleanup complete.\n');
+
+  // =====================================================
+  // 1. ADMIN
   // =====================================================
   const adminPassword = await hashPassword('admin123');
   const admin = await prisma.admin.upsert({
@@ -24,7 +60,7 @@ async function main() {
   console.log(`1. Admin: ${admin.id}`);
 
   // =====================================================
-  // 2. TUTOR (10 records)
+  // 2. TUTOR
   // =====================================================
   const tutorPassword = await hashPassword('tutor123');
   const tutorData = [
@@ -162,14 +198,19 @@ async function main() {
       prisma.tutor.upsert({
         where: { email: t.email },
         update: {},
-        create: { ...t, password: tutorPassword, role: 'tutor' },
+        create: {
+          ...t,
+          password: tutorPassword,
+          role: 'tutor',
+          signatureUrl: `https://storage.example.com/signature/${t.email.split('@')[0]}.png`,
+        },
       }),
     ),
   );
   console.log(`2. Tutor: ${tutors.length} records`);
 
   // =====================================================
-  // 3. SOCIAL MEDIA (2 per tutor = 20 records)
+  // 3. SOCIAL MEDIA
   // =====================================================
   await Promise.all(
     tutors.flatMap((t) => [
@@ -192,22 +233,7 @@ async function main() {
   console.log('3. SocialMedia: 20 records');
 
   // =====================================================
-  // 4. SIGNATURE (1 per tutor = 10 records)
-  // =====================================================
-  await Promise.all(
-    tutors.map((t) =>
-      prisma.signature.create({
-        data: {
-          tutorId: t.id,
-          fileUrl: `https://storage.example.com/signature/${t.id}.png`,
-        },
-      }),
-    ),
-  );
-  console.log('4. Signature: 10 records');
-
-  // =====================================================
-  // 5. SISWA (10 records)
+  // 4. SISWA
   // =====================================================
   const siswaPassword = await hashPassword('siswa123');
   const siswaData = [
@@ -292,10 +318,10 @@ async function main() {
       }),
     ),
   );
-  console.log(`5. Siswa: ${siswas.length} records`);
+  console.log(`4. Siswa: ${siswas.length} records`);
 
   // =====================================================
-  // 6. UMUM (3 records, disimpan di tabel siswa)
+  // 5. UMUM
   // =====================================================
   const umumPassword = await hashPassword('umum123');
   const umumData = [
@@ -331,10 +357,10 @@ async function main() {
       }),
     ),
   );
-  console.log(`6. Umum: ${umumUsers.length} records`);
+  console.log(`5. Umum: ${umumUsers.length} records`);
 
   // =====================================================
-  // 7. MODUL (10 records)
+  // 6. MODUL
   // =====================================================
   const modulData = [
     {
@@ -350,6 +376,8 @@ async function main() {
       modulType: 'SISWA' as const,
       tutorIdx: 0,
       isDraft: false,
+      hasCertificate: false,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Struktur Data',
@@ -365,6 +393,8 @@ async function main() {
       modulType: 'SISWA' as const,
       tutorIdx: 0,
       isDraft: false,
+      hasCertificate: true,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Pemrograman Web Dasar',
@@ -379,6 +409,8 @@ async function main() {
       modulType: 'SISWA' as const,
       tutorIdx: 1,
       isDraft: false,
+      hasCertificate: false,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Basis Data Relasional',
@@ -394,6 +426,8 @@ async function main() {
       modulType: 'SISWA' as const,
       tutorIdx: 2,
       isDraft: false,
+      hasCertificate: true,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Pengantar Coding untuk Guru',
@@ -406,6 +440,8 @@ async function main() {
       modulType: 'UMUM' as const,
       tutorIdx: 3,
       isDraft: true,
+      hasCertificate: false,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Matematika Diskrit',
@@ -420,6 +456,8 @@ async function main() {
       modulType: 'SISWA' as const,
       tutorIdx: 4,
       isDraft: false,
+      hasCertificate: true,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Machine Learning Dasar',
@@ -434,6 +472,8 @@ async function main() {
       modulType: 'SISWA' as const,
       tutorIdx: 6,
       isDraft: false,
+      hasCertificate: true,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Jaringan Komputer',
@@ -448,6 +488,8 @@ async function main() {
       modulType: 'SISWA' as const,
       tutorIdx: 4,
       isDraft: false,
+      hasCertificate: false,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Media Pembelajaran Digital',
@@ -460,6 +502,8 @@ async function main() {
       modulType: 'UMUM' as const,
       tutorIdx: 7,
       isDraft: false,
+      hasCertificate: false,
+      moduleImgUrl: null as string | null,
     },
     {
       moduleName: 'Statistika untuk Penelitian',
@@ -473,6 +517,8 @@ async function main() {
       modulType: 'UMUM' as const,
       tutorIdx: 9,
       isDraft: false,
+      hasCertificate: true,
+      moduleImgUrl: null as string | null,
     },
   ];
 
@@ -493,14 +539,18 @@ async function main() {
           tutorId: tutors[m.tutorIdx].id,
           isDraft: m.isDraft ?? false,
           rangkumanAkhir: `Rangkuman akhir untuk modul "${m.moduleName}". Kesimpulan dari seluruh materi yang telah dipelajari dalam modul ini.`,
+          pretestPostTestEnabled: true,
+          hasStudyGroup: false,
+          hasCertificate: m.hasCertificate,
+          moduleImgUrl: m.moduleImgUrl,
         },
       }),
     ),
   );
-  console.log(`7. Modul: ${moduls.length} records`);
+  console.log(`6. Modul: ${moduls.length} records`);
 
   // =====================================================
-  // 8. PRETEST (5 records)
+  // 7. PRETEST
   // =====================================================
   const pretests = await Promise.all(
     moduls.slice(0, 5).map((m) =>
@@ -510,17 +560,18 @@ async function main() {
     ),
   );
 
-  // Hubungkan pretest ke modul
+  const pretestToModulMap = new Map<string, string>();
   for (let i = 0; i < pretests.length; i++) {
     await prisma.modul.update({
       where: { id: moduls[i].id },
       data: { pretestId: pretests[i].id },
     });
+    pretestToModulMap.set(pretests[i].id, moduls[i].id);
   }
-  console.log(`8. Pretest: ${pretests.length} records`);
+  console.log(`7. Pretest: ${pretests.length} records`);
 
   // =====================================================
-  // 9. POSTTEST (5 records)
+  // 8. POSTTEST
   // =====================================================
   const posttests = await Promise.all(
     moduls.slice(0, 5).map((m) => prisma.posttest.create({ data: {} })),
@@ -532,10 +583,10 @@ async function main() {
       data: { posttestId: posttests[i].id },
     });
   }
-  console.log(`9. Posttest: ${posttests.length} records`);
+  console.log(`8. Posttest: ${posttests.length} records`);
 
   // =====================================================
-  // 10. SOAL PRETEST (4 per pretest = 20 records)
+  // 9. SOAL PRETEST & PRETEST ANSWER OPTIONS
   // =====================================================
   const pretestQuestions = [
     {
@@ -597,22 +648,20 @@ async function main() {
       allSoalPretest.push({ id: soal.id, pretestId: pt.id });
     }
   }
-  console.log(
-    `10. SoalPretest: ${allSoalPretest.length} records (80 answer options)`,
-  );
+  console.log(`9. SoalPretest: ${allSoalPretest.length} records`);
 
   // =====================================================
-  // 12. PRETEST SETTING (1 per pretest = 5 records)
+  // 10. PRETEST SETTING
   // =====================================================
   for (const pt of pretests) {
     await prisma.pretestSetting.create({
       data: { pretestId: pt.id, duration: 1800, countShownQuestions: 10 },
     });
   }
-  console.log('12. PretestSetting: 5 records');
+  console.log('10. PretestSetting: 5 records');
 
   // =====================================================
-  // 13. SOAL POSTTEST (4 per posttest = 20 records)
+  // 11. SOAL POSTTEST
   // =====================================================
   const posttestQuestions = [
     {
@@ -669,10 +718,10 @@ async function main() {
       });
     }
   }
-  console.log('13. SoalPosttest: 20 records');
+  console.log('11. SoalPosttest: 20 records');
 
   // =====================================================
-  // 14. TOPIK (2 per modul = 20 records)
+  // 12. TOPIK
   // =====================================================
   const topikNames = [
     ['Apa itu Algoritma', 'Flowchart & Pseudocode'],
@@ -700,10 +749,10 @@ async function main() {
       topiks.push({ id: topik.id, modulId: topik.modulId });
     }
   }
-  console.log(`14. Topik: ${topiks.length} records`);
+  console.log(`12. Topik: ${topiks.length} records`);
 
   // =====================================================
-  // 15. MATERI (2 per topik = 40 records)
+  // 13. MATERI
   // =====================================================
   const materis: { id: string; topikId: string }[] = [];
   for (const topik of topiks) {
@@ -711,8 +760,9 @@ async function main() {
       data: {
         tutorId: tutors[0].id,
         topikId: topik.id,
+        judul: `Materi Teks - ${topik.nama}`,
         isVideo: false,
-        article: `Artikel pembelajaran untuk topik ini. Berisi penjelasan lengkap dan contoh-contoh yang mudah dipahami oleh siswa.`,
+        article: `Artikel pembelajaran untuk topik "${topik.nama}". Berisi penjelasan lengkap dan contoh-contoh yang mudah dipahami oleh siswa.`,
       },
     });
     materis.push({ id: m1.id, topikId: topik.id });
@@ -721,41 +771,17 @@ async function main() {
       data: {
         tutorId: tutors[1].id,
         topikId: topik.id,
+        judul: `Materi Video - ${topik.nama}`,
         isVideo: true,
         videoUrl: `https://storage.example.com/video/${topik.id}.mp4`,
       },
     });
     materis.push({ id: m2.id, topikId: topik.id });
   }
-  console.log(`15. Materi: ${materis.length} records`);
+  console.log(`13. Materi: ${materis.length} records`);
 
   // =====================================================
-  // 16. SUBMATERI (2 per materi = 80 records)
-  // =====================================================
-  let submateriCount = 0;
-  for (const materi of materis) {
-    await prisma.submateri.create({
-      data: {
-        materiId: materi.id,
-        judul: `Submateri 1 - ${materi.id.slice(0, 6)}`,
-        konten:
-          'Konten detail untuk submateri pertama. Berisi penjelasan dan ilustrasi.',
-      },
-    });
-    await prisma.submateri.create({
-      data: {
-        materiId: materi.id,
-        judul: `Submateri 2 - ${materi.id.slice(0, 6)}`,
-        konten:
-          'Konten detail untuk submateri kedua. Berisi latihan dan studi kasus.',
-      },
-    });
-    submateriCount += 2;
-  }
-  console.log(`16. Submateri: ${submateriCount} records`);
-
-  // =====================================================
-  // 17. TOPIK ITEM (1 per materi = 40 records)
+  // 14. TOPIK ITEM
   // =====================================================
   for (let i = 0; i < materis.length; i++) {
     await prisma.topikItem.create({
@@ -763,14 +789,14 @@ async function main() {
         topikId: materis[i].topikId,
         itemId: materis[i].id,
         orderNumber: (i % 2) + 1,
-        itemType: i % 2 === 0 ? 'ARTICLE' : 'QUIZ',
+        itemType: i % 2 === 0 ? 'MATERI' : 'QUIZ',
       },
     });
   }
-  console.log('17. TopikItem: 40 records');
+  console.log('14. TopikItem: 40 records');
 
   // =====================================================
-  // 18. QUIZ (1 per modul = 10 records)
+  // 15. QUIZ & QUIZ ANSWER OPTIONS
   // =====================================================
   const quizQuestions = [
     {
@@ -853,15 +879,12 @@ async function main() {
 
   const quizzes: { id: string }[] = [];
   for (let i = 0; i < moduls.length; i++) {
-    const modulMateris = materis.filter((m) => {
-      const topik = topiks.find((t) => t.id === m.topikId);
-      return topik && topik.modulId === moduls[i].id;
-    });
-    if (modulMateris.length > 0) {
+    const modulTopiks = topiks.filter((t) => t.modulId === moduls[i].id);
+    if (modulTopiks.length > 0) {
       const q = quizQuestions[i];
       const quiz = await prisma.quiz.create({
         data: {
-          materiId: modulMateris[0].id,
+          topikId: modulTopiks[0].id,
           question: q.question,
           correctAnswer: q.correctAnswer,
           skor: q.skor,
@@ -879,10 +902,10 @@ async function main() {
       quizzes.push(quiz);
     }
   }
-  console.log(`18. Quiz: ${quizzes.length} records (40 answer options)`);
+  console.log(`15. Quiz: ${quizzes.length} records`);
 
   // =====================================================
-  // 20. QUIZ SETTING (1 per quiz = 10 records)
+  // 16. QUIZ SETTING
   // =====================================================
   for (const quiz of quizzes) {
     await prisma.quizSetting.create({
@@ -890,15 +913,16 @@ async function main() {
         quizId: quiz.id,
         timeLimit: 60,
         allowMultipleAttempts: true,
+        isComputationalThinkingEnabled: false,
         minScoreTreshold: 70,
         standardScorePerQuestion: 10,
       },
     });
   }
-  console.log('20. QuizSetting: 10 records');
+  console.log('16. QuizSetting: 10 records');
 
   // =====================================================
-  // 21. KNOWLEDGE COMPONENT (2 per modul = 20 records)
+  // 17. KNOWLEDGE COMPONENT
   // =====================================================
   const kcNames = [
     'algoritma_dasar',
@@ -916,32 +940,35 @@ async function main() {
   const knowledgeComponents: { id: string; modulId: string }[] = [];
 
   for (const modul of moduls) {
+    const idx = moduls.indexOf(modul);
     const kc1 = await prisma.knowledgeComponent.create({
       data: {
         modulId: modul.id,
-        code: `${kcNames[moduls.indexOf(modul)]}_1`,
+        code: `${kcNames[idx]}_1`,
         nama: `KC 1 - ${modul.moduleName}`,
+        deskripsi: `Knowledge component untuk modul ${modul.moduleName} bagian 1`,
       },
     });
     knowledgeComponents.push(kc1);
     const kc2 = await prisma.knowledgeComponent.create({
       data: {
         modulId: modul.id,
-        code: `${kcNames[moduls.indexOf(modul)]}_2`,
+        code: `${kcNames[idx]}_2`,
         nama: `KC 2 - ${modul.moduleName}`,
+        deskripsi: `Knowledge component untuk modul ${modul.moduleName} bagian 2`,
       },
     });
     knowledgeComponents.push(kc2);
   }
-  console.log(`21. KnowledgeComponent: ${knowledgeComponents.length} records`);
+  console.log(`17. KnowledgeComponent: ${knowledgeComponents.length} records`);
 
   // =====================================================
-  // 22. PRETEST QUESTION SKILL MAP (1 per soalPretest = 20 records)
+  // 18. PRETEST QUESTION SKILL MAP (BUG FIXED)
   // =====================================================
   for (const soal of allSoalPretest) {
-    const modulKcs = knowledgeComponents.filter(
-      (kc) => kc.modulId === soal.pretestId,
-    );
+    const modulId = pretestToModulMap.get(soal.pretestId);
+    if (!modulId) continue;
+    const modulKcs = knowledgeComponents.filter((kc) => kc.modulId === modulId);
     if (modulKcs.length > 0) {
       await prisma.pretestQuestionSkillMap.create({
         data: {
@@ -952,10 +979,10 @@ async function main() {
       });
     }
   }
-  console.log('22. PretestQuestionSkillMap: ~20 records');
+  console.log('18. PretestQuestionSkillMap: ~20 records');
 
   // =====================================================
-  // 23. COMPUTATIONAL THINKING (1 per modul = 10 records)
+  // 19. COMPUTATIONAL THINKING
   // =====================================================
   const ctAspek = [
     'Decomposition',
@@ -972,45 +999,75 @@ async function main() {
       },
     });
   }
-  console.log('23. ComputationalThinking: 5 records');
+  console.log('19. ComputationalThinking: 5 records');
 
   // =====================================================
-  // 24. PROGRESS (enroll siswa ke modul = 15+ records)
+  // 20. PROGRESS (enroll siswa ke modul)
   // =====================================================
   const progresses: { id: string; siswaId: string; modulId: string }[] = [];
 
-  // Pre-fetch submateri & quiz IDs per modul for completedContentItems
   const modulContentMap = new Map<string, { id: string; type: string }[]>();
   for (const m of moduls) {
-    const subItems = (await prisma.submateri.findMany({
-      where: { materi: { topik: { modulId: m.id } } },
-      select: { id: true },
-    })).map((s) => ({ id: s.id, type: 'SUBMATERI' }));
-    const quizItems = (await prisma.quiz.findMany({
-      where: { materi: { topik: { modulId: m.id } } },
-      select: { id: true },
-    })).map((q) => ({ id: q.id, type: 'QUIZ' }));
-    modulContentMap.set(m.id, [...subItems, ...quizItems]);
+    const materiItems = (
+      await prisma.materi.findMany({
+        where: { topik: { modulId: m.id } },
+        select: { id: true },
+      })
+    ).map((s) => ({ id: s.id, type: 'MATERI' as const }));
+    const quizItems = (
+      await prisma.quiz.findMany({
+        where: { topik: { modulId: m.id } },
+        select: { id: true },
+      })
+    ).map((q) => ({ id: q.id, type: 'QUIZ' as const }));
+    modulContentMap.set(m.id, [...materiItems, ...quizItems]);
   }
 
-  function buildCompletedContentItems(modulId: string, isCompleted: boolean, seedVal: number): string {
+  function buildCompletedContentItems(
+    modulId: string,
+    isCompleted: boolean,
+    seedVal: number,
+  ): string {
     const contentItems = modulContentMap.get(modulId) ?? [];
-    const items: { itemId: string; itemType: string; completedAt: string }[] = [];
+    const items: {
+      itemId: string;
+      itemType: string;
+      completedAt: string;
+    }[] = [];
 
-    const ts = (offset: number) => new Date(Date.now() - offset * 86400000).toISOString();
+    const ts = (offset: number) =>
+      new Date(Date.now() - offset * 86400000).toISOString();
 
-    items.push({ itemId: 'pretest', itemType: 'PRETEST', completedAt: ts(30) });
+    items.push({
+      itemId: 'pretest',
+      itemType: 'PRETEST',
+      completedAt: ts(30),
+    });
 
-    const takeCount = isCompleted ? contentItems.length : Math.max(1, Math.floor((seedVal / 100) * contentItems.length));
+    const takeCount = isCompleted
+      ? contentItems.length
+      : Math.max(1, Math.floor((seedVal / 100) * contentItems.length));
 
     for (let k = 0; k < Math.min(takeCount, contentItems.length); k++) {
       const ci = contentItems[k];
-      items.push({ itemId: ci.id, itemType: ci.type, completedAt: ts(29 - k) });
+      items.push({
+        itemId: ci.id,
+        itemType: ci.type,
+        completedAt: ts(29 - k),
+      });
     }
 
     if (isCompleted) {
-      items.push({ itemId: 'posttest', itemType: 'POSTTEST', completedAt: ts(1) });
-      items.push({ itemId: 'rating', itemType: 'RATING', completedAt: ts(0) });
+      items.push({
+        itemId: 'posttest',
+        itemType: 'POSTTEST',
+        completedAt: ts(1),
+      });
+      items.push({
+        itemId: 'rating',
+        itemType: 'RATING',
+        completedAt: ts(0),
+      });
     }
 
     return JSON.stringify(items);
@@ -1021,7 +1078,11 @@ async function main() {
       try {
         const isCompleted = j !== 0;
         const seedVal = Math.floor(Math.random() * 100);
-        const completedContentItems = buildCompletedContentItems(moduls[j].id, isCompleted, seedVal);
+        const completedContentItems = buildCompletedContentItems(
+          moduls[j].id,
+          isCompleted,
+          seedVal,
+        );
 
         const progress = await prisma.progress.create({
           data: {
@@ -1030,7 +1091,9 @@ async function main() {
             progressPercentage: isCompleted ? 100 : seedVal,
             status: isCompleted ? 'COMPLETED' : 'IN_PROGRESS',
             isGraduated: isCompleted,
-            pretestScore: isCompleted ? 85 : Math.floor(Math.random() * 40) + 60,
+            pretestScore: isCompleted
+              ? 85
+              : Math.floor(Math.random() * 40) + 60,
             posttestScore: isCompleted ? 80 : null,
             completedContentItems,
           },
@@ -1041,10 +1104,10 @@ async function main() {
       }
     }
   }
-  console.log(`24. Progress: ${progresses.length} records`);
+  console.log(`20. Progress: ${progresses.length} records`);
 
   // =====================================================
-  // 25. QUIZ SCORE (1 per progress = ~15 records)
+  // 21. QUIZ SCORE
   // =====================================================
   for (const progress of progresses) {
     await prisma.quizScore.create({
@@ -1056,15 +1119,15 @@ async function main() {
       },
     });
   }
-  console.log('25. QuizScore: ~15 records');
+  console.log('21. QuizScore: ~15 records');
 
   // =====================================================
-  // 26. PROGRESS DETAIL (1 per progress = ~15 records)
+  // 22. PROGRESS DETAIL
   // =====================================================
   await prisma.progressDetail.create({
     data: {
       siswaId: siswas[0].id,
-      submateriId: (await prisma.submateri.findFirst({
+      materiId: (await prisma.materi.findFirst({
         where: {},
         select: { id: true },
       }))!.id,
@@ -1072,10 +1135,10 @@ async function main() {
       completed_at: new Date(),
     },
   });
-  console.log('26. ProgressDetail: 1 record (sample)');
+  console.log('22. ProgressDetail: 1 record (sample)');
 
   // =====================================================
-  // 27. STUDENT ANSWER LOG (10 records)
+  // 23. STUDENT ANSWER LOG
   // =====================================================
   for (let i = 0; i < Math.min(10, progresses.length); i++) {
     const modulKcs = knowledgeComponents.filter(
@@ -1093,10 +1156,10 @@ async function main() {
       },
     });
   }
-  console.log('27. StudentAnswerLog: 10 records');
+  console.log('23. StudentAnswerLog: 10 records');
 
   // =====================================================
-  // 28. STUDENT KNOWLEDGE STATE (10 records)
+  // 24. STUDENT KNOWLEDGE STATE
   // =====================================================
   for (let i = 0; i < Math.min(10, progresses.length); i++) {
     const modulKcs = knowledgeComponents.filter(
@@ -1117,10 +1180,10 @@ async function main() {
       }
     }
   }
-  console.log('28. StudentKnowledgeState: ~10 records');
+  console.log('24. StudentKnowledgeState: ~10 records');
 
   // =====================================================
-  // 29. MODULE UNLOCK RULE (5 records)
+  // 25. MODULE UNLOCK RULE
   // =====================================================
   for (let i = 0; i < Math.min(5, moduls.length); i++) {
     const modulKcs = knowledgeComponents.filter(
@@ -1130,7 +1193,7 @@ async function main() {
       await prisma.moduleUnlockRule.create({
         data: {
           modulId: moduls[i].id,
-          targetType: 'SUBMATERI',
+          targetType: 'MATERI',
           targetId: 'seed_target',
           knowledgeComponentId: modulKcs[0].id,
           materyTreshold: 0.8,
@@ -1138,10 +1201,10 @@ async function main() {
       });
     }
   }
-  console.log('29. ModuleUnlockRule: 5 records');
+  console.log('25. ModuleUnlockRule: 5 records');
 
   // =====================================================
-  // 30. RATING (10+ records)
+  // 26. RATING
   // =====================================================
   for (let i = 0; i < Math.min(siswas.length, 10); i++) {
     await prisma.rating.create({
@@ -1159,17 +1222,13 @@ async function main() {
       },
     });
   }
-  console.log('30. Rating: 10 records');
+  console.log('26. Rating: 10 records');
 
   // =====================================================
-  // 31. CERTIFICATE (5 records)
+  // 27. CERTIFICATE
   // =====================================================
-  const completedProgresses = progresses.filter((p) => {
-    const prog = p as any;
-    return true;
-  });
-  for (let i = 0; i < Math.min(5, completedProgresses.length); i++) {
-    const p = completedProgresses[i];
+  for (let i = 0; i < Math.min(5, progresses.length); i++) {
+    const p = progresses[i];
     await prisma.certificate.create({
       data: {
         siswaId: p.siswaId,
@@ -1180,10 +1239,10 @@ async function main() {
       },
     });
   }
-  console.log('31. Certificate: 5 records');
+  console.log('27. Certificate: 5 records');
 
   // =====================================================
-  // 32. AUTOMATIC ACCESS MATERY (5 records)
+  // 28. AUTOMATIC ACCESS MATERY
   // =====================================================
   for (let i = 0; i < Math.min(5, pretests.length); i++) {
     const modulMateris = materis.filter((m) => {
@@ -1201,10 +1260,10 @@ async function main() {
       });
     }
   }
-  console.log('32. AutomaticAccessMatery: 5 records');
+  console.log('28. AutomaticAccessMatery: 5 records');
 
   // =====================================================
-  // 33. NOTIFICATION (10 records)
+  // 29. NOTIFICATION
   // =====================================================
   for (let i = 1; i <= 10; i++) {
     await prisma.notification.create({
@@ -1216,9 +1275,9 @@ async function main() {
       },
     });
   }
-  console.log('33. Notification: 10 records');
+  console.log('29. Notification: 10 records');
 
-  console.log('\n✓ Seed completed successfully!');
+  console.log('\n\u2713 Seed completed successfully!');
 }
 
 main()

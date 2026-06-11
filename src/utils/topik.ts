@@ -17,7 +17,7 @@ export const createTopikItem = async (
   payload: {
     topikId: string;
     itemId: string;
-    itemType: 'ARTICLE' | 'QUIZ';
+    itemType: 'MATERI' | 'QUIZ';
     orderNumber: number;
   },
   tutorId?: string,

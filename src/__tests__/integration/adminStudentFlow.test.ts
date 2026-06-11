@@ -120,6 +120,7 @@ describe('Admin & Student E2E Business Flow', () => {
       .set('Cookie', [`token=${adminToken}`])
       .send({
         topik_id: topikId,
+        judul: 'E2E Materi',
         article: 'E2E Comprehensive Article Content',
         is_video: false,
       });
@@ -129,7 +130,7 @@ describe('Admin & Student E2E Business Flow', () => {
     // 5. Admin creates a Quiz with explicit Settings
     const quizPayload = {
       quiz: {
-        materiId: materiId,
+        topikId: topikId,
         question: 'What is E2E?',
         correctAnswer: 'End to End',
         skor: 10,
