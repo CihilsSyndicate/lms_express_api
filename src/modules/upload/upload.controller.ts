@@ -97,8 +97,11 @@ export const uploadFile = async (req: Request, res: Response) => {
 
 /**
  * GET /upload/signed-url?url=<cloudinary_url>
- * Menghasilkan signed URL sementara (60 menit) untuk file Cloudinary
- * yang mungkin di-upload sebelum access_mode:public diterapkan.
+ *
+ * Menggunakan cloudinary.url() + sign_url:true untuk generate signed CDN URL.
+ * Ini bekerja untuk resource type:upload (public delivery) yang dibatasi
+ * oleh Cloudinary Strict Transformations atau Restricted Media Access.
+ * Signed URL memiliki signature s--xxx-- yang di-accept Cloudinary.
  */
 export const getSignedUrl = async (req: Request, res: Response) => {
   try {
@@ -107,16 +110,23 @@ export const getSignedUrl = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Parameter url wajib diisi.' });
     }
 
-    // Ekstrak public_id dan format dari Cloudinary URL
-    // Contoh URL: https://res.cloudinary.com/<cloud>/raw/upload/[flags/]v<ver>/lms/cv/file.pdf
+    if (!rawUrl.includes('res.cloudinary.com')) {
+      return res.status(400).json({ message: 'Hanya URL Cloudinary yang diizinkan.' });
+    }
+
+    // Strip semua transformation flags dari URL agar dapat public_id bersih
+    // Contoh URL: .../raw/upload/fl_attachment:false/v1234/lms/cv/file.pdf
+    //         atau .../raw/upload/fl_inline/v1234/lms/cv/file.pdf
+    //         atau .../raw/upload/v1234/lms/cv/file.pdf (sudah bersih)
     const match = rawUrl.match(
-      /\/(?:image|video|raw)\/(?:upload|authenticated)\/(?:[^/]+\/)*v\d+\/(.+)$/,
+      /\/(?:image|video|raw)\/(?:upload|authenticated)\/(?:[^/]+\/)*v(\d+)\/(.+)$/,
     );
     if (!match) {
       return res.status(400).json({ message: 'URL Cloudinary tidak valid.' });
     }
 
-    const fullPath = match[1]; // misal: lms/cv/file.pdf
+    const version = parseInt(match[1], 10);
+    const fullPath = match[2]; // misal: lms/cv/file.pdf
     const lastDotIdx = fullPath.lastIndexOf('.');
     const publicId =
       lastDotIdx !== -1 ? fullPath.substring(0, lastDotIdx) : fullPath;
@@ -124,14 +134,21 @@ export const getSignedUrl = async (req: Request, res: Response) => {
       lastDotIdx !== -1 ? fullPath.substring(lastDotIdx + 1) : undefined;
 
     // Determine resource_type dari URL
-    const resourceType = rawUrl.includes('/raw/') ? 'raw' : rawUrl.includes('/video/') ? 'video' : 'image';
+    const resourceType = rawUrl.includes('/raw/')
+      ? 'raw'
+      : rawUrl.includes('/video/')
+        ? 'video'
+        : 'image';
 
-    // Generate signed URL dengan expiry 1 jam
-    const signedUrl = cloudinary.utils.private_download_url(publicId, format ?? '', {
+    // cloudinary.url() + sign_url:true → signed CDN URL (s--sig-- embedded)
+    // Ini bypass Strict Transformations & Restricted Media Access untuk type:upload
+    const signedUrl = cloudinary.url(publicId, {
       resource_type: resourceType as any,
       type: 'upload',
-      expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 jam
-      attachment: false,
+      sign_url: true,
+      secure: true,
+      format: format ?? undefined,
+      version,
     });
 
     return res.status(200).json({ signedUrl });

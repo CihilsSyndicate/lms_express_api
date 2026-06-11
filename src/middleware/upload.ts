@@ -35,21 +35,7 @@ export const uploadToCloudinary = (
       options as any,
       (error, result) => {
         if (error) return reject(error);
-
-        let url = result!.secure_url;
-
-        // Untuk raw PDF: ubah URL agar serve inline (bukan attachment)
-        // Ganti fl_attachment:false (jika ada) atau inject fl_inline
-        if (resourceType === 'raw' && format === 'pdf') {
-          // Cloudinary raw URL: ...raw/upload/v.../file.pdf
-          // Kita inject fl_inline agar browser tampilkan inline
-          url = url.replace(
-            '/raw/upload/',
-            '/raw/upload/fl_inline/',
-          );
-        }
-
-        resolve(url);
+        resolve(result!.secure_url);
       },
     );
 
