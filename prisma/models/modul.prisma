@@ -96,6 +96,7 @@ model Quiz {
     id                 String  @id @default(cuid())
     topikId            String
     topik              Topik   @relation(fields: [topikId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    quizType           QuizType @default(REGULER)
     quizImgQuestionUrl String?
 
     question String @db.Text
@@ -301,4 +302,9 @@ enum ItemType {
     MATERI
     QUIZ
     RANGKUMAN_TOPIK
+}
+
+enum QuizType {
+    REGULER
+    COMPUTATIONAL_THINKING
 }

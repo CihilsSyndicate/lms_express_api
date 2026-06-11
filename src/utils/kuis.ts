@@ -77,7 +77,7 @@ export const getQuizById = async (quizId: string) => {
       where: { id: quizId },
       include: {
         quizAnswerOptions: true,
-        quizSetting: true,
+        quizSettings: true,
       },
     });
     return quiz;
@@ -116,6 +116,7 @@ export const createQuizWithTransaction = async (payload: CreateQuizTxInput) => {
     const newQuiz = await tx.quiz.create({
       data: {
         topikId: quiz.topikId,
+        quizType: quiz.quizType ?? 'REGULER',
         quizImgQuestionUrl: quiz.quizImgQuestionUrl ?? null,
         question: quiz.question,
         correctAnswer: quiz.correctAnswer,
@@ -144,7 +145,77 @@ export const createQuizWithTransaction = async (payload: CreateQuizTxInput) => {
       },
     });
 
-    return newQuiz;
+    return tx.quiz.findUnique({
+      where: { id: newQuiz.id },
+      include: {
+        quizAnswerOptions: true,
+        quizSettings: true,
+      },
+    });
+  });
+};
+
+export const updateQuizWithTransaction = async (
+  quizId: string,
+  payload: {
+    question?: string | undefined;
+    correctAnswer?: string | undefined;
+    skor?: number | undefined;
+    quizType?: 'REGULER' | 'COMPUTATIONAL_THINKING' | undefined;
+    quizImgQuestionUrl?: string | null | undefined;
+    answerOptions?: { option: string }[] | undefined;
+    setting?:
+      | {
+          timeLimit?: number | null | undefined;
+          allowMultipleAttempts?: boolean | undefined;
+          isComputationalThinkingEnabled?: boolean | undefined;
+          minScoreTreshold?: number | null | undefined;
+          standardScorePerQuestion?: number | undefined;
+        }
+      | undefined;
+  },
+) => {
+  return prisma.$transaction(async (tx) => {
+    const updateData: Record<string, unknown> = {};
+    if (payload.question !== undefined) updateData.question = payload.question;
+    if (payload.correctAnswer !== undefined) updateData.correctAnswer = payload.correctAnswer;
+    if (payload.skor !== undefined) updateData.skor = payload.skor;
+    if (payload.quizType !== undefined) updateData.quizType = payload.quizType;
+    if (payload.quizImgQuestionUrl !== undefined) updateData.quizImgQuestionUrl = payload.quizImgQuestionUrl;
+
+    if (Object.keys(updateData).length > 0) {
+      await tx.quiz.update({
+        where: { id: quizId },
+        data: updateData,
+      });
+    }
+
+    if (payload.answerOptions) {
+      await tx.quizAnswerOption.deleteMany({ where: { quizId } });
+      await tx.quizAnswerOption.createMany({
+        data: payload.answerOptions.map((opt) => ({ quizId, option: opt.option })),
+      });
+    }
+
+    if (payload.setting) {
+      await tx.quizSetting.deleteMany({ where: { quizId } });
+      await tx.quizSetting.create({
+        data: {
+          quizId,
+          timeLimit: payload.setting.timeLimit ?? null,
+          allowMultipleAttempts: payload.setting.allowMultipleAttempts ?? false,
+          isComputationalThinkingEnabled:
+            payload.setting.isComputationalThinkingEnabled ?? false,
+          minScoreTreshold: payload.setting.minScoreTreshold ?? null,
+          standardScorePerQuestion: payload.setting.standardScorePerQuestion ?? 100,
+        },
+      });
+    }
+
+    return tx.quiz.findUnique({
+      where: { id: quizId },
+      include: { quizAnswerOptions: true, quizSettings: true },
+    });
   });
 };
 

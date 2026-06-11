@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const quizSchema = z.object({
   id: z.string().cuid(),
   topikId: z.string(),
+  quizType: z.enum(['REGULER', 'COMPUTATIONAL_THINKING']).default('REGULER'),
   quizImgQuestionUrl: z.string().optional().nullable(),
   question: z.string(),
   correctAnswer: z.string(),

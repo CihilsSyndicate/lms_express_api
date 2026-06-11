@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "QuizType" AS ENUM ('REGULER', 'COMPUTATIONAL_THINKING');
+
+-- AlterTable
+ALTER TABLE "Quiz" ADD COLUMN     "quizType" "QuizType" NOT NULL DEFAULT 'REGULER';

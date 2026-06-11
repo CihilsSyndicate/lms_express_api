@@ -68,6 +68,12 @@ export const getTopiksWithMateri = async (modulId: string) => {
           tutor: { select: { fullName: true } },
         },
       },
+      quizzes: {
+        include: {
+          quizAnswerOptions: true,
+          quizSettings: true,
+        },
+      },
     },
   });
 };

@@ -1,11 +1,16 @@
 import { Request, Response } from 'express';
 import { ZodError } from 'zod';
-import { createQuizWithTransaction } from '@/utils/kuis';
-import { tutorQuizSchema } from '@/validators/kuis/tutorKuis.validator';
+import {
+  createQuizWithTransaction,
+  updateQuizWithTransaction,
+} from '@/utils/kuis';
+import {
+  tutorQuizSchema,
+  tutorQuizUpdateSchema,
+} from '@/validators/kuis/tutorKuis.validator';
 import {
   getAllQuiz as getAllQuizFunc,
   getQuizById as getQuizByIdFunc,
-  updateQuiz as updateQuizFunc,
   deleteQuiz as deleteQuizFunc,
 } from '@/utils/kuis';
 import { parsePaginationQuery } from '@/utils/pagination';
@@ -16,10 +21,7 @@ export const createTutorQuiz = async (req: Request, res: Response) => {
 
     const newQuiz = await createQuizWithTransaction(parsed);
 
-    res.status(201).json({
-      message: 'Quiz created successfully',
-      quizId: newQuiz.id,
-    });
+    res.status(201).json(newQuiz);
   } catch (error) {
     if (error instanceof ZodError) {
       return res.status(400).json({
@@ -66,9 +68,16 @@ export const getTutorQuizById = async (req: Request, res: Response) => {
 export const updateTutorQuiz = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const payload = await updateQuizFunc(id as string, req.body);
-    res.status(200).json(payload);
+    const parsed = tutorQuizUpdateSchema.parse(req.body);
+    const updated = await updateQuizWithTransaction(id as string, parsed);
+    res.status(200).json(updated);
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: error.issues,
+      });
+    }
     console.error('Error updating quiz:', error);
     res.status(500).json({ error: 'Failed to update quiz' });
   }
