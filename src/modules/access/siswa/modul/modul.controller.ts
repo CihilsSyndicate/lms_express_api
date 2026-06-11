@@ -61,7 +61,7 @@ export const enrollModuleController = async (req: Request, res: Response) => {
       where: { siswaId_modulId: { siswaId, modulId: modulId as string } },
     });
 
-    console.log(existing);
+    // console.log(existing);
 
     if (existing) {
       return res.status(409).json({ message: 'Already enrolled' });

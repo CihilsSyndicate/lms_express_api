@@ -12,21 +12,14 @@ model Tutor {
     prodi          String
     cvPathUrl      String
     profileImg     String?
+    signatureUrl   String?
     role           String        @default("tutor")
     moduls         Modul[]
     materis        Materi[]
     googleId       String?       @unique
-    signatures     Signature[]
     socialMedias   SocialMedia[]
 
     isActive Boolean @default(true)
-}
-
-model Signature {
-    id      String @id @default(cuid())
-    tutorId String
-    tutor   Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    fileUrl String
 }
 
 model SocialMedia {

@@ -26,9 +26,6 @@ export const getTutorProfile = async (req: Request, res: Response) => {
         socialMedias: {
           select: { platform: true, url: true },
         },
-        signatures: {
-          select: { fileUrl: true },
-        },
       },
     });
 
@@ -36,7 +33,12 @@ export const getTutorProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Tutor tidak ditemukan.' });
     }
 
-    return res.status(200).json(tutor);
+    const rows = await prisma.$queryRaw<Array<{ signatureUrl: string | null }>>`
+      SELECT "signatureUrl" FROM "Tutor" WHERE id = ${req.user.id}
+    `;
+    const signatureUrl = rows[0]?.signatureUrl ?? null;
+
+    return res.status(200).json({ ...tutor, signatureUrl });
   } catch (error) {
     console.error('[TUTOR-PROFILE-ERROR]', error);
     return res.status(500).json({ message: 'Internal server error.' });

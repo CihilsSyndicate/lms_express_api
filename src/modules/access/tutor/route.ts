@@ -9,6 +9,7 @@ import posttestRouter from './posttest/posttest.routes';
 import progressRouter from './progress/progress.routes';
 import tutorProfileRouter from './profile/profile.routes';
 import kuisRouter from './kuis/kuis.routes';
+import signatureRouter from './signature/signature.routes';
 
 export const tutorRouter = Router();
 
@@ -24,3 +25,4 @@ tutorRouter.use('/posttest', posttestRouter);
 tutorRouter.use('/progress', progressRouter);
 tutorRouter.use('/kuis', kuisRouter);
 tutorRouter.use('/profile', tutorProfileRouter);
+tutorRouter.use('/signature', signatureRouter);

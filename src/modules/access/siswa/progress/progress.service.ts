@@ -228,7 +228,7 @@ export const markItemCompletedService = async (
   const totalSequenceSteps = await getTotalSequenceSteps(modulId);
   const completedCount = completedItems.length;
   const progressPercentage = totalSequenceSteps > 0
-    ? Math.round((completedCount / totalSequenceSteps) * 100)
+    ? Math.min(100, Math.round((completedCount / totalSequenceSteps) * 100))
     : 0;
 
   await prisma.progress.update({
@@ -256,12 +256,7 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
   const modul = await prisma.modul.findUnique({
     where: { id: modulId },
     include: {
-      topiks: {
-        include: {
-          topikItems: true,
-          materis: true,
-        },
-      },
+      topiks: { include: { topikItems: true } },
       pretest: true,
       posttest: true,
     },
@@ -275,22 +270,20 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
 
   for (const topik of modul.topiks) {
     for (const ti of topik.topikItems) {
-      if (ti.itemType === 'MATERI') {
-        const materi = topik.materis.find(m => m.id === ti.itemId);
-        if (materi) count += 1;
-      } else if (ti.itemType === 'QUIZ') {
+      // RANGKUMAN_TOPIK items are handled client-side only and never submitted
+      if (ti.itemType === 'MATERI' || ti.itemType === 'QUIZ') {
         count += 1;
       }
     }
-    count += 1; // topik summary
+    // topik rangkuman (summary) is client-side only — not submitted
   }
 
-  count += 1; // rangkuman-akhir
+  // rangkumanAkhir is client-side only — not submitted
 
   if (modul.posttest) count += 1;
 
   count += 1; // rating
-  count += 1; // certificate (if applicable)
+  if (modul.hasCertificate) count += 1;
 
   return Math.max(count, 1);
 }

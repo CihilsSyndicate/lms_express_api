@@ -246,21 +246,6 @@ export const syncModuleProgressSummary = async (
 
   if (!progress) return;
 
-  const totalMateris = await prisma.materi.count({
-    where: { topik: { modulId: modulId } },
-  });
-
-  const completedMateris = await prisma.progressDetail.count({
-    where: {
-      siswaId: siswaId,
-      isCompleted: true,
-      materi: { topik: { modulId: modulId } },
-    },
-  });
-
-  const completionRate =
-    totalMateris > 0 ? completedMateris / totalMateris : 0;
-
   const averageMastery = await prisma.studentKnowledgeState.aggregate({
     where: { siswaId: siswaId, modulId: modulId },
     _avg: { p_mastery_current: true },
@@ -276,7 +261,6 @@ export const syncModuleProgressSummary = async (
   await prisma.progress.update({
     where: { id: progress.id },
     data: {
-      progressPercentage: Math.round(completionRate * 100),
       finalScore: finalScore,
       isGraduated: isPassed,
     },

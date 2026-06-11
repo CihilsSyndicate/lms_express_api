@@ -3,6 +3,6 @@ import { getTutorProfile } from './profile.controller';
 
 const router = Router();
 
-router.get('/profile', getTutorProfile);
+router.get('/', getTutorProfile);
 
 export default router;
