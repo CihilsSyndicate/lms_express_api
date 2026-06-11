@@ -1,5 +1,11 @@
 import { prisma } from '../../lib/prisma';
-import { comparePassword, generateToken, generateResetToken, verifyResetToken, hashPassword } from '@/lib/auth';
+import {
+  comparePassword,
+  generateToken,
+  generateResetToken,
+  verifyResetToken,
+  hashPassword,
+} from '@/lib/auth';
 import { UserTokenPayload } from '@/lib/auth';
 import type {
   CreateSiswaRecord,
@@ -267,8 +273,17 @@ export const registerTutorService = async (data: CreateTutorRecord) => {
     data.password = await hashPassword(data.password);
     const newTutor = await prisma.tutor.create({
       data: {
-        ...data,
+        fullName: data.fullName,
+        email: data.email,
+        password: data.password,
         role: 'tutor',
+        gender: data.gender ?? '',
+        pekerjaan: data.pekerjaan ?? '',
+        whatsappNumber: data.whatsappNumber ?? '',
+        lastEducation: data.lastEducation ?? '',
+        institution: data.institution ?? '',
+        prodi: data.prodi ?? '',
+        cvPathUrl: data.cvPathUrl ?? '',
         profileImg: data.profileImg ?? null,
         biografi: data.biografi ?? null,
       },
@@ -311,7 +326,10 @@ export const forgotPasswordService = async (email: string) => {
   return { message: 'Link reset password telah dikirim ke email.', resetToken };
 };
 
-export const resetPasswordService = async (token: string, newPassword: string) => {
+export const resetPasswordService = async (
+  token: string,
+  newPassword: string,
+) => {
   let payload: { email: string; role: string };
   try {
     payload = verifyResetToken(token);
