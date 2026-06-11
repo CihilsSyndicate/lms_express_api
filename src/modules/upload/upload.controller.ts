@@ -43,6 +43,12 @@ function resourceTypeFromMime(mimetype: string): ResourceType {
   return 'raw'; // pdf, doc, dll
 }
 
+/* Ambil ekstensi tanpa titik dari nama file, misal 'abc.pdf' → 'pdf' */
+function getExtension(filename: string): string | undefined {
+  const parts = filename.split('.');
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : undefined;
+}
+
 export const uploadFile = async (req: Request, res: Response) => {
   try {
     const file = (req as any).file as Express.Multer.File | undefined;
@@ -58,7 +64,16 @@ export const uploadFile = async (req: Request, res: Response) => {
     const resourceType =
       config?.resourceType ?? resourceTypeFromMime(file.mimetype);
 
-    const url = await uploadToCloudinary(file.buffer, folder, resourceType);
+    // Kirim ekstensi untuk raw/video agar Cloudinary menyimpannya
+    const format =
+      resourceType !== 'image' ? getExtension(file.originalname) : undefined;
+
+    const url = await uploadToCloudinary(
+      file.buffer,
+      folder,
+      resourceType,
+      format,
+    );
 
     return res.status(200).json({
       message: 'File berhasil diupload.',
