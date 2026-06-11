@@ -32,8 +32,18 @@ export const uploadFile = async (req: Request, res: Response) => {
       url,
       fileName: file.originalname,
     });
-  } catch (error) {
-    console.error('[UPLOAD-ERROR]', error);
-    return res.status(500).json({ message: 'Gagal mengupload file.' });
+  } catch (error: any) {
+    console.error('[UPLOAD-ERROR]', {
+      message: error?.message,
+      http_code: error?.http_code,
+      name: error?.name,
+      cloudinary_cloud: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+      cloudinary_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+      cloudinary_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING',
+    });
+    return res.status(500).json({
+      message: 'Gagal mengupload file.',
+      detail: error?.message ?? String(error),
+    });
   }
 };
