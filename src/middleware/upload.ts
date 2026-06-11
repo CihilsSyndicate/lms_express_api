@@ -22,6 +22,12 @@ export const uploadToCloudinary = (
       use_filename: true,
       unique_filename: true,
     };
+
+    // Raw files (PDF, doc, dll) harus public agar bisa diakses tanpa auth
+    if (resourceType === 'raw') {
+      options.access_mode = 'public';
+    }
+
     // Untuk raw/video, set format eksplisit agar ekstensi tersimpan
     if (format) options.format = format;
 
@@ -29,7 +35,21 @@ export const uploadToCloudinary = (
       options as any,
       (error, result) => {
         if (error) return reject(error);
-        resolve(result!.secure_url);
+
+        let url = result!.secure_url;
+
+        // Untuk raw PDF: ubah URL agar serve inline (bukan attachment)
+        // Ganti fl_attachment:false (jika ada) atau inject fl_inline
+        if (resourceType === 'raw' && format === 'pdf') {
+          // Cloudinary raw URL: ...raw/upload/v.../file.pdf
+          // Kita inject fl_inline agar browser tampilkan inline
+          url = url.replace(
+            '/raw/upload/',
+            '/raw/upload/fl_inline/',
+          );
+        }
+
+        resolve(url);
       },
     );
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { UploadFileType } from '@/utils/upload-file';
 import { uploadToCloudinary } from '@/middleware/upload';
+import cloudinary from '@/lib/cloudinary';
 
 type ResourceType = 'image' | 'video' | 'raw' | 'auto';
 
@@ -89,6 +90,55 @@ export const uploadFile = async (req: Request, res: Response) => {
     });
     return res.status(500).json({
       message: 'Gagal mengupload file.',
+      detail: error?.message ?? String(error),
+    });
+  }
+};
+
+/**
+ * GET /upload/signed-url?url=<cloudinary_url>
+ * Menghasilkan signed URL sementara (60 menit) untuk file Cloudinary
+ * yang mungkin di-upload sebelum access_mode:public diterapkan.
+ */
+export const getSignedUrl = async (req: Request, res: Response) => {
+  try {
+    const rawUrl = req.query.url as string | undefined;
+    if (!rawUrl) {
+      return res.status(400).json({ message: 'Parameter url wajib diisi.' });
+    }
+
+    // Ekstrak public_id dan format dari Cloudinary URL
+    // Contoh URL: https://res.cloudinary.com/<cloud>/raw/upload/[flags/]v<ver>/lms/cv/file.pdf
+    const match = rawUrl.match(
+      /\/(?:image|video|raw)\/(?:upload|authenticated)\/(?:[^/]+\/)*v\d+\/(.+)$/,
+    );
+    if (!match) {
+      return res.status(400).json({ message: 'URL Cloudinary tidak valid.' });
+    }
+
+    const fullPath = match[1]; // misal: lms/cv/file.pdf
+    const lastDotIdx = fullPath.lastIndexOf('.');
+    const publicId =
+      lastDotIdx !== -1 ? fullPath.substring(0, lastDotIdx) : fullPath;
+    const format =
+      lastDotIdx !== -1 ? fullPath.substring(lastDotIdx + 1) : undefined;
+
+    // Determine resource_type dari URL
+    const resourceType = rawUrl.includes('/raw/') ? 'raw' : rawUrl.includes('/video/') ? 'video' : 'image';
+
+    // Generate signed URL dengan expiry 1 jam
+    const signedUrl = cloudinary.utils.private_download_url(publicId, format ?? '', {
+      resource_type: resourceType as any,
+      type: 'upload',
+      expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 jam
+      attachment: false,
+    });
+
+    return res.status(200).json({ signedUrl });
+  } catch (error: any) {
+    console.error('[SIGNED-URL-ERROR]', error?.message);
+    return res.status(500).json({
+      message: 'Gagal membuat signed URL.',
       detail: error?.message ?? String(error),
     });
   }
