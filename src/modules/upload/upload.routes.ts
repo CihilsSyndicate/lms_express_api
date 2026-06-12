@@ -6,7 +6,7 @@ import { uploadFile, getSignedUrl } from './upload.controller';
 const uploadRouter = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
   fileFilter: (_req, file, cb) => {
     const allowed = [
       'image/jpeg',

@@ -8,7 +8,7 @@ import { verifyToken } from './lib/auth';
 const app = express();
 const APP_PORT = process.env.API_PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
 app.use(cookieParser());
 app.use(passport.initialize());
 app.use(
