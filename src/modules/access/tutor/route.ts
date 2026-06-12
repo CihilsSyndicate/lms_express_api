@@ -10,6 +10,7 @@ import progressRouter from './progress/progress.routes';
 import tutorProfileRouter from './profile/profile.routes';
 import kuisRouter from './kuis/kuis.routes';
 import signatureRouter from './signature/signature.routes';
+import { ulasanRouter } from './ulasan/ulasan.routes';
 
 export const tutorRouter = Router();
 
@@ -26,3 +27,4 @@ tutorRouter.use('/progress', progressRouter);
 tutorRouter.use('/kuis', kuisRouter);
 tutorRouter.use('/profile', tutorProfileRouter);
 tutorRouter.use('/signature', signatureRouter);
+tutorRouter.use('/ulasan', ulasanRouter);

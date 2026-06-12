@@ -164,7 +164,7 @@ export const getProgressByStudentId = async (studentId: string) => {
       }
     }
 
-    const modules = allProgress.map((progress) => {
+    const progress = allProgress.map((progress) => {
       const completedItems = (() => {
         try {
           return JSON.parse(progress.completedContentItems || '[]');
@@ -209,30 +209,29 @@ export const getProgressByStudentId = async (studentId: string) => {
       }
 
       return {
-        moduleId: progress.modul.id,
-        moduleName: progress.modul.moduleName,
-        level: progress.modul.level,
-        class: progress.modul.class,
-        moduleImgUrl: progress.modul.moduleImgUrl,
+        id: progress.id,
+        siswaId: progress.siswaId,
+        modulId: progress.modul.id,
         pretestScore: progress.pretestScore,
         posttestScore: progress.posttestScore,
+        finalScore: progress.finalScore,
         averageQuizScore: avgQuiz,
-        progressPercentage: progress.progressPercentage,
-        totalMateri,
-        completedMateri: completedItems.length,
+        status: progress.status,
         isGraduated: progress.isGraduated,
+        progressPercentage: progress.progressPercentage,
+        completionRate: totalMateri > 0
+          ? Math.round((completedItems.length / totalMateri) * 100)
+          : 0,
         recommendation,
         quizRecords,
       };
     });
 
     return {
-      studentInfo: {
-        fullName: studentData.nama_lengkap,
-        email: studentData.email,
-        avatarUrl: studentData.profileImage,
-      },
-      modules,
+      siswaId: studentId,
+      siswaName: studentData.nama_lengkap,
+      email: studentData.email,
+      progress,
     };
   } catch (error) {
     console.error('Error fetching student progress by student ID:', error);
