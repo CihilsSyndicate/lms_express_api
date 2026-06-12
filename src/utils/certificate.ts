@@ -66,3 +66,41 @@ export const getStudentCertificateById = async (certificateId: string) => {
     throw new Error(`Gagal mengambil sertifikat: ${error}`);
   }
 };
+
+export const getStudentCertificateByModulId = async (
+  siswaId: string,
+  modulId: string,
+) => {
+  try {
+    const certificate = await prisma.certificate.findFirst({
+      where: { siswaId, modulId },
+      include: {
+        modul: {
+          select: {
+            moduleName: true,
+            tutor: {
+              select: {
+                fullName: true,
+                signatureUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!certificate) return null;
+
+    return {
+      id: certificate.id,
+      kode_sertif: certificate.kode_sertif,
+      certificateUrl: certificate.certificateUrl,
+      issued_at: certificate.issued_at,
+      moduleName: certificate.modul?.moduleName ?? '',
+      tutorName: certificate.modul?.tutor?.fullName ?? 'Tim Pengajar',
+      tutorSignatureUrl: certificate.modul?.tutor?.signatureUrl ?? null,
+    };
+  } catch (error) {
+    throw new Error(`Gagal mengambil sertifikat: ${error}`);
+  }
+};

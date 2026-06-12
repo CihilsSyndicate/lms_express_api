@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   getStudentCertificates,
   getStudentCertificateById,
+  getStudentCertificateByModulId,
 } from '@/utils/certificate';
 import { parsePaginationQuery } from '@/utils/pagination';
 import {
@@ -85,6 +86,33 @@ export const claimCertificate = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('[CERTIFICATE-CLAIM-ERROR]', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+export const getCertificateByModul = async (req: Request, res: Response) => {
+  try {
+    const { modulId } = req.params;
+    const siswaId = req.user?.id;
+
+    if (!siswaId) {
+      return res.status(401).json({ message: 'Unauthorized.' });
+    }
+
+    const certificate = await getStudentCertificateByModulId(siswaId, modulId as string);
+
+    if (!certificate) {
+      return res.status(404).json({ message: 'Sertifikat tidak ditemukan untuk modul ini.' });
+    }
+
+    return res.status(200).json({
+      ...certificate,
+      issued_at: certificate.issued_at instanceof Date
+        ? certificate.issued_at.toISOString()
+        : String(certificate.issued_at),
+    });
+  } catch (error) {
+    console.error('[CERTIFICATE-ERROR] Gagal mengambil sertifikat by modul:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
