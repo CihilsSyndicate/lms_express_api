@@ -10,6 +10,7 @@ import {
   deletePosttestRecord,
   updatePosttestQuestion,
   deletePosttestQuestion,
+  upsertPosttestSettings,
 } from '@/utils/posttest';
 import { parsePaginationQuery } from '@/utils/pagination';
 
@@ -108,6 +109,16 @@ export const deleteSoalPosttest = async (req: Request, res: Response) => {
   try {
     const { soalId } = req.params;
     const payload = await deletePosttestQuestion(soalId as string);
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handleError(error, res, 'deleteSoal');
+  }
+};
+
+export const updatePosttestSettings = async (req: Request, res: Response) => {
+  try {
+    const { posttestId } = req.params;
+    const payload = await upsertPosttestSettings(posttestId as string, req.body);
     return res.status(200).json(payload);
   } catch (error) {
     return handleError(error, res, 'deleteSoal');
