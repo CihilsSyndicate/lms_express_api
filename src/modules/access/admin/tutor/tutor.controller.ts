@@ -124,3 +124,15 @@ export const deactivateTutor = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Gagal menonaktifkan tutor.', error });
   }
 };
+
+export const activateTutor = async (req: Request, res: Response) => {
+  try {
+    const tutor = await prisma.tutor.update({
+      where: { id: req.params.id },
+      data: { isActive: true },
+    });
+    res.status(200).json({ message: 'Akun tutor berhasil diaktifkan', tutor });
+  } catch (error) {
+    res.status(500).json({ message: 'Gagal mengaktifkan tutor.', error });
+  }
+};

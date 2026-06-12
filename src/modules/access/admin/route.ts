@@ -11,6 +11,7 @@ import tutorRouter from './tutor/tutor.routes';
 import adminProfileRouter from './profile/profile.routes';
 import pretestRouter from './pretest/pretest.routes';
 import posttestRouter from './posttest/posttest.routes';
+import adminPengelolaRouter from './pengelola/pengelola.routes';
 
 export const adminRouter = Router();
 
@@ -31,3 +32,4 @@ adminRouter.use('/manage/tutor', tutorRouter);
 adminRouter.use('/profile', adminProfileRouter);
 adminRouter.use('/pretest', pretestRouter);
 adminRouter.use('/posttest', posttestRouter);
+adminRouter.use('/pengelola', adminPengelolaRouter);
