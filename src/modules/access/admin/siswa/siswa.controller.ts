@@ -85,7 +85,7 @@ export const registerSiswa = async (req: Request, res: Response) => {
 export const updateSiswa = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { nama_lengkap, email, password, jenjang, kelas_sekolah, studentType, profileImage } =
+    const { nama_lengkap, email, password, jenjang, kelas_sekolah, studentType, profileImage, role } =
       req.body;
 
     let hashedPassword;
@@ -104,6 +104,7 @@ export const updateSiswa = async (req: Request, res: Response) => {
         ...(kelas_sekolah !== undefined && { kelas_sekolah }),
         ...(studentType !== undefined && { studentType }),
         ...(profileImage !== undefined && { profileImage }),
+        ...(role !== undefined && { role }),
       },
     });
 
