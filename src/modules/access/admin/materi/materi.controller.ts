@@ -78,7 +78,7 @@ function handleMateriError(
 
   console.error(getMateriLogMessage(action), error);
 
-  return res.status(500).json({ message: getMateriInternalMessage(action) });
+  return res.status(500).json({ message: getMateriInternalMessage(action), detail: String(error) });
 }
 
 function getMateriLogMessage(action: MateriAction) {
