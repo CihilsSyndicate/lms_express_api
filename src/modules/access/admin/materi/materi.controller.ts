@@ -17,9 +17,14 @@ type MateriAction = 'create' | 'get' | 'update' | 'delete';
 
 export const createMaterial = async (req: Request, res: Response) => {
   try {
-    const payload = await createMateri(req.body, req.user?.id, req.user?.role);
+    const payload = {
+      judul: req.body.title,
+      topik_id: req.body.topikId,
+      is_video: req.body.isVideo ?? false,
+    };
+    const newMaterial = await createMateri(payload as any, req.user?.id, req.user?.role);
 
-    return res.status(201).json(payload);
+    return res.status(201).json(newMaterial);
   } catch (error) {
     return handleMateriError(error, res, 'create');
   }
@@ -37,14 +42,18 @@ export const getMaterialsByModule = async (req: Request, res: Response) => {
 
 export const updateMaterial = async (req: Request, res: Response) => {
   try {
-    const payload = await updateMateri(
+    const payload = {
+      judul: req.body.title,
+      is_video: req.body.isVideo,
+    };
+    const updated = await updateMateri(
       req.params.id as string,
-      req.body,
+      payload as any,
       req.user?.id,
       req.user?.role,
     );
 
-    return res.status(200).json(payload);
+    return res.status(200).json(updated);
   } catch (error) {
     return handleMateriError(error, res, 'update');
   }

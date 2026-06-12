@@ -17,9 +17,13 @@ type TopikAction = 'create' | 'get' | 'update' | 'delete';
 
 export const createTopic = async (req: Request, res: Response) => {
   try {
-    const payload = await createTopik(req.body, req.user?.id, req.user?.role);
+    const payload = {
+      nama: req.body.name,
+      modul_id: req.body.modulId,
+    };
+    const newTopic = await createTopik(payload as any, req.user?.id, req.user?.role);
 
-    return res.status(201).json(payload);
+    return res.status(201).json(newTopic);
   } catch (error) {
     return handleTopikError(error, res, 'create');
   }
@@ -37,14 +41,17 @@ export const getTopicsByModule = async (req: Request, res: Response) => {
 
 export const updateTopic = async (req: Request, res: Response) => {
   try {
-    const payload = await updateTopik(
+    const payload = {
+      nama: req.body.name,
+    };
+    const updated = await updateTopik(
       req.params.id as string,
-      req.body,
+      payload as any,
       req.user?.id,
       req.user?.role,
     );
 
-    return res.status(200).json(payload);
+    return res.status(200).json(updated);
   } catch (error) {
     return handleTopikError(error, res, 'update');
   }
@@ -74,7 +81,7 @@ function handleTopikError(error: unknown, res: Response, action: TopikAction) {
 
   console.error(getTopikLogMessage(action), error);
 
-  return res.status(500).json({ message: getTopikInternalMessage(action) });
+  return res.status(500).json({ message: getTopikInternalMessage(action), detail: String(error) });
 }
 
 function getTopikLogMessage(action: TopikAction) {

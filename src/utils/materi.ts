@@ -110,10 +110,13 @@ export const updateMateri = async (
   }
 
   const data: {
+    judul?: string;
     isVideo?: boolean;
     videoUrl?: string | null;
     article?: string | null;
   } = {};
+
+  if (payload.judul !== undefined) data.judul = payload.judul;
 
   if (payload.is_video !== undefined) data.isVideo = payload.is_video;
   if (payload.video_url !== undefined) data.videoUrl = payload.video_url;
