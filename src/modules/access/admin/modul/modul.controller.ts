@@ -144,7 +144,7 @@ export const createModule = async (req: Request, res: Response) => {
     res.status(201).json(newModule);
   } catch (error) {
     console.error('Error creating module:', error);
-    res.status(500).json({ error: 'Failed to create module' });
+    res.status(500).json({ error: 'Failed to create module', message: String(error) });
   }
 };
 

@@ -8,7 +8,7 @@
     "test:watch": "cross-env JWT_SECRET=test_secret vitest --no-fileParallelism --maxWorkers 1",
     "test:ui": "cross-env JWT_SECRET=test_secret vitest --ui --no-fileParallelism --maxWorkers 1",
     "test:coverage": "cross-env JWT_SECRET=test_secret vitest run --coverage --no-fileParallelism --maxWorkers 1",
-    "dev": "nodemon --watch src --ext ts --exec \"ts-node -r tsconfig-paths/register src/index.ts\"",
+    "dev": "nodemon --watch src --ext ts --exec \"ts-node -T -r tsconfig-paths/register src/index.ts\"",
     "seed": "tsx prisma/seed.ts",
     "seed:posttest": "tsx prisma/seed-posttest.ts",
     "build": "prisma generate && node build.mjs",

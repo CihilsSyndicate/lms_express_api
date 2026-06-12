@@ -1,8 +1,17 @@
 import Router from 'express';
 import { verifyToken } from '@/lib/auth';
 import { getUserById } from '@/utils/user';
+import { authenticateUser, authorizeRole } from '@/middleware/auth';
+import { getAllUsers } from '@/controllers/user';
 
 const userRouter = Router();
+
+userRouter.get(
+  '/',
+  authenticateUser,
+  authorizeRole('siswa', 'tutor', 'admin') as any,
+  getAllUsers,
+);
 
 userRouter.get('/me', verifyToken, async (req, res) => {
   if (!req.user) {
