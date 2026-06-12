@@ -6,6 +6,7 @@ import {
   deactivateTutor,
   getAllTutors,
   searchTutor,
+  activateTutor,
 } from './tutor.controller';
 
 const tutorRouter = Router();
@@ -16,5 +17,6 @@ tutorRouter.get('/', getAllTutors);
 tutorRouter.put('/:id', updateTutor);
 tutorRouter.delete('/:id', deleteTutor);
 tutorRouter.patch('/:id/deactivate', deactivateTutor);
+tutorRouter.patch('/:id/activate', activateTutor);
 
 export default tutorRouter;
