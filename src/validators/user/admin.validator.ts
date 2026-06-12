@@ -20,7 +20,9 @@ export const createAdminSchema = adminBaseSchema.omit({
   updatedAt: true,
 });
 
-export const updateAdminSchema = adminBaseSchema.partial().omit({
+export const updateAdminSchema = adminBaseSchema.extend({
+  newPassword: z.string().min(6).optional(),
+}).partial().omit({
   id: true,
   email: true,
   createdAt: true,

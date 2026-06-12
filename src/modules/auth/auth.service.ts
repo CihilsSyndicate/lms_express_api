@@ -103,14 +103,16 @@ export const updateUserProfileService = async (
   data: UpdateSiswaRecord | UpdateTutorRecord | UpdateAdminRecord,
 ) => {
   try {
-    if (
-      !(await verifyPasswordService(
-        userId,
-        data?.role as 'siswa' | 'tutor' | 'admin',
-        data.password as string,
-      ))
-    ) {
-      throw new Error('Password tidak cocok. periksa kembali password anda.');
+    if (data.password) {
+      if (
+        !(await verifyPasswordService(
+          userId,
+          data?.role as 'siswa' | 'tutor' | 'admin',
+          data.password as string,
+        ))
+      ) {
+        throw new Error('Password tidak cocok. periksa kembali password anda.');
+      }
     }
     let updatedUser;
     if (data.role === 'siswa') {
@@ -131,12 +133,12 @@ export const updateUserProfileService = async (
     }
 
     return updatedUser;
-  } catch (error) {
+  } catch (error: any) {
     console.error(
-      '[PROFILE-UPDATE-ERROR] Gagal memperbarui profil siswa:',
+      '[PROFILE-UPDATE-ERROR] Gagal memperbarui profil:',
       error,
     );
-    throw new Error('Gagal memperbarui profil siswa.');
+    throw new Error(error.message || 'Gagal memperbarui profil.');
   }
 };
 
@@ -145,19 +147,24 @@ export const updateStudentProfileService = async (
   data: UpdateSiswaRecord,
 ) => {
   try {
-    if (
-      !(await verifyPasswordService(userId, 'siswa', data.password as string))
-    ) {
-      throw new Error('Password tidak cocok. periksa kembali password anda.');
+    if (data.password) {
+      if (!(await verifyPasswordService(userId, 'siswa', data.password as string))) {
+        throw new Error('Password tidak cocok. periksa kembali password anda.');
+      }
+      if (data.newPassword) {
+        data.password = await hashPassword(data.newPassword as string);
+      } else {
+        delete data.password;
+      }
+      delete data.newPassword;
+    } else {
+      delete data.password;
+      delete data.newPassword;
     }
-
-    data.password = await hashPassword(data.password as string);
 
     const updatedSiswa = await prisma.siswa.update({
       where: { id: userId },
-      data: {
-        data,
-      },
+      data,
     });
 
     return updatedSiswa;
@@ -171,19 +178,24 @@ export const updateTutorProfileService = async (
   data: UpdateTutorRecord,
 ) => {
   try {
-    if (
-      !(await verifyPasswordService(userId, 'tutor', data.password as string))
-    ) {
-      throw new Error('Password tidak cocok. periksa kembali password anda.');
+    if (data.password) {
+      if (!(await verifyPasswordService(userId, 'tutor', data.password as string))) {
+        throw new Error('Password tidak cocok. periksa kembali password anda.');
+      }
+      if (data.newPassword) {
+        data.password = await hashPassword(data.newPassword as string);
+      } else {
+        delete data.password;
+      }
+      delete data.newPassword;
+    } else {
+      delete data.password;
+      delete data.newPassword;
     }
-
-    data.password = await hashPassword(data.password as string);
 
     const updatedTutor = await prisma.tutor.update({
       where: { id: userId },
-      data: {
-        data,
-      },
+      data,
     });
 
     return updatedTutor;
@@ -197,19 +209,24 @@ export const updateAdminProfileService = async (
   data: UpdateAdminRecord,
 ) => {
   try {
-    if (
-      !(await verifyPasswordService(userId, 'admin', data.password as string))
-    ) {
-      throw new Error('Password tidak cocok. periksa kembali password anda.');
+    if (data.password) {
+      if (!(await verifyPasswordService(userId, 'admin', data.password as string))) {
+        throw new Error('Password tidak cocok. periksa kembali password anda.');
+      }
+      if (data.newPassword) {
+        data.password = await hashPassword(data.newPassword as string);
+      } else {
+        delete data.password;
+      }
+      delete data.newPassword;
+    } else {
+      delete data.password;
+      delete data.newPassword;
     }
-
-    data.password = await hashPassword(data.password as string);
 
     const updatedAdmin = await prisma.admin.update({
       where: { id: userId },
-      data: {
-        data,
-      },
+      data,
     });
     return updatedAdmin;
   } catch (error) {

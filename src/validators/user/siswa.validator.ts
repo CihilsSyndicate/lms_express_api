@@ -19,7 +19,9 @@ export const createSiswaSchema = siswaBaseSchema.omit({
   createdAt: true,
 });
 
-export const updateSiswaSchema = siswaBaseSchema.partial().omit({
+export const updateSiswaSchema = siswaBaseSchema.extend({
+  newPassword: z.string().min(6).optional(),
+}).partial().omit({
   id: true,
   email: true,
 });

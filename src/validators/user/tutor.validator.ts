@@ -24,9 +24,12 @@ export const createTutorSchema = tutorBaseSchema.omit({
   createdAt: true,
 });
 
-export const updateTutorSchema = tutorBaseSchema.partial().omit({
+export const updateTutorSchema = tutorBaseSchema.extend({
+  newPassword: z.string().min(6).optional(),
+}).partial().omit({
   id: true,
   email: true,
+  createdAt: true,
 });
 
 export type Tutor = z.infer<typeof tutorBaseSchema>;
