@@ -410,7 +410,7 @@ export const analyzeComputationalThinking = async (studentId: string) => {
       const totalAll = Object.values(rawPillar).reduce((s, v) => s + v.total, 0);
       if (totalAll > 0) return Math.round((totalCorrect / totalAll) * 100);
       // No data at all — return neutral score
-      return (ctQuizIdSet.size > 0 || answerLogs.length > 0) ? 50 : 60;
+      return 0;
     };
 
     const getLabel = (score: number): string => {
