@@ -1110,12 +1110,23 @@ async function main() {
   // 21. QUIZ SCORE
   // =====================================================
   for (const progress of progresses) {
+    // Find a quiz associated with this module
+    const modulKcs = knowledgeComponents.filter((kc) => kc.modulId === progress.modulId);
+    let quizId = 'seed_question'; // Fallback
+    const quizFromModul = quizzes.find((q) => {
+      const topik = topiks.find((t) => t.id === (q as any).topikId);
+      return topik && topik.modulId === progress.modulId;
+    });
+    if (quizFromModul) {
+      quizId = quizFromModul.id;
+    }
+
     await prisma.quizScore.create({
       data: {
         progressId: progress.id,
         score: Math.floor(Math.random() * 40) + 60,
         quizType: 'QUIZ',
-        questionId: 'seed_question',
+        questionId: quizId,
       },
     });
   }
