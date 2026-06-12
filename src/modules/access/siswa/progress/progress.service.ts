@@ -312,7 +312,8 @@ export const calculatePretestScoreService = async (
   siswaId: string,
   modulId: string,
   answers: { questionId: string; answer: string }[],
-): Promise<number> => {
+  timeSpent?: number,
+): Promise<{ score: number; totalBenar: number; totalSalah: number }> => {
   const pretest = await prisma.pretest.findFirst({
     where: {
       modul: {
@@ -322,10 +323,12 @@ export const calculatePretestScoreService = async (
     include: { pretestQuestions: true },
   });
 
-  if (!pretest) return 0;
+  if (!pretest) return { score: 0, totalBenar: 0, totalSalah: 0 };
 
   let totalRawScore = 0;
   let maxRawScore = 0;
+  let totalBenar = 0;
+  let totalSalah = 0;
   const answerLogs: { questionId: string; isCorrect: boolean }[] = [];
 
   for (const answer of answers) {
@@ -336,7 +339,12 @@ export const calculatePretestScoreService = async (
       const isCorrect = question.correctAnswer === answer.answer;
       // accumulate raw scores
       maxRawScore += question.skor;
-      if (isCorrect) totalRawScore += question.skor;
+      if (isCorrect) {
+        totalRawScore += question.skor;
+        totalBenar++;
+      } else {
+        totalSalah++;
+      }
 
       answerLogs.push({ questionId: answer.questionId, isCorrect });
 
@@ -360,7 +368,12 @@ export const calculatePretestScoreService = async (
   // Update progress skor pretest
   await prisma.progress.updateMany({
     where: { siswaId: siswaId, modulId: modulId },
-    data: { pretestScore: totalScore },
+    data: {
+      pretestScore: totalScore,
+      pretestCorrectCount: totalBenar,
+      pretestWrongCount: totalSalah,
+      pretestTimeSpent: timeSpent ?? null,
+    },
   });
 
   // Initialize BKT
@@ -370,7 +383,7 @@ export const calculatePretestScoreService = async (
     answerLogs,
   );
 
-  return totalScore;
+  return { score: totalScore, totalBenar, totalSalah };
 };
 
 /**
@@ -380,15 +393,19 @@ export const calculatePosttestScoreService = async (
   siswaId: string,
   modulId: string,
   answers: { questionId: string; answer: string }[],
-): Promise<number> => {
+  timeSpent?: number,
+): Promise<{ score: number; totalBenar: number; totalSalah: number }> => {
   const posttest = await prisma.posttest.findFirst({
     where: { modul: { id: modulId } },
     include: { soals: true },
   });
 
-  if (!posttest) return 0;
+  if (!posttest) return { score: 0, totalBenar: 0, totalSalah: 0 };
 
-  let totalScore = 0;
+  let totalRawScore = 0;
+  let maxRawScore = 0;
+  let totalBenar = 0;
+  let totalSalah = 0;
 
   for (const answer of answers) {
     const question = posttest.soals.find(
@@ -396,7 +413,13 @@ export const calculatePosttestScoreService = async (
     );
     if (question) {
       const isCorrect = question.correctAnswer === answer.answer;
-      if (isCorrect) totalScore += question.skor;
+      maxRawScore += question.skor;
+      if (isCorrect) {
+        totalRawScore += question.skor;
+        totalBenar++;
+      } else {
+        totalSalah++;
+      }
 
       // Log answer
       await prisma.studentAnswerLog.create({
@@ -411,16 +434,25 @@ export const calculatePosttestScoreService = async (
     }
   }
 
+  // Normalize to 0-100 scale (matching calculatePretestScoreService)
+  const normalizedScore =
+    maxRawScore > 0 ? Math.round((totalRawScore / maxRawScore) * 100) : 0;
+
   // Update progress skor posttest
   await prisma.progress.updateMany({
     where: { siswaId: siswaId, modulId: modulId },
-    data: { posttestScore: totalScore },
+    data: {
+      posttestScore: normalizedScore,
+      posttestCorrectCount: totalBenar,
+      posttestWrongCount: totalSalah,
+      posttestTimeSpent: timeSpent ?? null,
+    },
   });
 
   // Sync summary
   await bktService.syncModuleProgressSummary(siswaId, modulId);
 
-  return totalScore;
+  return { score: normalizedScore, totalBenar, totalSalah };
 };
 
 export interface ClaimResult {

@@ -134,15 +134,17 @@ export const submitPretestAnswer = async (
   answers: TestAnswer[],
   siswaId?: string,
   role?: string,
+  timeSpent?: number,
 ) => {
   if (role !== 'siswa') {
     throw new AppError(403, 'Hanya siswa yang bisa submit pretest.');
   }
 
-  const score = await progressService.calculatePretestScore(
+  const { score, totalBenar, totalSalah } = await progressService.calculatePretestScore(
     siswaId as string,
     modulId,
     answers,
+    timeSpent,
   );
 
   const { unlocked_count, total_submodules } = await prisma.$transaction(
@@ -173,7 +175,7 @@ export const submitPretestAnswer = async (
     },
   );
 
-  return { score, unlocked_count, total_submodules };
+  return { score, unlocked_count, total_submodules, totalBenar, totalSalah };
 };
 
 export const getAllPretest = async (

@@ -11,6 +11,7 @@ export const searchModules = async (req: Request, res: Response) => {
 
     const modules = await prisma.modul.findMany({
       where: {
+        isDraft: false,
         OR: [
           { moduleName: { contains: q, mode: 'insensitive' } },
           { subtitle: { contains: q, mode: 'insensitive' } },
@@ -53,7 +54,7 @@ export const getModuleByIdHandler = async (req: Request, res: Response) => {
     }
 
     const module = await getModuleById(id);
-    if (!module) {
+    if (!module || module.isDraft) {
       return res.status(404).json({ message: 'Module tidak ditemukan.' });
     }
 

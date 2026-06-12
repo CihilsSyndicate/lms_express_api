@@ -67,6 +67,7 @@ export const getModules = async (
     if (modulType) {
       (where as any).modulType = modulType;
     }
+    (where as any).isDraft = false;
 
     const modules = await prisma.modul.findMany({
       where,

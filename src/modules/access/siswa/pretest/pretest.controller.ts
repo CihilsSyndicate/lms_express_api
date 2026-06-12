@@ -28,6 +28,7 @@ export const submitPretest = async (req: Request, res: Response) => {
       req.body.answers,
       req.user?.id,
       req.user?.role,
+      req.body.timeSpent,
     );
 
     return res.status(200).json(payload);

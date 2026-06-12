@@ -109,7 +109,7 @@ export const deactivateTutor = async (req: Request, res: Response) => {
 export const activateTutor = async (req: Request, res: Response) => {
   try {
     const tutor = await prisma.tutor.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { isActive: true },
     });
     res.status(200).json({ message: 'Akun tutor berhasil diaktifkan', tutor });

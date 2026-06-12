@@ -114,23 +114,27 @@ export const submitPosttestAnswer = async (
   answers: TestAnswer[],
   siswaId?: string,
   role?: string,
+  timeSpent?: number,
 ) => {
   if (role !== 'siswa') {
     throw new AppError(403, 'Hanya siswa yang bisa submit posttest.');
   }
 
-  const score = await progressService.calculatePosttestScore(
+  const { score, totalBenar, totalSalah } = await progressService.calculatePosttestScore(
     siswaId as string,
     modulId,
     answers,
+    timeSpent,
   );
 
-  const certificate = await progressService.generateCertificateIfEligible(
-    siswaId as string,
-    modulId,
-  );
+  const certificate = await prisma.$transaction(async (tx) => {
+    return progressService.generateCertificateIfEligible(
+      siswaId as string,
+      modulId,
+    );
+  });
 
-  return { score, certificate };
+  return { score, certificate, totalBenar, totalSalah };
 };
 
 export const getAllPosttest = async (

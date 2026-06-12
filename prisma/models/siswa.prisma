@@ -30,10 +30,16 @@ model Progress {
     modulId String
     modul   Modul  @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-    pretestScore       Int?
-    posttestScore      Int?
-    finalScore         Float?
-    quizScores         QuizScore[]
+    pretestScore          Int?
+    pretestCorrectCount   Int?
+    pretestWrongCount     Int?
+    pretestTimeSpent      Int?
+    posttestScore         Int?
+    posttestCorrectCount  Int?
+    posttestWrongCount    Int?
+    posttestTimeSpent     Int?
+    finalScore            Float?
+    quizScores            QuizScore[]
     status             String      @default("IN_PROGRESS") // e.g., 'COMPLETED'
     isGraduated        Boolean     @default(false)
     progressPercentage Float

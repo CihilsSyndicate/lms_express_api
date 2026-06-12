@@ -26,7 +26,7 @@ export const getUmumModuleByIdController = async (
 ) => {
   try {
     const module = await getModuleById(req.params.id as string);
-    if (!module || module.modulType !== 'UMUM') {
+    if (!module || module.isDraft || module.modulType !== 'UMUM') {
       return res
         .status(404)
         .json({ message: 'Module not found or not for general users' });

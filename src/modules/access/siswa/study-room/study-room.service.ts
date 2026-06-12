@@ -49,7 +49,13 @@ export interface StudyRoomProgress {
   completedContentItems: string[];
   progressPercentage: number;
   pretestScore: number | null;
+  pretestCorrectCount: number | null;
+  pretestWrongCount: number | null;
+  pretestTimeSpent: number | null;
   posttestScore: number | null;
+  posttestCorrectCount: number | null;
+  posttestWrongCount: number | null;
+  posttestTimeSpent: number | null;
   finalScore: number | null;
   status: string;
   isGraduated: boolean;
@@ -110,7 +116,9 @@ function mapPosttestQuestions(posttest: any): StudyRoomQuestion[] {
 function parseCompletedContentItems(raw: string): string[] {
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map((e: any) => e.itemId).filter(Boolean) : [];
+    return Array.isArray(parsed)
+      ? parsed.map((e: any) => e.itemId).filter(Boolean)
+      : [];
   } catch {
     return [];
   }
@@ -158,10 +166,18 @@ export const getStudyRoomDataService = async (
         id: progress.id,
         siswaId: progress.siswaId,
         modulId: progress.modulId,
-        completedContentItems: parseCompletedContentItems(progress.completedContentItems),
+        completedContentItems: parseCompletedContentItems(
+          progress.completedContentItems,
+        ),
         progressPercentage: progress.progressPercentage,
         pretestScore: progress.pretestScore,
+        pretestCorrectCount: progress.pretestCorrectCount,
+        pretestWrongCount: progress.pretestWrongCount,
+        pretestTimeSpent: progress.pretestTimeSpent,
         posttestScore: progress.posttestScore,
+        posttestCorrectCount: progress.posttestCorrectCount,
+        posttestWrongCount: progress.posttestWrongCount,
+        posttestTimeSpent: progress.posttestTimeSpent,
         finalScore: progress.finalScore,
         status: progress.status,
         isGraduated: progress.isGraduated,
@@ -170,7 +186,12 @@ export const getStudyRoomDataService = async (
 
   const certificate = await prisma.certificate.findFirst({
     where: { siswaId, modulId },
-    select: { id: true, certificateUrl: true, kode_sertif: true, issued_at: true },
+    select: {
+      id: true,
+      certificateUrl: true,
+      kode_sertif: true,
+      issued_at: true,
+    },
   });
 
   const pretestAssessment: StudyRoomAssessment | null = modul.pretest
@@ -216,7 +237,10 @@ export const getStudyRoomDataService = async (
             correctAnswer: quiz.correctAnswer,
             skor: quiz.skor,
             quizImgQuestionUrl: quiz.quizImgQuestionUrl,
-            quizAnswerOptions: quiz.quizAnswerOptions.map((o) => ({ id: o.id, option: o.option })),
+            quizAnswerOptions: quiz.quizAnswerOptions.map((o) => ({
+              id: o.id,
+              option: o.option,
+            })),
           });
         }
       }
@@ -240,7 +264,11 @@ export const getStudyRoomDataService = async (
   });
 
   const rangkumanAkhir = modul.rangkumanAkhir
-    ? { itemId: 'rangkuman_akhir', title: 'Rangkuman Akhir', content: modul.rangkumanAkhir }
+    ? {
+        itemId: 'rangkuman_akhir',
+        title: 'Rangkuman Akhir',
+        content: modul.rangkumanAkhir,
+      }
     : null;
 
   return {

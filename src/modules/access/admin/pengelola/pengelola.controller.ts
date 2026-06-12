@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '@/lib/prisma';
+import { hashPassword } from '@/lib/auth';
 
 export const getAllAdmins = async (req: Request, res: Response) => {
   try {
@@ -17,7 +18,7 @@ export const getAllAdmins = async (req: Request, res: Response) => {
         isActive: true,
         createdAt: true,
         updatedAt: true,
-      }
+      },
     });
     res.status(200).json(admins);
   } catch (error: unknown) {
@@ -28,15 +29,14 @@ export const getAllAdmins = async (req: Request, res: Response) => {
 
 export const registerAdmin = async (req: Request, res: Response) => {
   try {
-    const { email, password, fullName, gender, whatsappNumber, username } = req.body;
-    
+    const { email, password, fullName, gender, whatsappNumber, username } =
+      req.body;
+
     // Check if email already exists
     const existingAdmin = await prisma.admin.findUnique({ where: { email } });
     if (existingAdmin) {
       return res.status(400).json({ message: 'Email sudah terdaftar.' });
     }
-
-    const { hashPassword } = await import('@/lib/auth');
     const hashedPassword = await hashPassword(password);
 
     const newAdmin = await prisma.admin.create({
@@ -60,7 +60,7 @@ export const registerAdmin = async (req: Request, res: Response) => {
         isActive: true,
         createdAt: true,
         updatedAt: true,
-      }
+      },
     });
 
     res.status(201).json({
@@ -76,30 +76,23 @@ export const registerAdmin = async (req: Request, res: Response) => {
 export const updateAdmin = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const {
-      fullName,
-      email,
-      password,
-      gender,
-      whatsappNumber,
-      username,
-    } = req.body;
+    const { fullName, email, password, gender, whatsappNumber, username } =
+      req.body;
 
     let hashedPassword;
     if (password) {
-      const { hashPassword } = await import('@/lib/auth');
       hashedPassword = await hashPassword(password);
     }
+
+    const filteredData = Object.fromEntries(
+      Object.entries(req.body).filter(([, value]) => value !== undefined),
+    );
 
     const updatedAdmin = await prisma.admin.update({
       where: { id },
       data: {
-        ...(fullName !== undefined && { fullName }),
-        ...(email !== undefined && { email }),
-        ...(password !== undefined && { password: hashedPassword }),
-        ...(gender !== undefined && { gender }),
-        ...(whatsappNumber !== undefined && { whatsappNumber }),
-        ...(username !== undefined && { username }),
+        ...filteredData,
+        password: hashedPassword as string,
       },
       select: {
         id: true,
@@ -113,7 +106,7 @@ export const updateAdmin = async (req: Request, res: Response) => {
         isActive: true,
         createdAt: true,
         updatedAt: true,
-      }
+      },
     });
 
     res.status(200).json(updatedAdmin);
@@ -129,9 +122,11 @@ export const deleteAdmin = async (req: Request, res: Response) => {
   try {
     const adminId = req.params.id;
     const deletedAdmin = await prisma.admin.delete({
-      where: { id: adminId },
+      where: { id: adminId as string },
     });
-    res.status(200).json({ message: 'Admin berhasil dihapus.', admin: deletedAdmin });
+    res
+      .status(200)
+      .json({ message: 'Admin berhasil dihapus.', admin: deletedAdmin });
   } catch (error) {
     res.status(500).json({ message: 'Gagal menghapus admin.', error });
   }
@@ -140,10 +135,12 @@ export const deleteAdmin = async (req: Request, res: Response) => {
 export const deactivateAdmin = async (req: Request, res: Response) => {
   try {
     const admin = await prisma.admin.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { isActive: false },
     });
-    res.status(200).json({ message: 'Akun admin berhasil dinonaktifkan', admin });
+    res
+      .status(200)
+      .json({ message: 'Akun admin berhasil dinonaktifkan', admin });
   } catch (error) {
     res.status(500).json({ message: 'Gagal menonaktifkan admin.', error });
   }
@@ -152,7 +149,7 @@ export const deactivateAdmin = async (req: Request, res: Response) => {
 export const activateAdmin = async (req: Request, res: Response) => {
   try {
     const admin = await prisma.admin.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { isActive: true },
     });
     res.status(200).json({ message: 'Akun admin berhasil diaktifkan', admin });
