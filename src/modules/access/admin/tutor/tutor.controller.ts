@@ -5,6 +5,7 @@ import {
   registerUserService,
 } from '@/modules/auth/auth.service';
 import { prisma } from '@/lib/prisma';
+import { hashPassword } from '@/lib/auth';
 
 export const searchTutor = async (req: Request, res: Response) => {
   try {
@@ -57,42 +58,22 @@ export const registerTutor = async (req: Request, res: Response) => {
 export const updateTutor = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const {
-      fullName,
-      email,
-      password,
-      gender,
-      pekerjaan,
-      whatsappNumber,
-      lastEducation,
-      institution,
-      biografi,
-      prodi,
-      cvPathUrl,
-      profileImg,
-    } = req.body;
+    const { password } = req.body;
 
     let hashedPassword;
     if (password) {
-      const { hashPassword } = await import('@/lib/auth');
       hashedPassword = await hashPassword(password);
     }
+
+    const filteredData = Object.fromEntries(
+      Object.entries(req.body).filter(([, value]) => value !== undefined),
+    );
 
     const updatedTutor = await prisma.tutor.update({
       where: { id },
       data: {
-        ...(fullName !== undefined && { fullName }),
-        ...(email !== undefined && { email }),
-        ...(password !== undefined && { password: hashedPassword }),
-        ...(gender !== undefined && { gender }),
-        ...(pekerjaan !== undefined && { pekerjaan }),
-        ...(whatsappNumber !== undefined && { whatsappNumber }),
-        ...(lastEducation !== undefined && { lastEducation }),
-        ...(institution !== undefined && { institution }),
-        ...(biografi !== undefined && { biografi }),
-        ...(prodi !== undefined && { prodi }),
-        ...(cvPathUrl !== undefined && { cvPathUrl }),
-        ...(profileImg !== undefined && { profileImg }),
+        ...filteredData,
+        password: hashedPassword as string,
       },
     });
 

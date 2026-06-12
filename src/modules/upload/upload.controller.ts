@@ -47,7 +47,9 @@ function resourceTypeFromMime(mimetype: string): ResourceType {
 /* Ambil ekstensi tanpa titik dari nama file, misal 'abc.pdf' → 'pdf' */
 function getExtension(filename: string): string | undefined {
   const parts = filename.split('.');
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : undefined;
+  if (parts.length <= 1) return undefined;
+  const ext = parts[parts.length - 1];
+  return ext !== undefined ? ext.toLowerCase() : undefined;
 }
 
 export const uploadFile = async (req: Request, res: Response) => {
@@ -111,7 +113,9 @@ export const getSignedUrl = async (req: Request, res: Response) => {
     }
 
     if (!rawUrl.includes('res.cloudinary.com')) {
-      return res.status(400).json({ message: 'Hanya URL Cloudinary yang diizinkan.' });
+      return res
+        .status(400)
+        .json({ message: 'Hanya URL Cloudinary yang diizinkan.' });
     }
 
     // Strip semua transformation flags dari URL agar dapat public_id bersih
@@ -125,13 +129,15 @@ export const getSignedUrl = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'URL Cloudinary tidak valid.' });
     }
 
-    const version = parseInt(match[1], 10);
+    const version = parseInt(match[1] as string, 10);
     const fullPath = match[2]; // misal: lms/cv/file.pdf
-    const lastDotIdx = fullPath.lastIndexOf('.');
+    const lastDotIdx = fullPath?.lastIndexOf('.');
     const publicId =
-      lastDotIdx !== -1 ? fullPath.substring(0, lastDotIdx) : fullPath;
+      lastDotIdx !== -1 ? fullPath?.substring(0, lastDotIdx) : fullPath;
     const format =
-      lastDotIdx !== -1 ? fullPath.substring(lastDotIdx + 1) : undefined;
+      lastDotIdx !== -1
+        ? fullPath?.substring((lastDotIdx as number) + 1)
+        : undefined;
 
     // Determine resource_type dari URL
     const resourceType = rawUrl.includes('/raw/')
@@ -142,7 +148,7 @@ export const getSignedUrl = async (req: Request, res: Response) => {
 
     // cloudinary.url() + sign_url:true → signed CDN URL (s--sig-- embedded)
     // Ini bypass Strict Transformations & Restricted Media Access untuk type:upload
-    const signedUrl = cloudinary.url(publicId, {
+    const signedUrl = cloudinary.url(publicId as string, {
       resource_type: resourceType as any,
       type: 'upload',
       sign_url: true,

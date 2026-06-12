@@ -134,10 +134,7 @@ export const updateUserProfileService = async (
 
     return updatedUser;
   } catch (error: any) {
-    console.error(
-      '[PROFILE-UPDATE-ERROR] Gagal memperbarui profil:',
-      error,
-    );
+    console.error('[PROFILE-UPDATE-ERROR] Gagal memperbarui profil:', error);
     throw new Error(error.message || 'Gagal memperbarui profil.');
   }
 };
@@ -148,7 +145,9 @@ export const updateStudentProfileService = async (
 ) => {
   try {
     if (data.password) {
-      if (!(await verifyPasswordService(userId, 'siswa', data.password as string))) {
+      if (
+        !(await verifyPasswordService(userId, 'siswa', data.password as string))
+      ) {
         throw new Error('Password tidak cocok. periksa kembali password anda.');
       }
       if (data.newPassword) {
@@ -162,9 +161,13 @@ export const updateStudentProfileService = async (
       delete data.newPassword;
     }
 
+    const filteredData = Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    );
+
     const updatedSiswa = await prisma.siswa.update({
       where: { id: userId },
-      data,
+      data: filteredData,
     });
 
     return updatedSiswa;
@@ -179,7 +182,9 @@ export const updateTutorProfileService = async (
 ) => {
   try {
     if (data.password) {
-      if (!(await verifyPasswordService(userId, 'tutor', data.password as string))) {
+      if (
+        !(await verifyPasswordService(userId, 'tutor', data.password as string))
+      ) {
         throw new Error('Password tidak cocok. periksa kembali password anda.');
       }
       if (data.newPassword) {
@@ -193,9 +198,13 @@ export const updateTutorProfileService = async (
       delete data.newPassword;
     }
 
+    const filteredData = Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    );
+
     const updatedTutor = await prisma.tutor.update({
       where: { id: userId },
-      data,
+      data: filteredData,
     });
 
     return updatedTutor;
@@ -210,7 +219,9 @@ export const updateAdminProfileService = async (
 ) => {
   try {
     if (data.password) {
-      if (!(await verifyPasswordService(userId, 'admin', data.password as string))) {
+      if (
+        !(await verifyPasswordService(userId, 'admin', data.password as string))
+      ) {
         throw new Error('Password tidak cocok. periksa kembali password anda.');
       }
       if (data.newPassword) {
@@ -224,9 +235,13 @@ export const updateAdminProfileService = async (
       delete data.newPassword;
     }
 
+    const filteredData = Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    );
+
     const updatedAdmin = await prisma.admin.update({
       where: { id: userId },
-      data,
+      data: filteredData,
     });
     return updatedAdmin;
   } catch (error) {

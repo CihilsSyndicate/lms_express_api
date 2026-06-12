@@ -12,6 +12,7 @@ import {
   buildCursorWhere,
   buildCursorPaginatedResponse,
 } from '@/utils/pagination';
+import { hashPassword } from '@/lib/auth';
 
 export const searchSiswa = async (req: Request, res: Response) => {
   try {
@@ -85,26 +86,22 @@ export const registerSiswa = async (req: Request, res: Response) => {
 export const updateSiswa = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { nama_lengkap, email, password, jenjang, kelas_sekolah, studentType, profileImage, role } =
-      req.body;
+    const { password } = req.body;
 
     let hashedPassword;
     if (password) {
-      const { hashPassword } = await import('@/lib/auth');
       hashedPassword = await hashPassword(password);
     }
+
+    const filteredData = Object.fromEntries(
+      Object.entries(req.body).filter(([, value]) => value !== undefined),
+    );
 
     const updatedSiswa = await prisma.siswa.update({
       where: { id },
       data: {
-        ...(nama_lengkap !== undefined && { nama_lengkap }),
-        ...(email !== undefined && { email }),
-        ...(password !== undefined && { password: hashedPassword }),
-        ...(jenjang !== undefined && { jenjang }),
-        ...(kelas_sekolah !== undefined && { kelas_sekolah }),
-        ...(studentType !== undefined && { studentType }),
-        ...(profileImage !== undefined && { profileImage }),
-        ...(role !== undefined && { role }),
+        ...filteredData,
+        password: hashedPassword as string,
       },
     });
 
