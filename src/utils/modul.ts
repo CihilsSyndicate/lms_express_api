@@ -10,15 +10,26 @@ import {
   decodeCursor,
 } from './pagination';
 
-export const createModule = async (payload: CreateModulRecord) => {
+export const createModule = async (payload: Record<string, unknown>) => {
   try {
     const newModule = await prisma.modul.create({
       data: {
-        ...payload,
-        isPaid: payload.isPaid ?? false,
-        level: payload.level ?? null,
-        class: payload.class ?? null,
-        modulPrice: payload.modulPrice ?? 0,
+        moduleName:             String(payload.moduleName ?? ''),
+        subtitle:               String(payload.subtitle ?? ''),
+        description:            String(payload.description ?? ''),
+        targetTime:             Number(payload.targetTime ?? 60),
+        difficulty:             String(payload.difficulty ?? 'Menengah'),
+        isPaid:                 Boolean(payload.isPaid ?? false),
+        modulPrice:             Number(payload.modulPrice ?? 0),
+        level:                  (payload.level as string | null) ?? null,
+        class:                  (payload.class as string | null) ?? null,
+        modulType:              (payload.modulType ?? payload.type ?? 'SISWA') as 'SISWA' | 'UMUM',
+        isDraft:                Boolean(payload.isDraft ?? true),
+        moduleImgUrl:           (payload.moduleImgUrl as string | null) ?? null,
+        pretestPostTestEnabled: Boolean(payload.pretestPostTestEnabled ?? true),
+        hasStudyGroup:          Boolean(payload.hasStudyGroup ?? false),
+        hasCertificate:         Boolean(payload.hasCertificate ?? false),
+        tutorId:                String(payload.tutorId ?? ''),
       },
     });
 
