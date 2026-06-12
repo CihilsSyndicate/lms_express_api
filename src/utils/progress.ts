@@ -209,9 +209,11 @@ export const getProgressByStudentId = async (studentId: string) => {
       }
 
       return {
-        id: progress.id,
-        siswaId: progress.siswaId,
-        modulId: progress.modul.id,
+        moduleId: progress.modul.id,
+        moduleName: progress.modul.moduleName,
+        level: progress.modul.level,
+        class: progress.modul.class,
+        moduleImgUrl: progress.modul.moduleImgUrl,
         pretestScore: progress.pretestScore,
         posttestScore: progress.posttestScore,
         finalScore: progress.finalScore,
@@ -228,10 +230,12 @@ export const getProgressByStudentId = async (studentId: string) => {
     });
 
     return {
-      siswaId: studentId,
-      siswaName: studentData.nama_lengkap,
-      email: studentData.email,
-      progress,
+      studentInfo: {
+        fullName: studentData.nama_lengkap,
+        email: studentData.email,
+        avatarUrl: studentData.profileImage,
+      },
+      modules: progress,
     };
   } catch (error) {
     console.error('Error fetching student progress by student ID:', error);
