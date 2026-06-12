@@ -410,13 +410,13 @@ export const calculatePosttestScoreService = async (
   modulId: string,
   answers: { questionId: string; answer: string }[],
   timeSpent?: number,
-): Promise<{ score: number; totalBenar: number; totalSalah: number }> => {
+): Promise<{ score: number; totalBenar: number; totalSalah: number; isGraduated: boolean }> => {
   const posttest = await prisma.posttest.findFirst({
     where: { modul: { id: modulId } },
     include: { soals: true, posttestSettings: true },
   });
 
-  if (!posttest) return { score: 0, totalBenar: 0, totalSalah: 0 };
+  if (!posttest) return { score: 0, totalBenar: 0, totalSalah: 0, isGraduated: false };
 
   // Reject duplicate submission — posttest is one-shot
   const existingProgress = await prisma.progress.findUnique({
@@ -481,10 +481,15 @@ export const calculatePosttestScoreService = async (
     },
   });
 
-  // Sync summary
+  // Sync summary (sets isGraduated based on finalScore)
   await bktService.syncModuleProgressSummary(siswaId, modulId);
 
-  return { score: normalizedScore, totalBenar, totalSalah };
+  const updatedProg = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    select: { isGraduated: true },
+  });
+
+  return { score: normalizedScore, totalBenar, totalSalah, isGraduated: updatedProg?.isGraduated ?? false };
 };
 
 export interface ClaimResult {
@@ -511,7 +516,7 @@ export const generateCertificateIfEligibleService = async (
       include: { modul: true },
     });
 
-    if (!progress || !progress.isGraduated) return null;
+    if (!progress || (!progress.isGraduated && !progress.posttestCompleted)) return null;
     if (!progress.modul.hasCertificate) return null;
 
     const existingCert = await tx.certificate.findFirst({

@@ -17,6 +17,8 @@ const upload = multer({
       'video/mp4',
       'video/webm',
       'video/quicktime',
+      'video/x-matroska',
+      'video/x-mkv',
     ];
     if (allowed.includes(file.mimetype)) {
       cb(null, true);

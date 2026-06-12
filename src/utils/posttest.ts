@@ -120,7 +120,7 @@ export const submitPosttestAnswer = async (
     throw new AppError(403, 'Hanya siswa yang bisa submit posttest.');
   }
 
-  const { score, totalBenar, totalSalah } = await progressService.calculatePosttestScore(
+  const { score, totalBenar, totalSalah, isGraduated } = await progressService.calculatePosttestScore(
     siswaId as string,
     modulId,
     answers,
@@ -134,7 +134,7 @@ export const submitPosttestAnswer = async (
     );
   });
 
-  return { score, certificate, totalBenar, totalSalah };
+  return { score, certificate, totalBenar, totalSalah, isGraduated };
 };
 
 export const getAllPosttest = async (
