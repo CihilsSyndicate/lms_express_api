@@ -32,8 +32,8 @@ export const uploadToCloudinary = (
     if (format) options.format = format;
 
     const uploadStream = cloudinary.uploader.upload_stream(
-      options as any,
-      (error, result) => {
+      options,
+      (error: any, result: any) => {
         if (error) return reject(error);
         resolve(result!.secure_url);
       },
