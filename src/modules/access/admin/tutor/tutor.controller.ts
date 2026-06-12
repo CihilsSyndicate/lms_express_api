@@ -59,6 +59,8 @@ export const updateTutor = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const {
       fullName,
+      email,
+      password,
       gender,
       pekerjaan,
       whatsappNumber,
@@ -70,10 +72,18 @@ export const updateTutor = async (req: Request, res: Response) => {
       profileImg,
     } = req.body;
 
+    let hashedPassword;
+    if (password) {
+      const { hashPassword } = await import('@/lib/auth');
+      hashedPassword = await hashPassword(password);
+    }
+
     const updatedTutor = await prisma.tutor.update({
       where: { id },
       data: {
         ...(fullName !== undefined && { fullName }),
+        ...(email !== undefined && { email }),
+        ...(password !== undefined && { password: hashedPassword }),
         ...(gender !== undefined && { gender }),
         ...(pekerjaan !== undefined && { pekerjaan }),
         ...(whatsappNumber !== undefined && { whatsappNumber }),

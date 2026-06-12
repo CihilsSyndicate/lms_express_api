@@ -85,13 +85,21 @@ export const registerSiswa = async (req: Request, res: Response) => {
 export const updateSiswa = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { nama_lengkap, jenjang, kelas_sekolah, studentType, profileImage } =
+    const { nama_lengkap, email, password, jenjang, kelas_sekolah, studentType, profileImage } =
       req.body;
+
+    let hashedPassword;
+    if (password) {
+      const { hashPassword } = await import('@/lib/auth');
+      hashedPassword = await hashPassword(password);
+    }
 
     const updatedSiswa = await prisma.siswa.update({
       where: { id },
       data: {
         ...(nama_lengkap !== undefined && { nama_lengkap }),
+        ...(email !== undefined && { email }),
+        ...(password !== undefined && { password: hashedPassword }),
         ...(jenjang !== undefined && { jenjang }),
         ...(kelas_sekolah !== undefined && { kelas_sekolah }),
         ...(studentType !== undefined && { studentType }),

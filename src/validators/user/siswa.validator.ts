@@ -23,7 +23,7 @@ export const updateSiswaSchema = siswaBaseSchema.extend({
   newPassword: z.string().min(6).optional(),
 }).partial().omit({
   id: true,
-  email: true,
+  createdAt: true,
 });
 
 export type Siswa = z.infer<typeof siswaBaseSchema>;
