@@ -16,7 +16,8 @@ model Siswa {
     knowledgeStates StudentKnowledgeState[]
     ratings         Rating[]
 
-    isActive Boolean @default(true)
+    isActive                  Boolean @default(true)
+    push_notification_enabled Boolean @default(true)
 
     updatedAt DateTime @updatedAt
 
@@ -34,10 +35,12 @@ model Progress {
     pretestCorrectCount   Int?
     pretestWrongCount     Int?
     pretestTimeSpent      Int?
+    pretestCompleted      Boolean @default(false)
     posttestScore         Int?
     posttestCorrectCount  Int?
     posttestWrongCount    Int?
     posttestTimeSpent     Int?
+    posttestCompleted     Boolean @default(false)
     finalScore            Float?
     quizScores            QuizScore[]
     status             String      @default("IN_PROGRESS") // e.g., 'COMPLETED'
@@ -52,6 +55,7 @@ model Progress {
     updatedAt DateTime @updatedAt
 
     @@unique([siswaId, modulId])
+    @@index([siswaId])
 }
 
 model QuizScore {
@@ -74,6 +78,9 @@ model ProgressDetail {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([siswaId])
+    @@index([siswaId, materiId])
 }
 
 model StudentAnswerLog {
@@ -90,6 +97,8 @@ model StudentAnswerLog {
     attemptNo            Int                 @default(1)
     answeredAt           DateTime            @default(now())
 
+    @@index([siswaId, modulId])
+    @@index([siswaId, questionSource])
     @@map("student_answer_log")
 }
 

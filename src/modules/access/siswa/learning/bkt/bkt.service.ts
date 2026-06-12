@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { validateBKTParams } from '@/utils/bkt';
 
 export interface BKTParams {
   p_init: number;
@@ -97,6 +98,9 @@ export const initializeKnowledgeStateFromPretest = async (
     }
 
     if (hasObservations) {
+      if (!validateBKTParams(defaultParams)) {
+        throw new Error('BKT parameter values out of valid range [0, 1]');
+      }
       await prisma.studentKnowledgeState.upsert({
         where: {
           siswaId_modulId_knowledgeComponentId: {

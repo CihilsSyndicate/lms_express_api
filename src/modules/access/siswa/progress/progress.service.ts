@@ -325,6 +325,15 @@ export const calculatePretestScoreService = async (
 
   if (!pretest) return { score: 0, totalBenar: 0, totalSalah: 0 };
 
+  // Reject duplicate submission — pretest is one-shot
+  const existingProgress = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    select: { pretestCompleted: true },
+  });
+  if (existingProgress?.pretestCompleted) {
+    throw new Error('Pretest sudah dikerjakan dan tidak dapat diulang');
+  }
+
   // Server-side time validation — reject submissions that exceed duration + 30s
   const setting = pretest.pretestSettings?.[0];
   if (setting && timeSpent != null && timeSpent > setting.duration + 30) {
@@ -371,7 +380,7 @@ export const calculatePretestScoreService = async (
   const totalScore =
     maxRawScore > 0 ? Math.round((totalRawScore / maxRawScore) * 100) : 0;
 
-  // Update progress skor pretest
+  // Update progress skor pretest dan kunci agar tidak bisa diulang
   await prisma.progress.updateMany({
     where: { siswaId: siswaId, modulId: modulId },
     data: {
@@ -379,6 +388,7 @@ export const calculatePretestScoreService = async (
       pretestCorrectCount: totalBenar,
       pretestWrongCount: totalSalah,
       pretestTimeSpent: timeSpent ?? null,
+      pretestCompleted: true,
     },
   });
 
@@ -403,10 +413,25 @@ export const calculatePosttestScoreService = async (
 ): Promise<{ score: number; totalBenar: number; totalSalah: number }> => {
   const posttest = await prisma.posttest.findFirst({
     where: { modul: { id: modulId } },
-    include: { soals: true },
+    include: { soals: true, posttestSettings: true },
   });
 
   if (!posttest) return { score: 0, totalBenar: 0, totalSalah: 0 };
+
+  // Reject duplicate submission — posttest is one-shot
+  const existingProgress = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    select: { posttestCompleted: true },
+  });
+  if (existingProgress?.posttestCompleted) {
+    throw new Error('Posttest sudah dikerjakan dan tidak dapat diulang');
+  }
+
+  // Server-side time validation — reject submissions that exceed duration + 30s
+  const posttestSetting = posttest.posttestSettings?.[0];
+  if (posttestSetting && timeSpent != null && timeSpent > posttestSetting.duration + 30) {
+    throw new Error('Waktu pengerjaan telah habis');
+  }
 
   let totalRawScore = 0;
   let maxRawScore = 0;
@@ -444,7 +469,7 @@ export const calculatePosttestScoreService = async (
   const normalizedScore =
     maxRawScore > 0 ? Math.round((totalRawScore / maxRawScore) * 100) : 0;
 
-  // Update progress skor posttest
+  // Update progress skor posttest dan kunci agar tidak bisa diulang
   await prisma.progress.updateMany({
     where: { siswaId: siswaId, modulId: modulId },
     data: {
@@ -452,6 +477,7 @@ export const calculatePosttestScoreService = async (
       posttestCorrectCount: totalBenar,
       posttestWrongCount: totalSalah,
       posttestTimeSpent: timeSpent ?? null,
+      posttestCompleted: true,
     },
   });
 
@@ -506,14 +532,29 @@ export const generateCertificateIfEligibleService = async (
 
     const certificateCode = `CERT-${siswaId.slice(-4)}-${modulId.slice(-4)}-${Date.now()}`;
 
-    const certificate = await tx.certificate.create({
-      data: {
-        siswaId: siswaId,
-        modulId: modulId,
-        kode_sertif: certificateCode,
-        certificateUrl: `https://storage.example.com/certificates/${certificateCode}.pdf`,
-      },
-    });
+    let certificate;
+    try {
+      certificate = await tx.certificate.create({
+        data: {
+          siswaId: siswaId,
+          modulId: modulId,
+          kode_sertif: certificateCode,
+          certificateUrl: `https://storage.example.com/certificates/${certificateCode}.pdf`,
+        },
+      });
+    } catch (err: any) {
+      // P2002 = unique constraint violation — concurrent claim race, treat as already_claimed
+      if (err?.code === 'P2002') {
+        const existing = await tx.certificate.findFirst({ where: { siswaId, modulId } });
+        if (existing) {
+          return {
+            certificate: { id: existing.id, kode_sertif: existing.kode_sertif, certificateUrl: existing.certificateUrl, issued_at: existing.issued_at },
+            status: 'already_claimed',
+          } satisfies ClaimResult;
+        }
+      }
+      throw err;
+    }
 
     await pushNotification(
       siswaId,

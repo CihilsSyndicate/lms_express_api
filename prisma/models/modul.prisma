@@ -254,6 +254,9 @@ model Certificate {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@unique([siswaId, modulId])
+    @@index([siswaId])
 }
 
 // --- BAYESIAN KNOWLEDGE TRACING ---

@@ -1,19 +1,25 @@
-import { prisma } from '@/lib/prisma';
 import { Request, Response } from 'express';
+import { ZodError } from 'zod';
 import {
-  createQuiz as createQuizFunc,
+  createQuizWithTransaction,
   getAllQuiz as getAllQuizFunc,
   getQuizById as getQuizByIdFunc,
   updateQuiz as updateQuizFunc,
   deleteQuiz as deleteQuizFunc,
 } from '@/utils/kuis';
+import { tutorQuizSchema } from '@/validators/kuis/tutorKuis.validator';
 import { parsePaginationQuery } from '@/utils/pagination';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
-    const payload = await createQuizFunc(req.body);
+    const parsed = tutorQuizSchema.parse(req.body);
+    const payload = await createQuizWithTransaction(parsed);
     res.status(201).json(payload);
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ error: 'Validation failed', details: error.issues });
+    }
+    console.error('Error creating quiz:', error);
     res.status(500).json({ error: 'Failed to create quiz' });
   }
 };
