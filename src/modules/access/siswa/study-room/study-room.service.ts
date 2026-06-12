@@ -10,6 +10,7 @@ export interface StudyRoomAssessment {
   id: string;
   title: string;
   questions: StudyRoomQuestion[];
+  timeLimit: number | null;
 }
 
 export interface StudyRoomMateri {
@@ -33,6 +34,7 @@ export interface StudyRoomItem {
   skor?: number;
   quizImgQuestionUrl?: string | null;
   quizAnswerOptions?: { id: string; option: string }[];
+  timeLimit?: number | null;
 }
 
 export interface StudyRoomTopik {
@@ -133,6 +135,7 @@ export const getStudyRoomDataService = async (
     include: {
       pretest: {
         include: {
+          pretestSettings: true,
           pretestQuestions: {
             include: { answerOptions: true },
             orderBy: { createdAt: 'asc' },
@@ -142,6 +145,7 @@ export const getStudyRoomDataService = async (
       posttest: {
         include: {
           soals: { orderBy: { createdAt: 'asc' } },
+          posttestSettings: true,
         },
       },
       topiks: {
@@ -149,7 +153,7 @@ export const getStudyRoomDataService = async (
         include: {
           topikItems: { orderBy: { orderNumber: 'asc' } },
           materis: true,
-          quizzes: { include: { quizAnswerOptions: true } },
+          quizzes: { include: { quizAnswerOptions: true, quizSettings: true } },
         },
       },
     },
@@ -194,12 +198,21 @@ export const getStudyRoomDataService = async (
     },
   });
 
+  const pretestTimeLimit = modul.pretest?.pretestSettings?.[0]?.duration != null
+    ? modul.pretest.pretestSettings[0].duration * 60
+    : null;
+
   const pretestAssessment: StudyRoomAssessment | null = modul.pretest
     ? {
         id: modul.pretest.id,
         title: modul.pretest.pretestName || 'Pre-Test',
         questions: mapPretestQuestions(modul.pretest),
+        timeLimit: pretestTimeLimit,
       }
+    : null;
+
+  const posttestTimeLimit = modul.posttest?.posttestSettings?.[0]?.duration != null
+    ? modul.posttest.posttestSettings[0].duration * 60
     : null;
 
   const posttestAssessment: StudyRoomAssessment | null = modul.posttest
@@ -207,6 +220,7 @@ export const getStudyRoomDataService = async (
         id: modul.posttest.id,
         title: 'Post-Test',
         questions: mapPosttestQuestions(modul.posttest),
+        timeLimit: posttestTimeLimit,
       }
     : null;
 
@@ -241,6 +255,7 @@ export const getStudyRoomDataService = async (
               id: o.id,
               option: o.option,
             })),
+            timeLimit: quiz.quizSettings[0]?.timeLimit ?? null,
           });
         }
       }

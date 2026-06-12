@@ -4,14 +4,14 @@ import { AppError } from '@/errors/app.error';
 
 export const submitQuiz = async (req: Request, res: Response) => {
   try {
-    const { quizId, answer, knowledgeComponentId } = req.body;
+    const { quizId, answer, knowledgeComponentId, timeSpent } = req.body;
     const siswaId = req.user?.id;
 
     if (!siswaId) {
       throw new AppError(401, 'Unauthorized');
     }
 
-    const result = await submitQuizAnswer(siswaId, quizId, answer, knowledgeComponentId);
+    const result = await submitQuizAnswer(siswaId, quizId, answer, knowledgeComponentId, timeSpent);
 
     return res.status(200).json({
       message: 'Quiz submitted successfully',

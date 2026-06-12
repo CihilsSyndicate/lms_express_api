@@ -9,6 +9,7 @@ import {
   deleteTutorPosttest,
   updateSoalPosttest,
   deleteSoalPosttest,
+  updateTutorPosttestSettings,
 } from './posttest.controller';
 
 const posttestRouter = Router();
@@ -22,5 +23,6 @@ posttestRouter.delete('/:id', deleteTutorPosttest);
 posttestRouter.post('/soal', addSoalPosttest);
 posttestRouter.put('/soal/:soalId', updateSoalPosttest);
 posttestRouter.delete('/soal/:soalId', deleteSoalPosttest);
+posttestRouter.put('/settings/:posttestId', updateTutorPosttestSettings);
 
 export default posttestRouter;

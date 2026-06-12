@@ -320,10 +320,16 @@ export const calculatePretestScoreService = async (
         id: modulId,
       },
     },
-    include: { pretestQuestions: true },
+    include: { pretestQuestions: true, pretestSettings: true },
   });
 
   if (!pretest) return { score: 0, totalBenar: 0, totalSalah: 0 };
+
+  // Server-side time validation — reject submissions that exceed duration + 30s
+  const setting = pretest.pretestSettings?.[0];
+  if (setting && timeSpent != null && timeSpent > setting.duration + 30) {
+    throw new Error('Waktu pengerjaan telah habis');
+  }
 
   let totalRawScore = 0;
   let maxRawScore = 0;

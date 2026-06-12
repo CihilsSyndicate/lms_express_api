@@ -8,6 +8,7 @@ export const submitQuizAnswer = async (
   quizId: string,
   answer: string,
   knowledgeComponentId: string,
+  timeSpent?: number,
 ) => {
   const quiz = await prisma.quiz.findUnique({
     where: { id: quizId },
@@ -21,8 +22,13 @@ export const submitQuizAnswer = async (
     throw new AppError(404, 'Quiz tidak ditemukan.');
   }
 
-  // Enforce Quiz Settings
+  // Server-side time validation — reject submissions that exceed timeLimit + 30s
   const settings = quiz.quizSettings[0];
+  if (settings && settings.timeLimit != null && timeSpent != null && timeSpent > settings.timeLimit + 30) {
+    throw new AppError(400, 'Waktu pengerjaan telah habis');
+  }
+
+  // Enforce Quiz Settings
   if (settings && !settings.allowMultipleAttempts) {
     const existingAttempt = await prisma.studentAnswerLog.findFirst({
       where: {

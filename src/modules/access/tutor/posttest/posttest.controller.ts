@@ -10,6 +10,7 @@ import {
   deletePosttestRecord,
   updatePosttestQuestion,
   deletePosttestQuestion,
+  upsertPosttestSettings,
 } from '@/utils/posttest';
 import { parsePaginationQuery } from '@/utils/pagination';
 
@@ -23,7 +24,8 @@ type PosttestAction =
   | 'delete'
   | 'updateSoal'
   | 'deleteSoal'
-  | 'submit';
+  | 'submit'
+  | 'updateSettings';
 
 /**
  * Thin HTTP adapter for Tutor's posttest management operations.
@@ -145,6 +147,23 @@ export const submitPosttest = async (req: Request, res: Response) => {
   });
 };
 
+export const updateTutorPosttestSettings = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { posttestId } = req.params;
+    const payload = await upsertPosttestSettings(
+      posttestId as string,
+      req.body,
+      req.user?.id,
+    );
+    return res.status(200).json(payload);
+  } catch (error) {
+    return handlePosttestError(error, res, 'updateSettings');
+  }
+};
+
 /**
  * Error handling helper for HTTP responses.
  */
@@ -174,6 +193,7 @@ function getPosttestLogMessage(action: PosttestAction) {
     updateSoal: '[POSTTEST-ERROR] Gagal mengupdate soal posttest:',
     deleteSoal: '[POSTTEST-ERROR] Gagal menghapus soal posttest:',
     submit: '[POSTTEST-ERROR] Gagal submit posttest:',
+    updateSettings: '[POSTTEST-ERROR] Gagal update pengaturan posttest:',
   };
 
   return messages[action];
@@ -191,6 +211,7 @@ function getPosttestInternalMessage(action: PosttestAction) {
     updateSoal: 'Internal server error saat mengupdate soal posttest.',
     deleteSoal: 'Internal server error saat menghapus soal posttest.',
     submit: 'Internal server error saat submit posttest.',
+    updateSettings: 'Internal server error saat update pengaturan posttest.',
   };
 
   return messages[action];
