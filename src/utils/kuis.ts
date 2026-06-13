@@ -34,6 +34,20 @@ export const createQuiz = async (payload: QuizPayload) => {
       },
     });
 
+    const lastItem = await prisma.topikItem.findFirst({
+      where: { topikId: quiz.topikId },
+      orderBy: { orderNumber: 'desc' },
+    });
+
+    await prisma.topikItem.create({
+      data: {
+        topikId: quiz.topikId,
+        itemId: newQuiz.id,
+        itemType: 'QUIZ',
+        orderNumber: (lastItem?.orderNumber ?? 0) + 1,
+      },
+    });
+
     return newQuiz;
   } catch (error) {
     console.error('Error creating quiz:', error);
@@ -221,6 +235,7 @@ export const updateQuizWithTransaction = async (
 
 export const deleteQuiz = async (quizId: string) => {
   try {
+    await prisma.topikItem.deleteMany({ where: { itemId: quizId } });
     await prisma.quiz.delete({
       where: { id: quizId },
     });

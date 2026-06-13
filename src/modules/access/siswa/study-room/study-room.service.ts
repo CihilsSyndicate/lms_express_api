@@ -74,6 +74,7 @@ export interface StudyRoomResponse {
   modulId: string;
   moduleName: string;
   hasCertificate: boolean;
+  isTestComputationalThinking: boolean;
   progress: StudyRoomProgress | null;
   certificate: StudyRoomCertificate | null;
   curriculum: {
@@ -90,9 +91,27 @@ export interface StudyRoomResponse {
 
 const OPTION_KEYS = ['a', 'b', 'c', 'd'] as const;
 
-function mapPretestQuestions(pretest: any): StudyRoomQuestion[] {
+function shuffleArray<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function mapPretestQuestions(
+  pretest: any,
+  countShownQuestions?: number,
+  isCT?: boolean,
+): StudyRoomQuestion[] {
   if (!pretest?.pretestQuestions) return [];
-  return pretest.pretestQuestions.map((q: any) => ({
+  let qs = [...pretest.pretestQuestions];
+  if (isCT) qs = shuffleArray(qs);
+  if (countShownQuestions && countShownQuestions > 0) {
+    qs = qs.slice(0, countShownQuestions);
+  }
+  return qs.map((q: any) => ({
     id: q.id,
     text: q.pertanyaan,
     options: (q.answerOptions ?? []).map((opt: any, idx: number) => ({
@@ -102,9 +121,14 @@ function mapPretestQuestions(pretest: any): StudyRoomQuestion[] {
   }));
 }
 
-function mapPosttestQuestions(posttest: any): StudyRoomQuestion[] {
+function mapPosttestQuestions(
+  posttest: any,
+  isCT?: boolean,
+): StudyRoomQuestion[] {
   if (!posttest?.soals) return [];
-  return posttest.soals.map((q: any) => {
+  let qs = [...posttest.soals];
+  if (isCT) qs = shuffleArray(qs);
+  return qs.map((q: any) => {
     const options: { key: string; label: string }[] = [];
     if (Array.isArray(q.pilihan)) {
       q.pilihan.forEach((label: string, idx: number) => {
@@ -206,7 +230,11 @@ export const getStudyRoomDataService = async (
     ? {
         id: modul.pretest.id,
         title: modul.pretest.pretestName || 'Pre-Test',
-        questions: mapPretestQuestions(modul.pretest),
+        questions: mapPretestQuestions(
+          modul.pretest,
+          modul.pretest.pretestSettings?.[0]?.countShownQuestions,
+          modul.isTestComputationalThinking,
+        ),
         timeLimit: pretestTimeLimit,
       }
     : null;
@@ -219,34 +247,38 @@ export const getStudyRoomDataService = async (
     ? {
         id: modul.posttest.id,
         title: 'Post-Test',
-        questions: mapPosttestQuestions(modul.posttest),
+        questions: mapPosttestQuestions(
+          modul.posttest,
+          modul.isTestComputationalThinking,
+        ),
         timeLimit: posttestTimeLimit,
       }
     : null;
 
   const topiks: StudyRoomTopik[] = modul.topiks.map((topik) => {
-    const items: StudyRoomItem[] = [];
+    const materiItems: StudyRoomItem[] = [];
+    const quizItems: StudyRoomItem[] = [];
 
     for (const ti of topik.topikItems) {
       if (ti.itemType === 'MATERI') {
         const materi = topik.materis.find((m) => ti.itemId === m.id);
         if (materi) {
-          items.push({
+          materiItems.push({
             id: materi.id,
             itemType: 'MATERI',
             judul: materi.judul,
             isVideo: materi.isVideo,
             videoUrl: materi.isVideo ? materi.videoUrl : null,
-            article: materi.isVideo ? null : materi.article,
+            article: materi.article,
           });
         }
       } else if (ti.itemType === 'QUIZ') {
         const quiz = topik.quizzes.find((q) => ti.itemId === q.id);
         if (quiz) {
-          items.push({
+          quizItems.push({
             id: quiz.id,
             itemType: 'QUIZ',
-            judul: '',
+            judul: quiz.question,
             question: quiz.question,
             correctAnswer: quiz.correctAnswer,
             skor: quiz.skor,
@@ -261,20 +293,24 @@ export const getStudyRoomDataService = async (
       }
     }
 
-    if (topik.rangkumanTopik) {
-      items.push({
-        id: `rangkuman_${topik.id}`,
-        itemType: 'RANGKUMAN_TOPIK',
-        judul: `Rangkuman ${topik.nama}`,
-        article: topik.rangkumanTopik,
-      });
-    }
+    const rangkumanItem: StudyRoomItem | null = topik.rangkumanTopik
+      ? {
+          id: `rangkuman_${topik.id}`,
+          itemType: 'RANGKUMAN_TOPIK',
+          judul: `Rangkuman ${topik.nama}`,
+          article: topik.rangkumanTopik,
+        }
+      : null;
 
     return {
       id: topik.id,
       nama: topik.nama,
       rangkumanTopik: topik.rangkumanTopik ?? null,
-      items,
+      items: [
+        ...materiItems,
+        ...(rangkumanItem ? [rangkumanItem] : []),
+        ...quizItems,
+      ],
     };
   });
 
@@ -290,6 +326,7 @@ export const getStudyRoomDataService = async (
     modulId: modul.id,
     moduleName: modul.moduleName,
     hasCertificate: modul.hasCertificate,
+    isTestComputationalThinking: modul.isTestComputationalThinking,
     progress: progressPayload,
     certificate,
     curriculum: {

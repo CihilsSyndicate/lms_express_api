@@ -736,7 +736,7 @@ async function main() {
     ['Statistika Deskriptif', 'Uji Hipotesis'],
   ];
 
-  const topiks: { id: string; modulId: string }[] = [];
+  const topiks: { id: string; modulId: string; nama: string }[] = [];
   for (let i = 0; i < moduls.length; i++) {
     for (const nama of topikNames[i]) {
       const topik = await prisma.topik.create({
@@ -746,7 +746,7 @@ async function main() {
           rangkumanTopik: `Rangkuman untuk topik "${nama}". Poin-poin penting yang perlu diingat dari materi ini.`,
         },
       });
-      topiks.push({ id: topik.id, modulId: topik.modulId });
+      topiks.push({ id: topik.id, modulId: topik.modulId, nama });
     }
   }
   console.log(`12. Topik: ${topiks.length} records`);

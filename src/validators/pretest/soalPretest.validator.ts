@@ -7,6 +7,9 @@ export const soalPretestBaseSchema = z.object({
   pilihan: z.any(),
   jawaban_benar: z.string().min(1),
   skor: z.number().int().default(10),
+  ctGroupId: z.string().optional().nullable(),
+  ctStory: z.string().optional().nullable(),
+  ctAspect: z.string().optional().nullable(),
 });
 
 export const createSoalPretestSchema = soalPretestBaseSchema.omit({

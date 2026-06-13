@@ -13,8 +13,9 @@ model Modul {
     class                  String?
     pretestPostTestEnabled Boolean  @default(true)
     hasStudyGroup          Boolean  @default(false)
-    hasCertificate         Boolean  @default(false)
-    moduleImgUrl           String?
+    hasCertificate              Boolean  @default(false)
+    isTestComputationalThinking Boolean  @default(false)
+    moduleImgUrl                String?
     rangkumanAkhir         String?  @db.Text
 
     modulType ModulType @default(SISWA)
@@ -23,9 +24,9 @@ model Modul {
     tutor   Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     topiks     Topik[]
-    pretest    Pretest?  @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    pretest    Pretest?  @relation(fields: [pretestId], references: [id], onDelete: SetNull, onUpdate: Cascade)
     pretestId  String?   @unique
-    posttest   Posttest? @relation(fields: [posttestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    posttest   Posttest? @relation(fields: [posttestId], references: [id], onDelete: SetNull, onUpdate: Cascade)
     posttestId String?   @unique
     isDraft    Boolean   @default(true)
 
@@ -173,6 +174,9 @@ model SoalPretest {
     answerOptions         PretestAnswerOptions[]
     correctAnswer         String
     skor                  Int                       @default(10)
+    ctGroupId             String?
+    ctStory               String?                   @db.Text
+    ctAspect              String?
     questionMaps          PretestQuestionSkillMap[]
     automaticAccessMatery AutomaticAccessMatery[]
 
@@ -224,6 +228,9 @@ model SoalPosttest {
     pilihan       Json
     correctAnswer String
     skor          Int      @default(10)
+    ctGroupId     String?
+    ctStory       String?  @db.Text
+    ctAspect      String?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

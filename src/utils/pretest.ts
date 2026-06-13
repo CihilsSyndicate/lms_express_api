@@ -79,6 +79,9 @@ export const addPretestQuestion = async (
     pilihan: string[];
     jawaban_benar: string;
     skor?: number;
+    ctGroupId?: string;
+    ctStory?: string;
+    ctAspect?: string;
   },
   tutorId?: string,
   adminBypass?: boolean,
@@ -105,6 +108,9 @@ export const addPretestQuestion = async (
       },
       correctAnswer: payload.jawaban_benar,
       skor: payload.skor ?? 10,
+      ctGroupId: payload.ctGroupId,
+      ctStory: payload.ctStory,
+      ctAspect: payload.ctAspect,
     },
   });
 
@@ -119,6 +125,12 @@ export const getPretestQuestions = async (modulId: string) => {
     include: {
       pretestQuestions: { include: { answerOptions: true } },
       pretestSettings: true,
+      automaticAccessMateries: {
+        include: {
+          materi: { select: { id: true, judul: true } },
+          selectedTopics: { select: { id: true, nama: true } },
+        },
+      },
     },
   });
 
@@ -311,6 +323,9 @@ export const updatePretestQuestion = async (
     pilihan?: string[];
     jawaban_benar?: string;
     skor?: number;
+    ctGroupId?: string;
+    ctStory?: string;
+    ctAspect?: string;
   },
   tutorId?: string,
 ) => {
@@ -331,6 +346,9 @@ export const updatePretestQuestion = async (
   if (data.pertanyaan !== undefined) updateData.pertanyaan = data.pertanyaan;
   if (data.jawaban_benar !== undefined) updateData.correctAnswer = data.jawaban_benar;
   if (data.skor !== undefined) updateData.skor = data.skor;
+  if (data.ctGroupId !== undefined) updateData.ctGroupId = data.ctGroupId;
+  if (data.ctStory !== undefined) updateData.ctStory = data.ctStory;
+  if (data.ctAspect !== undefined) updateData.ctAspect = data.ctAspect;
 
   const updated = await prisma.$transaction(async (tx) => {
     if (data.pilihan) {

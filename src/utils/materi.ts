@@ -52,6 +52,20 @@ export const createMateri = async (
 
   const newMaterial = await prisma.materi.create({ data });
 
+  const lastItem = await prisma.topikItem.findFirst({
+    where: { topikId: payload.topik_id },
+    orderBy: { orderNumber: 'desc' },
+  });
+
+  await prisma.topikItem.create({
+    data: {
+      topikId: payload.topik_id,
+      itemId: newMaterial.id,
+      itemType: 'MATERI',
+      orderNumber: (lastItem?.orderNumber ?? 0) + 1,
+    },
+  });
+
   console.log(
     `[MATERI] Materi baru dibuat oleh ${userRole || 'Tutor'} ${tutorId}: ${newMaterial.id}`,
   );
@@ -155,6 +169,7 @@ export const deleteMateri = async (
     );
   }
 
+  await prisma.topikItem.deleteMany({ where: { itemId: materiId } });
   await prisma.materi.delete({ where: { id: materiId } });
   console.log(
     `[MATERI] Materi dihapus oleh ${userRole || 'Tutor'} ${tutorId}: ${materiId}`,

@@ -399,6 +399,34 @@ export const calculatePretestScoreService = async (
     answerLogs,
   );
 
+  // Apply AutomaticAccessMatery — if score >= minScore, auto-unlock the materi
+  const accessRules = await prisma.automaticAccessMatery.findMany({
+    where: { pretestId: pretest.id },
+    select: { materiId: true, minScore: true },
+  });
+  if (accessRules.length > 0) {
+    const progress = await prisma.progress.findUnique({
+      where: { siswaId_modulId: { siswaId, modulId } },
+      select: { completedContentItems: true },
+    });
+    const completed: string[] = progress
+      ? JSON.parse(progress.completedContentItems || '[]')
+      : [];
+    let changed = false;
+    for (const rule of accessRules) {
+      if (totalScore >= rule.minScore && !completed.includes(rule.materiId)) {
+        completed.push(rule.materiId);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await prisma.progress.updateMany({
+        where: { siswaId, modulId },
+        data: { completedContentItems: JSON.stringify(completed) },
+      });
+    }
+  }
+
   return { score: totalScore, totalBenar, totalSalah };
 };
 

@@ -64,6 +64,9 @@ export const addPosttestQuestion = async (
     pilihan: any;
     jawaban_benar: string;
     skor?: number;
+    ctGroupId?: string;
+    ctStory?: string;
+    ctAspect?: string;
   },
   tutorId?: string,
   adminBypass?: boolean,
@@ -88,6 +91,9 @@ export const addPosttestQuestion = async (
       pilihan: payload.pilihan,
       correctAnswer: payload.jawaban_benar,
       skor: payload.skor ?? 10,
+      ctGroupId: payload.ctGroupId,
+      ctStory: payload.ctStory,
+      ctAspect: payload.ctAspect,
     },
   });
 
@@ -264,6 +270,9 @@ export const updatePosttestQuestion = async (
     pilihan?: any;
     jawaban_benar?: string;
     skor?: number;
+    ctGroupId?: string;
+    ctStory?: string;
+    ctAspect?: string;
   },
   tutorId?: string,
 ) => {
@@ -285,6 +294,9 @@ export const updatePosttestQuestion = async (
   if (data.pilihan !== undefined) updateData.pilihan = data.pilihan;
   if (data.jawaban_benar !== undefined) updateData.correctAnswer = data.jawaban_benar;
   if (data.skor !== undefined) updateData.skor = data.skor;
+  if (data.ctGroupId !== undefined) updateData.ctGroupId = data.ctGroupId;
+  if (data.ctStory !== undefined) updateData.ctStory = data.ctStory;
+  if (data.ctAspect !== undefined) updateData.ctAspect = data.ctAspect;
 
   const updated = await prisma.soalPosttest.update({
     where: { id: soalId },

@@ -11,6 +11,12 @@ import {
   deleteSoalPretest,
   updateTutorPretestSettings,
 } from './pretest.controller';
+import {
+  listAksesMateri,
+  addAksesMateri,
+  editAksesMateri,
+  removeAksesMateri,
+} from '../akses-materi/aksesMateri.controller';
 
 const pretestRouter = Router();
 
@@ -24,5 +30,9 @@ pretestRouter.post('/soal', addSoalPretest);
 pretestRouter.put('/soal/:soalId', updateSoalPretest);
 pretestRouter.delete('/soal/:soalId', deleteSoalPretest);
 pretestRouter.put('/settings/:pretestId', updateTutorPretestSettings);
+pretestRouter.get('/:pretestId/access-rules', listAksesMateri);
+pretestRouter.post('/:pretestId/access-rules', addAksesMateri);
+pretestRouter.put('/access-rules/:id', editAksesMateri);
+pretestRouter.delete('/access-rules/:id', removeAksesMateri);
 
 export default pretestRouter;

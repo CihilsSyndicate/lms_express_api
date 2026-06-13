@@ -9,6 +9,7 @@ export const modulBaseSchema = z.object({
   difficulty: z.string().min(1),
   isPaid: z.boolean().default(false),
   modulPrice: z.number().optional().default(0),
+  isTestComputationalThinking: z.boolean().optional(),
   level: z.string().min(1).optional(),
   class: z.string().min(1).optional(),
   modulType: z.enum(['SISWA', 'UMUM']).default('SISWA'),
