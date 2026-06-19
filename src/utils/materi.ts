@@ -90,6 +90,7 @@ export const getTopiksWithMateri = async (modulId: string) => {
       },
       rangkumans: true,
     },
+    orderBy: { createdAt: 'asc' },
   });
 };
 
