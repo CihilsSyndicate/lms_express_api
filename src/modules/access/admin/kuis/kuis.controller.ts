@@ -4,7 +4,7 @@ import {
   createQuizWithTransaction,
   getAllQuiz as getAllQuizFunc,
   getQuizById as getQuizByIdFunc,
-  updateQuiz as updateQuizFunc,
+  updateQuizWithTransaction,
   deleteQuiz as deleteQuizFunc,
 } from '@/utils/kuis';
 import { tutorQuizSchema } from '@/validators/kuis/tutorKuis.validator';
@@ -58,9 +58,10 @@ export const getQuizById = async (req: Request, res: Response) => {
 export const updateQuiz = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const payload = await updateQuizFunc(id as string, req.body);
+    const payload = await updateQuizWithTransaction(id as string, req.body.quiz || req.body);
     res.status(200).json(payload);
   } catch (error) {
+    console.error('Error updating quiz:', error);
     res.status(500).json({ error: 'Failed to update quiz' });
   }
 };
