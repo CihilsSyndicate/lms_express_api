@@ -82,6 +82,7 @@ export const createTopik = async (
     data: {
       modulId: payload.modul_id,
       nama: payload.nama,
+      isComputationalThinking: modul.isTestComputationalThinking,
     },
   });
 

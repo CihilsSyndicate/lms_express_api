@@ -270,8 +270,7 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
 
   for (const topik of modul.topiks) {
     for (const ti of topik.topikItems) {
-      // RANGKUMAN_TOPIK items are handled client-side only and never submitted
-      if (ti.itemType === 'MATERI' || ti.itemType === 'QUIZ') {
+      if (ti.itemType === 'MATERI' || ti.itemType === 'QUIZ' || ti.itemType === 'RANGKUMAN_TOPIK') {
         count += 1;
       }
     }
@@ -313,7 +312,7 @@ export const calculatePretestScoreService = async (
   modulId: string,
   answers: { questionId: string; answer: string }[],
   timeSpent?: number,
-): Promise<{ score: number; totalBenar: number; totalSalah: number }> => {
+): Promise<{ score: number; totalBenar: number; totalSalah: number; unlockedCount: number }> => {
   const pretest = await prisma.pretest.findFirst({
     where: {
       modul: {
@@ -399,35 +398,65 @@ export const calculatePretestScoreService = async (
     answerLogs,
   );
 
-  // Apply AutomaticAccessMatery — if score >= minScore, auto-unlock the materi
+  // Read completedContentItems once for both unlock paths
+  const progressRecord = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    select: { completedContentItems: true },
+  });
+  const completedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
+    try {
+      const parsed = JSON.parse(progressRecord?.completedContentItems || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+  const existingIds = new Set(completedItems.map((e) => e.itemId));
+  let unlockedCount = 0;
+  let changed = false;
+
+  // Rule-based unlock: AutomaticAccessMatery (specific materis per score threshold)
   const accessRules = await prisma.automaticAccessMatery.findMany({
     where: { pretestId: pretest.id },
     select: { materiId: true, minScore: true },
   });
-  if (accessRules.length > 0) {
-    const progress = await prisma.progress.findUnique({
-      where: { siswaId_modulId: { siswaId, modulId } },
-      select: { completedContentItems: true },
-    });
-    const completed: string[] = progress
-      ? JSON.parse(progress.completedContentItems || '[]')
-      : [];
-    let changed = false;
-    for (const rule of accessRules) {
-      if (totalScore >= rule.minScore && !completed.includes(rule.materiId)) {
-        completed.push(rule.materiId);
-        changed = true;
-      }
-    }
-    if (changed) {
-      await prisma.progress.updateMany({
-        where: { siswaId, modulId },
-        data: { completedContentItems: JSON.stringify(completed) },
-      });
+  for (const rule of accessRules) {
+    if (totalScore >= rule.minScore && !existingIds.has(rule.materiId)) {
+      completedItems.push({ itemId: rule.materiId, itemType: 'MATERI', completedAt: new Date().toISOString() });
+      existingIds.add(rule.materiId);
+      unlockedCount++;
+      changed = true;
     }
   }
 
-  return { score: totalScore, totalBenar, totalSalah };
+  // Formula-based sequential unlock: first N materis in topic/item order
+  const totalMateris = await prisma.materi.count({ where: { topik: { modulId } } });
+  const formulaCount = totalMateris > 0 ? Math.max(Math.floor(totalMateris * totalScore / 100), 1) : 0;
+  if (formulaCount > 0) {
+    const orderedTopikItems = await prisma.topikItem.findMany({
+      where: { topik: { modulId }, itemType: 'MATERI' },
+      select: { itemId: true },
+      orderBy: [{ topik: { createdAt: 'asc' } }, { orderNumber: 'asc' }],
+      take: formulaCount,
+    });
+    for (const ti of orderedTopikItems) {
+      if (!existingIds.has(ti.itemId)) {
+        completedItems.push({ itemId: ti.itemId, itemType: 'MATERI', completedAt: new Date().toISOString() });
+        existingIds.add(ti.itemId);
+        unlockedCount++;
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    await prisma.progress.updateMany({
+      where: { siswaId, modulId },
+      data: { completedContentItems: JSON.stringify(completedItems) },
+    });
+  }
+
+  return { score: totalScore, totalBenar, totalSalah, unlockedCount };
 };
 
 /**

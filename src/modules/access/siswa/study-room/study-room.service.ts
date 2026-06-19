@@ -25,6 +25,7 @@ export interface StudyRoomMateri {
 export interface StudyRoomItem {
   id: string;
   itemType: 'MATERI' | 'QUIZ' | 'RANGKUMAN_TOPIK';
+  quizType?: string;
   judul: string;
   isVideo?: boolean;
   videoUrl?: string | null;
@@ -178,6 +179,7 @@ export const getStudyRoomDataService = async (
           topikItems: { orderBy: { orderNumber: 'asc' } },
           materis: true,
           quizzes: { include: { quizAnswerOptions: true, quizSettings: true } },
+          rangkumans: true,
         },
       },
     },
@@ -278,6 +280,7 @@ export const getStudyRoomDataService = async (
           quizItems.push({
             id: quiz.id,
             itemType: 'QUIZ',
+            quizType: quiz.quizType,
             judul: quiz.question,
             question: quiz.question,
             correctAnswer: quiz.correctAnswer,
@@ -290,17 +293,18 @@ export const getStudyRoomDataService = async (
             timeLimit: quiz.quizSettings[0]?.timeLimit ?? null,
           });
         }
+      } else if (ti.itemType === 'RANGKUMAN_TOPIK') {
+        const rangkuman = (topik as any).rangkumans?.find((r: any) => r.id === ti.itemId);
+        if (rangkuman) {
+          materiItems.push({
+            id: rangkuman.id,
+            itemType: 'RANGKUMAN_TOPIK',
+            judul: rangkuman.judul,
+            article: rangkuman.konten ?? null,
+          });
+        }
       }
     }
-
-    const rangkumanItem: StudyRoomItem | null = topik.rangkumanTopik
-      ? {
-          id: `rangkuman_${topik.id}`,
-          itemType: 'RANGKUMAN_TOPIK',
-          judul: `Rangkuman ${topik.nama}`,
-          article: topik.rangkumanTopik,
-        }
-      : null;
 
     return {
       id: topik.id,
@@ -308,7 +312,6 @@ export const getStudyRoomDataService = async (
       rangkumanTopik: topik.rangkumanTopik ?? null,
       items: [
         ...materiItems,
-        ...(rangkumanItem ? [rangkumanItem] : []),
         ...quizItems,
       ],
     };

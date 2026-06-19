@@ -54,10 +54,11 @@ model Topik {
     isComputationalThinking Boolean                 @default(false)
     rangkumanTopik          String?                 @db.Text
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    materis   Materi[]
-    quizzes   Quiz[]
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    materis     Materi[]
+    quizzes     Quiz[]
+    rangkumans  Rangkuman[]
 }
 
 model TopikItem {
@@ -91,6 +92,19 @@ model Materi {
     updatedAt               DateTime                @updatedAt
     automaticAccessMateries AutomaticAccessMatery[]
     progress_details        ProgressDetail[]
+}
+
+model Rangkuman {
+    id      String  @id @default(cuid())
+    tutorId String
+    tutor   Tutor   @relation(fields: [tutorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    topikId String
+    topik   Topik   @relation(fields: [topikId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    judul   String
+    konten  String? @db.Text
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model Quiz {

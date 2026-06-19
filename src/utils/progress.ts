@@ -306,7 +306,7 @@ export const getModuleProgress = async (
   });
 };
 
-export const analyzeComputationalThinking = async (studentId: string) => {
+export const analyzeComputationalThinking = async (studentId: string, modulId?: string) => {
   try {
     const studentData = await prisma.siswa.findUnique({
       where: { id: studentId },
@@ -325,7 +325,7 @@ export const analyzeComputationalThinking = async (studentId: string) => {
 
     // Get progress records with module info and quiz scores
     const progressRecords = await prisma.progress.findMany({
-      where: { siswaId: studentId },
+      where: { siswaId: studentId, ...(modulId ? { modulId } : {}) },
       include: {
         modul: {
           select: {
@@ -334,6 +334,7 @@ export const analyzeComputationalThinking = async (studentId: string) => {
             level: true,
             class: true,
             moduleImgUrl: true,
+            isTestComputationalThinking: true,
             topiks: {
               select: {
                 id: true,
@@ -346,6 +347,10 @@ export const analyzeComputationalThinking = async (studentId: string) => {
         quizScores: true,
       },
     });
+
+    const targetProgress = modulId
+      ? progressRecords.find((p) => p.modul.id === modulId)
+      : progressRecords[0];
 
     const modulIds = progressRecords.map((p) => p.modul.id);
 
@@ -402,6 +407,46 @@ export const analyzeComputationalThinking = async (studentId: string) => {
       algorithm: 'algorithm',
     };
 
+    // Per-pillar pretest scores
+    const targetModulId = targetProgress?.modul.id;
+    const pretestLogs = targetModulId
+      ? await prisma.studentAnswerLog.findMany({
+          where: { siswaId: studentId, modulId: targetModulId, questionSource: 'PRETEST' },
+          select: { questionId: true, isCorrect: true },
+        })
+      : [];
+
+    const pretestMappings =
+      pretestLogs.length > 0
+        ? await prisma.pretestQuestionSkillMap.findMany({
+            where: { pretestQuestionId: { in: pretestLogs.map((l) => l.questionId) } },
+            select: {
+              pretestQuestionId: true,
+              knowledgeComponent: { select: { code: true } },
+            },
+          })
+        : [];
+
+    const correctByQId = new Map(pretestLogs.map((l) => [l.questionId, l.isCorrect]));
+    const rawPretest: Record<string, { correct: number; total: number }> = {};
+    for (const m of pretestMappings) {
+      const isCorrect = correctByQId.get(m.pretestQuestionId);
+      if (isCorrect === undefined) continue;
+      const code = m.knowledgeComponent?.code || 'unknown';
+      if (!rawPretest[code]) rawPretest[code] = { correct: 0, total: 0 };
+      rawPretest[code].total++;
+      if (isCorrect) rawPretest[code].correct++;
+    }
+
+    const getPretestScore = (key: string): number => {
+      for (const [alias, target] of Object.entries(pillarAlias)) {
+        if (target !== key) continue;
+        const d = rawPretest[alias];
+        if (d && d.total > 0) return Math.round((d.correct / d.total) * 100);
+      }
+      return 0;
+    };
+
     const getScore = (key: string): number => {
       for (const [alias, target] of Object.entries(pillarAlias)) {
         if (target === key) {
@@ -429,18 +474,8 @@ export const analyzeComputationalThinking = async (studentId: string) => {
     const abstraction = getScore('abstraction');
     const algorithm = getScore('algorithm');
 
-    // Build quiz records (first module)
-    const firstProgress = progressRecords[0];
-    const quizMap = new Map<string, { topikNama: string; quizType: string; minScoreTreshold: number | null }>();
-    for (const p of progressRecords) {
-      for (const topik of p.modul.topiks) {
-        // We need quiz data — fetch it separately since we only have topik names here
-        // Actually quizScores are in progressRecords, we need to match them
-      }
-    }
-
     // Build quiz records
-    const allQuizScores = firstProgress?.quizScores || [];
+    const allQuizScores = targetProgress?.quizScores || [];
     const topikQuizzes = await prisma.quiz.findMany({
       where: { topik: { modulId: { in: modulIds } } },
       select: {
@@ -477,23 +512,23 @@ export const analyzeComputationalThinking = async (studentId: string) => {
       });
 
     // Module progress from first module
-    const completedItems = firstProgress
+    const completedItems = targetProgress
       ? (() => {
           try {
-            return JSON.parse(firstProgress.completedContentItems || '[]');
+            return JSON.parse(targetProgress.completedContentItems || '[]');
           } catch {
             return [];
           }
         })()
       : [];
-    const totalMateri = firstProgress
-      ? firstProgress.modul.topiks.reduce((s, t) => s + t._count.materis, 0)
+    const totalMateri = targetProgress
+      ? targetProgress.modul.topiks.reduce((s, t) => s + t._count.materis, 0)
       : 0;
 
     let recommendation = 'Perlu Penguatan';
-    if (firstProgress?.posttestScore && firstProgress.posttestScore >= 75) {
+    if (targetProgress?.posttestScore && targetProgress.posttestScore >= 75) {
       recommendation = 'Siap Pengayaan';
-    } else if (firstProgress?.posttestScore && firstProgress.posttestScore >= 60) {
+    } else if (targetProgress?.posttestScore && targetProgress.posttestScore >= 60) {
       recommendation = 'Perlu Remedial';
     }
 
@@ -503,25 +538,26 @@ export const analyzeComputationalThinking = async (studentId: string) => {
         email: studentData.email,
         avatarUrl: studentData.profileImage,
       },
-      moduleProgress: firstProgress
+      moduleProgress: targetProgress
         ? {
-            moduleId: firstProgress.modul.id,
-            moduleName: firstProgress.modul.moduleName,
-            level: firstProgress.modul.level,
-            class: firstProgress.modul.class,
-            moduleImgUrl: firstProgress.modul.moduleImgUrl,
-            pretestScore: firstProgress.pretestScore,
-            posttestScore: firstProgress.posttestScore,
-            progressPercentage: firstProgress.progressPercentage,
+            moduleId: targetProgress.modul.id,
+            moduleName: targetProgress.modul.moduleName,
+            level: targetProgress.modul.level,
+            class: targetProgress.modul.class,
+            moduleImgUrl: targetProgress.modul.moduleImgUrl,
+            isTestComputationalThinking: targetProgress.modul.isTestComputationalThinking,
+            pretestScore: targetProgress.pretestScore,
+            posttestScore: targetProgress.posttestScore,
+            progressPercentage: targetProgress.progressPercentage,
             totalMateri,
             completedMateri: completedItems.length,
           }
         : null,
       computationalThinking: {
-        decomposition: { score: decomposition, label: getLabel(decomposition) },
-        patternRecognition: { score: patternRecognition, label: getLabel(patternRecognition) },
-        abstraction: { score: abstraction, label: getLabel(abstraction) },
-        algorithm: { score: algorithm, label: getLabel(algorithm) },
+        decomposition: { score: decomposition, label: getLabel(decomposition), preTest: getPretestScore('decomposition'), postTest: decomposition },
+        patternRecognition: { score: patternRecognition, label: getLabel(patternRecognition), preTest: getPretestScore('patternRecognition'), postTest: patternRecognition },
+        abstraction: { score: abstraction, label: getLabel(abstraction), preTest: getPretestScore('abstraction'), postTest: abstraction },
+        algorithm: { score: algorithm, label: getLabel(algorithm), preTest: getPretestScore('algorithm'), postTest: algorithm },
       },
       quizRecords,
       recommendation,

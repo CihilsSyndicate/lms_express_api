@@ -88,6 +88,7 @@ export const getTopiksWithMateri = async (modulId: string) => {
           quizSettings: true,
         },
       },
+      rangkumans: true,
     },
   });
 };

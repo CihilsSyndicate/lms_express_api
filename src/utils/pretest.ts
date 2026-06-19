@@ -1,7 +1,6 @@
 import { AppError } from '@/errors/app.error';
 import { prisma } from '@/lib/prisma';
 import { ProgressService } from '@/modules/access/siswa/progress/progress.service';
-import { calculateUnlockedCount } from './pretestUnlock';
 import {
   buildCursorPaginatedResponse,
   buildCursorWhere,
@@ -152,7 +151,7 @@ export const submitPretestAnswer = async (
     throw new AppError(403, 'Hanya siswa yang bisa submit pretest.');
   }
 
-  const { score, totalBenar, totalSalah } = await progressService.calculatePretestScore(
+  const { score, totalBenar, totalSalah, unlockedCount: accessMateryCount } = await progressService.calculatePretestScore(
     siswaId as string,
     modulId,
     answers,
@@ -165,11 +164,10 @@ export const submitPretestAnswer = async (
         where: { topik: { modulId } },
       });
 
-      const unlockedCount = calculateUnlockedCount(totalSubmodules, score);
-
+      // Service already combines rule-based + formula-based unlock; use directly
       const progressPercentage =
         totalSubmodules > 0
-          ? Math.round((unlockedCount / totalSubmodules) * 100)
+          ? Math.round((accessMateryCount / totalSubmodules) * 100)
           : 0;
 
       await tx.progress.updateMany({
@@ -181,7 +179,7 @@ export const submitPretestAnswer = async (
       });
 
       return {
-        unlocked_count: unlockedCount,
+        unlocked_count: accessMateryCount,
         total_submodules: totalSubmodules,
       };
     },

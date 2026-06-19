@@ -20,6 +20,11 @@ export const getOrderedTopikItems = async (topikId: string) => {
           include: { quizSettings: true, quizAnswerOptions: true },
         });
         return { ...item, data: quiz };
+      } else if (item.itemType === 'RANGKUMAN_TOPIK') {
+        const rangkuman = await prisma.rangkuman.findUnique({
+          where: { id: item.itemId },
+        });
+        return { ...item, data: rangkuman };
       }
       return { ...item, data: null };
     }),

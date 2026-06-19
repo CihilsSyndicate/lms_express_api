@@ -16,6 +16,7 @@ model Tutor {
     role           String        @default("tutor")
     moduls         Modul[]
     materis        Materi[]
+    rangkumans     Rangkuman[]
     googleId       String?       @unique
     socialMedias   SocialMedia[]
 

@@ -87,7 +87,8 @@ export const analyzeComputationalThinking = async (
 ) => {
   try {
     const { studentId } = req.params;
-    const payload = await analyzeComputationalThinkingFunc(studentId as string);
+    const modulId = req.query.modulId as string | undefined;
+    const payload = await analyzeComputationalThinkingFunc(studentId as string, modulId);
 
     return res.status(200).json(payload);
   } catch (err) {
