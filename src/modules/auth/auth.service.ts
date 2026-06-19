@@ -91,6 +91,10 @@ export const verifyPasswordService = async (
     }
 
     const isMatch = await comparePassword(password, user.password);
+    console.log(
+      `[PASSWORD-VERIFY] Verifikasi password untuk userId: ${userId}, role: ${role} - Hasil: ${isMatch}`,
+    );
+
     return isMatch;
   } catch (err) {
     console.error('[PASSWORD-VERIFY-ERROR] Gagal memverifikasi password:', err);
@@ -202,9 +206,30 @@ export const updateTutorProfileService = async (
       Object.entries(data).filter(([, value]) => value !== undefined),
     );
 
+    const findTutorData = await prisma.tutor.findUnique({
+      where: { id: userId },
+    });
+
+    const updateData: any = {
+      gender: filteredData.gender ?? findTutorData?.gender,
+      pekerjaan: filteredData.pekerjaan ?? findTutorData?.pekerjaan,
+      whatsappNumber:
+        filteredData.whatsappNumber ?? findTutorData?.whatsappNumber,
+      lastEducation: filteredData.lastEducation ?? findTutorData?.lastEducation,
+      institution: filteredData.institution ?? findTutorData?.institution,
+      prodi: filteredData.prodi ?? findTutorData?.prodi,
+      cvPathUrl: filteredData.cvPathUrl ?? findTutorData?.cvPathUrl,
+      profileImg: filteredData.profileImg ?? findTutorData?.profileImg,
+      biografi: filteredData.biografi ?? findTutorData?.biografi,
+    };
+
+    if (filteredData.password !== undefined) {
+      updateData.password = filteredData.password;
+    }
+
     const updatedTutor = await prisma.tutor.update({
       where: { id: userId },
-      data: filteredData,
+      data: updateData,
     });
 
     return updatedTutor;
