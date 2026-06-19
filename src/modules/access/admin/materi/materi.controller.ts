@@ -44,8 +44,10 @@ export const getMaterialsByModule = async (req: Request, res: Response) => {
 export const updateMaterial = async (req: Request, res: Response) => {
   try {
     const payload = {
-      judul: req.body.title,
-      is_video: req.body.isVideo,
+      judul: req.body.title ?? req.body.judul,
+      is_video: req.body.isVideo ?? req.body.is_video,
+      video_url: req.body.videoUrl ?? req.body.video_url,
+      article: req.body.article,
     };
     const updated = await updateMateri(
       req.params.id as string,
