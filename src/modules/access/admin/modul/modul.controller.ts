@@ -177,7 +177,7 @@ export const updateModule = async (req: Request, res: Response) => {
 export const deleteModule = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const tutorId = req.body.tutorId;
+    const tutorId = req.body?.tutorId;
 
     const findModule = await getModuleByIdFunc(id as string);
     if (!findModule) {
