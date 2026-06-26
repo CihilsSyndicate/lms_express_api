@@ -101,18 +101,25 @@ function shuffleArray<T>(arr: T[]): T[] {
   return copy;
 }
 
+function assignQuestions<T>(allItems: T[], count: number): T[] {
+  const shuffled = shuffleArray([...allItems]);
+  if (count > 0 && count < shuffled.length) {
+    return shuffled.slice(0, count);
+  }
+  return shuffled;
+}
+
 function mapPretestQuestions(
   pretest: any,
-  countShownQuestions?: number,
-  isCT?: boolean,
+  selectedIds: string[],
 ): StudyRoomQuestion[] {
   if (!pretest?.pretestQuestions) return [];
-  let qs = [...pretest.pretestQuestions];
-  if (isCT) qs = shuffleArray(qs);
-  if (countShownQuestions && countShownQuestions > 0) {
-    qs = qs.slice(0, countShownQuestions);
-  }
-  return qs.map((q: any) => ({
+  const allQs = pretest.pretestQuestions;
+  const qs = selectedIds.length > 0
+    ? allQs.filter((q: any) => selectedIds.includes(q.id))
+    : allQs;
+  const shuffled = shuffleArray(qs);
+  return shuffled.map((q: any) => ({
     id: q.id,
     text: q.pertanyaan,
     options: (q.answerOptions ?? []).map((opt: any, idx: number) => ({
@@ -124,12 +131,15 @@ function mapPretestQuestions(
 
 function mapPosttestQuestions(
   posttest: any,
-  isCT?: boolean,
+  selectedIds: string[],
 ): StudyRoomQuestion[] {
   if (!posttest?.soals) return [];
-  let qs = [...posttest.soals];
-  if (isCT) qs = shuffleArray(qs);
-  return qs.map((q: any) => {
+  const allQs = posttest.soals;
+  const qs = selectedIds.length > 0
+    ? allQs.filter((q: any) => selectedIds.includes(q.id))
+    : allQs;
+  const shuffled = shuffleArray(qs);
+  return shuffled.map((q: any) => {
     const options: { key: string; label: string }[] = [];
     if (Array.isArray(q.pilihan)) {
       q.pilihan.forEach((label: string, idx: number) => {
@@ -146,6 +156,15 @@ function parseCompletedContentItems(raw: string): string[] {
     return Array.isArray(parsed)
       ? parsed.map((e: any) => e.itemId).filter(Boolean)
       : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseAssignedQuestions(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
   } catch {
     return [];
   }
@@ -187,9 +206,63 @@ export const getStudyRoomDataService = async (
 
   if (!modul) throw new Error('Modul tidak ditemukan');
 
-  const progress = await prisma.progress.findUnique({
+  let progress = await prisma.progress.findUnique({
     where: { siswaId_modulId: { siswaId, modulId } },
   });
+
+  if (!progress) {
+    progress = await prisma.progress.create({
+      data: {
+        siswaId,
+        modulId,
+        progressPercentage: 0,
+      },
+    });
+  }
+
+  // --- Pretest question assignment ---
+  let pretestSelectedIds: string[] = [];
+  const pretestQuestions = modul.pretest?.pretestQuestions ?? [];
+  if (modul.pretest && pretestQuestions.length > 0) {
+    const stored = parseAssignedQuestions(progress.pretestAssignedQuestions);
+    if (stored.length > 0) {
+      pretestSelectedIds = stored;
+    } else {
+      const countShown = modul.pretest.pretestSettings?.[0]?.countShownQuestions ?? 0;
+      const assigned = assignQuestions(pretestQuestions, countShown);
+      pretestSelectedIds = assigned.map((q: any) => q.id);
+      if (pretestSelectedIds.length > 0) {
+        progress = await prisma.progress.update({
+          where: { id: progress.id },
+          data: {
+            pretestAssignedQuestions: JSON.stringify(pretestSelectedIds),
+          },
+        });
+      }
+    }
+  }
+
+  // --- Posttest question assignment ---
+  let posttestSelectedIds: string[] = [];
+  const posttestQuestions = modul.posttest?.soals ?? [];
+  if (modul.posttest && posttestQuestions.length > 0) {
+    const stored = parseAssignedQuestions(progress.posttestAssignedQuestions);
+    if (stored.length > 0) {
+      posttestSelectedIds = stored;
+    } else {
+      const countShown = modul.posttest.posttestSettings?.[0]?.countShownQuestions ?? 0;
+      const assigned = assignQuestions(posttestQuestions, countShown);
+      posttestSelectedIds = assigned.map((q: any) => q.id);
+      if (posttestSelectedIds.length > 0) {
+        progress = await prisma.progress.update({
+          where: { id: progress.id },
+          data: {
+            posttestAssignedQuestions: JSON.stringify(posttestSelectedIds),
+          },
+        });
+      }
+    }
+  }
 
   const progressPayload: StudyRoomProgress | null = progress
     ? {
@@ -234,8 +307,7 @@ export const getStudyRoomDataService = async (
         title: modul.pretest.pretestName || 'Pre-Test',
         questions: mapPretestQuestions(
           modul.pretest,
-          modul.pretest.pretestSettings?.[0]?.countShownQuestions,
-          modul.isTestComputationalThinking,
+          pretestSelectedIds,
         ),
         timeLimit: pretestTimeLimit,
       }
@@ -251,7 +323,7 @@ export const getStudyRoomDataService = async (
         title: 'Post-Test',
         questions: mapPosttestQuestions(
           modul.posttest,
-          modul.isTestComputationalThinking,
+          posttestSelectedIds,
         ),
         timeLimit: posttestTimeLimit,
       }

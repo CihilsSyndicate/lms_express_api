@@ -9,6 +9,7 @@ import {
   deletePretest,
   updateSoalPretest,
   deleteSoalPretest,
+  deleteAllPretestSoal,
   updatePretestSettings,
 } from './pretest.controller';
 
@@ -23,6 +24,7 @@ pretestRouter.delete('/:id', deletePretest);
 pretestRouter.post('/soal', addSoalPretest);
 pretestRouter.put('/soal/:soalId', updateSoalPretest);
 pretestRouter.delete('/soal/:soalId', deleteSoalPretest);
+pretestRouter.delete('/:pretestId/questions', deleteAllPretestSoal);
 pretestRouter.put('/settings/:pretestId', updatePretestSettings);
 
 export default pretestRouter;

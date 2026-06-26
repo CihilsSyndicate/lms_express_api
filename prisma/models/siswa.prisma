@@ -47,7 +47,9 @@ model Progress {
     isGraduated        Boolean     @default(false)
     progressPercentage Float
 
-    completedContentItems String @default("[]")
+    completedContentItems     String @default("[]")
+    pretestAssignedQuestions  String @default("[]")
+    posttestAssignedQuestions String @default("[]")
 
     lastAccessed DateTime @updatedAt
     createdAt    DateTime @default(now())

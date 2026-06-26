@@ -11,6 +11,7 @@ import {
   updatePretestQuestion,
   deletePretestQuestion,
   upsertPretestSettings,
+  deleteAllPretestQuestions,
 } from '@/utils/pretest';
 import { parsePaginationQuery } from '@/utils/pagination';
 
@@ -24,6 +25,7 @@ type PretestAction =
   | 'delete'
   | 'updateSoal'
   | 'deleteSoal'
+  | 'deleteAllSoal'
   | 'updateSettings'
   | 'submit';
 
@@ -159,6 +161,16 @@ export const updateTutorPretestSettings = async (
   }
 };
 
+export const deleteAllPretestSoal = async (req: Request, res: Response) => {
+  try {
+    const { pretestId } = req.params;
+    await deleteAllPretestQuestions(pretestId as string, req.user?.id);
+    return res.status(200).json({ message: 'Semua soal pretest berhasil dihapus.' });
+  } catch (error) {
+    return handlePretestError(error, res, 'deleteAllSoal');
+  }
+};
+
 export const submitPretest = async (req: Request, res: Response) => {
   return res.status(403).json({
     message: 'Tutor tidak memiliki akses untuk submit pretest.',
@@ -193,6 +205,7 @@ function getPretestLogMessage(action: PretestAction) {
     delete: '[PRETEST-ERROR] Gagal menghapus pretest:',
     updateSoal: '[PRETEST-ERROR] Gagal mengupdate soal pretest:',
     deleteSoal: '[PRETEST-ERROR] Gagal menghapus soal pretest:',
+    deleteAllSoal: '[PRETEST-ERROR] Gagal menghapus semua soal pretest:',
     updateSettings: '[PRETEST-ERROR] Gagal mengupdate settings pretest:',
     submit: '[PRETEST-ERROR] Gagal submit pretest:',
   };
@@ -211,6 +224,7 @@ function getPretestInternalMessage(action: PretestAction) {
     delete: 'Internal server error saat menghapus pretest.',
     updateSoal: 'Internal server error saat mengupdate soal pretest.',
     deleteSoal: 'Internal server error saat menghapus soal pretest.',
+    deleteAllSoal: 'Internal server error saat menghapus semua soal pretest.',
     updateSettings: 'Internal server error saat mengupdate settings pretest.',
     submit: 'Internal server error saat submit pretest.',
   };

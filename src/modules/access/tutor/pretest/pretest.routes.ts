@@ -9,6 +9,7 @@ import {
   deleteTutorPretest,
   updateSoalPretest,
   deleteSoalPretest,
+  deleteAllPretestSoal,
   updateTutorPretestSettings,
 } from './pretest.controller';
 import {
@@ -29,6 +30,7 @@ pretestRouter.delete('/:id', deleteTutorPretest);
 pretestRouter.post('/soal', addSoalPretest);
 pretestRouter.put('/soal/:soalId', updateSoalPretest);
 pretestRouter.delete('/soal/:soalId', deleteSoalPretest);
+pretestRouter.delete('/:pretestId/questions', deleteAllPretestSoal);
 pretestRouter.put('/settings/:pretestId', updateTutorPretestSettings);
 pretestRouter.get('/:pretestId/access-rules', listAksesMateri);
 pretestRouter.post('/:pretestId/access-rules', addAksesMateri);

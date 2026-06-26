@@ -11,6 +11,7 @@ import {
   updatePosttestQuestion,
   deletePosttestQuestion,
   upsertPosttestSettings,
+  deleteAllPosttestQuestions,
 } from '@/utils/posttest';
 import { parsePaginationQuery } from '@/utils/pagination';
 
@@ -24,6 +25,7 @@ type PosttestAction =
   | 'delete'
   | 'updateSoal'
   | 'deleteSoal'
+  | 'deleteAllSoal'
   | 'submit'
   | 'updateSettings';
 
@@ -141,6 +143,16 @@ export const deleteSoalPosttest = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteAllPosttestSoal = async (req: Request, res: Response) => {
+  try {
+    const { posttestId } = req.params;
+    await deleteAllPosttestQuestions(posttestId as string, req.user?.id);
+    return res.status(200).json({ message: 'Semua soal posttest berhasil dihapus.' });
+  } catch (error) {
+    return handlePosttestError(error, res, 'deleteAllSoal');
+  }
+};
+
 export const submitPosttest = async (req: Request, res: Response) => {
   return res.status(403).json({
     message: 'Tutor tidak memiliki akses untuk submit posttest.',
@@ -192,6 +204,7 @@ function getPosttestLogMessage(action: PosttestAction) {
     delete: '[POSTTEST-ERROR] Gagal menghapus posttest:',
     updateSoal: '[POSTTEST-ERROR] Gagal mengupdate soal posttest:',
     deleteSoal: '[POSTTEST-ERROR] Gagal menghapus soal posttest:',
+    deleteAllSoal: '[POSTTEST-ERROR] Gagal menghapus semua soal posttest:',
     submit: '[POSTTEST-ERROR] Gagal submit posttest:',
     updateSettings: '[POSTTEST-ERROR] Gagal update pengaturan posttest:',
   };
@@ -210,6 +223,7 @@ function getPosttestInternalMessage(action: PosttestAction) {
     delete: 'Internal server error saat menghapus posttest.',
     updateSoal: 'Internal server error saat mengupdate soal posttest.',
     deleteSoal: 'Internal server error saat menghapus soal posttest.',
+    deleteAllSoal: 'Internal server error saat menghapus semua soal posttest.',
     submit: 'Internal server error saat submit posttest.',
     updateSettings: 'Internal server error saat update pengaturan posttest.',
   };

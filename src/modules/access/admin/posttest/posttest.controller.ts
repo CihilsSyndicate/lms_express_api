@@ -11,6 +11,7 @@ import {
   updatePosttestQuestion,
   deletePosttestQuestion,
   upsertPosttestSettings,
+  deleteAllPosttestQuestions,
 } from '@/utils/posttest';
 import { parsePaginationQuery } from '@/utils/pagination';
 
@@ -23,7 +24,8 @@ type AdminPosttestAction =
   | 'update'
   | 'delete'
   | 'updateSoal'
-  | 'deleteSoal';
+  | 'deleteSoal'
+  | 'deleteAllSoal';
 
 export const createPosttest = async (req: Request, res: Response) => {
   try {
@@ -122,6 +124,16 @@ export const updatePosttestSettings = async (req: Request, res: Response) => {
     return res.status(200).json(payload);
   } catch (error) {
     return handleError(error, res, 'deleteSoal');
+  }
+};
+
+export const deleteAllPosttestSoal = async (req: Request, res: Response) => {
+  try {
+    const { posttestId } = req.params;
+    await deleteAllPosttestQuestions(posttestId as string);
+    return res.status(200).json({ message: 'Semua soal posttest berhasil dihapus.' });
+  } catch (error) {
+    return handleError(error, res, 'deleteAllSoal');
   }
 };
 

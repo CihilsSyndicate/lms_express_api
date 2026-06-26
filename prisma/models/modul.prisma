@@ -172,11 +172,12 @@ model Posttest {
 }
 
 model PosttestSetting {
-    id         String   @id @default(cuid())
-    posttestId String
-    posttest   Posttest @relation(fields: [posttestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    duration   Int      // dalam menit — dikonversi ke detik di study-room
-    createdAt  DateTime @default(now())
+    id                  String   @id @default(cuid())
+    posttestId          String
+    posttest            Posttest @relation(fields: [posttestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    duration            Int      // dalam menit — dikonversi ke detik di study-room
+    countShownQuestions Int      @default(0)
+    createdAt           DateTime @default(now())
 }
 
 model SoalPretest {

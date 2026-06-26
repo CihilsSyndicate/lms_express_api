@@ -432,3 +432,19 @@ export const upsertPretestSettings = async (
     },
   });
 };
+
+export const deleteAllPretestQuestions = async (
+  pretestId: string,
+  tutorId?: string,
+) => {
+  const pretest = await prisma.pretest.findUnique({
+    where: { id: pretestId },
+    include: { modul: true },
+  });
+  if (!pretest) throw new AppError(404, 'Pretest tidak ditemukan.');
+  if (tutorId && pretest.modul?.tutorId !== tutorId) throw new AppError(403, 'Akses ditolak.');
+
+  await prisma.soalPretest.deleteMany({ where: { pretestId } });
+
+  console.log(`[PRETEST] Semua soal pretest dihapus: ${pretestId}`);
+};

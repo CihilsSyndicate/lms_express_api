@@ -334,7 +334,7 @@ export const deletePosttestQuestion = async (
 
 export const upsertPosttestSettings = async (
   posttestId: string,
-  data: { duration: number },
+  data: { duration: number; countShownQuestions?: number },
   tutorId?: string,
 ) => {
   const posttest = await prisma.posttest.findUnique({
@@ -349,6 +349,22 @@ export const upsertPosttestSettings = async (
     return prisma.posttestSetting.update({ where: { id: existing.id }, data });
   }
   return prisma.posttestSetting.create({
-    data: { posttestId, duration: data.duration },
+    data: { posttestId, duration: data.duration, countShownQuestions: data.countShownQuestions ?? 0 },
   });
+};
+
+export const deleteAllPosttestQuestions = async (
+  posttestId: string,
+  tutorId?: string,
+) => {
+  const posttest = await prisma.posttest.findUnique({
+    where: { id: posttestId },
+    include: { modul: true },
+  });
+  if (!posttest) throw new AppError(404, 'Posttest tidak ditemukan.');
+  if (tutorId && posttest.modul?.tutorId !== tutorId) throw new AppError(403, 'Akses ditolak.');
+
+  await prisma.soalPosttest.deleteMany({ where: { posttestId } });
+
+  console.log(`[POSTTEST] Semua soal posttest dihapus: ${posttestId}`);
 };

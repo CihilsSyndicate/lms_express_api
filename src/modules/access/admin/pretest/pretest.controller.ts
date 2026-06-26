@@ -11,6 +11,7 @@ import {
   updatePretestQuestion,
   deletePretestQuestion,
   upsertPretestSettings,
+  deleteAllPretestQuestions,
 } from '@/utils/pretest';
 import { parsePaginationQuery } from '@/utils/pagination';
 
@@ -24,6 +25,7 @@ type AdminPretestAction =
   | 'delete'
   | 'updateSoal'
   | 'deleteSoal'
+  | 'deleteAllSoal'
   | 'updateSettings';
 
 export const createPretest = async (req: Request, res: Response) => {
@@ -127,6 +129,16 @@ export const updatePretestSettings = async (req: Request, res: Response) => {
     return res.status(200).json(payload);
   } catch (error) {
     return handleError(error, res, 'updateSettings');
+  }
+};
+
+export const deleteAllPretestSoal = async (req: Request, res: Response) => {
+  try {
+    const { pretestId } = req.params;
+    await deleteAllPretestQuestions(pretestId as string);
+    return res.status(200).json({ message: 'Semua soal pretest berhasil dihapus.' });
+  } catch (error) {
+    return handleError(error, res, 'deleteAllSoal');
   }
 };
 
