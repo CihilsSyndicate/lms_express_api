@@ -118,6 +118,9 @@ model Quiz {
 
     correctAnswer String
     skor          Int    @default(10)
+    ctGroupId     String?
+    ctStory       String?  @db.Text
+    ctAspect      String?
 
     quizAnswerOptions QuizAnswerOption[]
     quizSettings      QuizSetting[]

@@ -9,6 +9,9 @@ export const quizSchema = z.object({
   question: z.string(),
   correctAnswer: z.string(),
   skor: z.number().int().default(10),
+  ctGroupId: z.string().optional().nullable(),
+  ctStory: z.string().optional().nullable(),
+  ctAspect: z.string().optional().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

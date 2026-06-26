@@ -21,6 +21,9 @@ export const createQuiz = async (payload: QuizPayload) => {
       data: {
         ...quiz,
         quizImgQuestionUrl: quiz.quizImgQuestionUrl ?? null,
+        ctGroupId: quiz.ctGroupId ?? null,
+        ctStory: quiz.ctStory ?? null,
+        ctAspect: quiz.ctAspect ?? null,
         quizAnswerOptions: {
           createMany: { data: answerOptions },
         },
@@ -132,6 +135,9 @@ export const createQuizWithTransaction = async (payload: CreateQuizTxInput) => {
         topikId: quiz.topikId,
         quizType: quiz.quizType ?? 'REGULER',
         quizImgQuestionUrl: quiz.quizImgQuestionUrl ?? null,
+        ctGroupId: quiz.ctGroupId ?? null,
+        ctStory: quiz.ctStory ?? null,
+        ctAspect: quiz.ctAspect ?? null,
         question: quiz.question,
         correctAnswer: quiz.correctAnswer,
         skor: quiz.skor,
@@ -177,6 +183,9 @@ export const updateQuizWithTransaction = async (
     skor?: number | undefined;
     quizType?: 'REGULER' | 'COMPUTATIONAL_THINKING' | undefined;
     quizImgQuestionUrl?: string | null | undefined;
+    ctGroupId?: string | null | undefined;
+    ctStory?: string | null | undefined;
+    ctAspect?: string | null | undefined;
     answerOptions?: { option: string }[] | undefined;
     setting?:
       | {
@@ -196,6 +205,9 @@ export const updateQuizWithTransaction = async (
     if (payload.skor !== undefined) updateData.skor = payload.skor;
     if (payload.quizType !== undefined) updateData.quizType = payload.quizType;
     if (payload.quizImgQuestionUrl !== undefined) updateData.quizImgQuestionUrl = payload.quizImgQuestionUrl;
+    if (payload.ctGroupId !== undefined) updateData.ctGroupId = payload.ctGroupId;
+    if (payload.ctStory !== undefined) updateData.ctStory = payload.ctStory;
+    if (payload.ctAspect !== undefined) updateData.ctAspect = payload.ctAspect;
 
     if (Object.keys(updateData).length > 0) {
       await tx.quiz.update({
