@@ -199,3 +199,39 @@ export const getSignedUrl = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * GET /upload/signature?fileType=<UploadFileType>
+ *
+ * Men-generate signature untuk Cloudinary direct upload dari frontend.
+ */
+export const getUploadSignature = async (req: Request, res: Response) => {
+  try {
+    const fileType = (req.query.fileType as UploadFileType) || UploadFileType.MODULE_IMAGE;
+    const config = fileTypeConfig[fileType] || { folder: 'lms/misc', resourceType: 'auto' };
+    const folder = config.folder;
+
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const signature = cloudinary.utils.api_sign_request(
+      {
+        timestamp,
+        folder,
+      },
+      process.env.CLOUDINARY_API_SECRET!
+    );
+
+    return res.status(200).json({
+      timestamp,
+      signature,
+      folder,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+    });
+  } catch (error: any) {
+    console.error('[SIGNATURE-ERROR]', error?.message);
+    return res.status(500).json({
+      message: 'Gagal membuat upload signature.',
+      detail: error?.message ?? String(error),
+    });
+  }
+};

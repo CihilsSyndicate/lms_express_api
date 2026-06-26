@@ -31,5 +31,6 @@ const upload = multer({
 uploadRouter.post('/', verifyToken, upload.single('file'), uploadFile);
 uploadRouter.get('/signature', verifyToken, getUploadSignature);
 uploadRouter.get('/signed-url', verifyToken, getSignedUrl);
+uploadRouter.get('/signature', verifyToken, getUploadSignature);
 
 export default uploadRouter;
