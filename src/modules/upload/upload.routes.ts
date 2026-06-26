@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { verifyToken } from '@/lib/auth';
 import multer from 'multer';
-import { uploadFile, getSignedUrl } from './upload.controller';
+import { uploadFile, getSignedUrl, getUploadSignature } from './upload.controller';
 
 const uploadRouter = Router();
 const upload = multer({
@@ -29,6 +29,7 @@ const upload = multer({
 });
 
 uploadRouter.post('/', verifyToken, upload.single('file'), uploadFile);
+uploadRouter.get('/signature', verifyToken, getUploadSignature);
 uploadRouter.get('/signed-url', verifyToken, getSignedUrl);
 
 export default uploadRouter;

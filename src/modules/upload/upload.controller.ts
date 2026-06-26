@@ -105,6 +105,39 @@ export const uploadFile = async (req: Request, res: Response) => {
  * oleh Cloudinary Strict Transformations atau Restricted Media Access.
  * Signed URL memiliki signature s--xxx-- yang di-accept Cloudinary.
  */
+export const getUploadSignature = async (req: Request, res: Response) => {
+  try {
+    const fileType =
+      (req.query.fileType as UploadFileType) || UploadFileType.MODULE_IMAGE;
+    const config = fileTypeConfig[fileType];
+    const folder = config?.folder ?? 'lms/misc';
+    const resourceType = config?.resourceType ?? 'auto';
+
+    const timestamp = Math.round(Date.now() / 1000);
+    const params: Record<string, unknown> = { timestamp, folder };
+
+    const signature = cloudinary.utils.api_sign_request(
+      params,
+      process.env.CLOUDINARY_API_SECRET!,
+    );
+
+    return res.status(200).json({
+      signature,
+      timestamp,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      folder,
+      resourceType,
+    });
+  } catch (error: any) {
+    console.error('[UPLOAD-SIGNATURE-ERROR]', error?.message);
+    return res.status(500).json({
+      message: 'Gagal membuat signature upload.',
+      detail: error?.message ?? String(error),
+    });
+  }
+};
+
 export const getSignedUrl = async (req: Request, res: Response) => {
   try {
     const rawUrl = req.query.url as string | undefined;
