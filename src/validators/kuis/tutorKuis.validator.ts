@@ -8,6 +8,9 @@ export const tutorQuizSchema = z.object({
     question: z.string().min(1),
     correctAnswer: z.string().min(1),
     skor: z.number().int().default(10),
+    ctGroupId: z.string().nullable().optional(),
+    ctStory: z.string().nullable().optional(),
+    ctAspect: z.string().nullable().optional(),
   }),
   answerOptions: z
     .array(
@@ -31,6 +34,9 @@ export const tutorQuizUpdateSchema = z.object({
   skor: z.number().int().optional(),
   quizType: z.enum(['REGULER', 'COMPUTATIONAL_THINKING']).optional(),
   quizImgQuestionUrl: z.string().nullable().optional(),
+  ctGroupId: z.string().nullable().optional(),
+  ctStory: z.string().nullable().optional(),
+  ctAspect: z.string().nullable().optional(),
   answerOptions: z
     .array(z.object({ option: z.string().min(1) }))
     .optional(),
