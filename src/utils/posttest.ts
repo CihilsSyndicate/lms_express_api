@@ -97,6 +97,19 @@ export const addPosttestQuestion = async (
     },
   });
 
+  const existingSettings = await prisma.posttestSetting.findFirst({
+    where: { posttestId: payload.posttest_id },
+  });
+  if (!existingSettings) {
+    await prisma.posttestSetting.create({
+      data: {
+        posttestId: payload.posttest_id,
+        duration: 90,
+        countShownQuestions: 0,
+      },
+    });
+  }
+
   console.log(`[POSTTEST] Soal posttest ditambah: ${newSoal.id}`);
 
   return newSoal;
@@ -346,11 +359,21 @@ export const upsertPosttestSettings = async (
 
   const existing = await prisma.posttestSetting.findFirst({ where: { posttestId } });
   if (existing) {
-    return prisma.posttestSetting.update({ where: { id: existing.id }, data });
+    const updated = await prisma.posttestSetting.update({ where: { id: existing.id }, data });
+
+    if (data.countShownQuestions !== undefined && posttest.modul) {
+      await prisma.progress.updateMany({
+        where: { modulId: posttest.modul.id, posttestCompleted: false },
+        data: { posttestAssignedQuestions: '[]' },
+      });
+    }
+
+    return updated;
   }
-  return prisma.posttestSetting.create({
+  const created = await prisma.posttestSetting.create({
     data: { posttestId, duration: data.duration, countShownQuestions: data.countShownQuestions ?? 0 },
   });
+  return created;
 };
 
 export const deleteAllPosttestQuestions = async (

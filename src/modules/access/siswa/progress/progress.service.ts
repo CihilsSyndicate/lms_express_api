@@ -176,17 +176,6 @@ export const markMateriCompletedService = async (
     include: { modul: true },
   });
 
-  // console.log(progress);
-  // if (progress) {
-  //   await pushNotification(
-  //     siswaId,
-  //     'progress',
-  //     'Progres Modul',
-  //     `Progres Anda "${progress.modul?.moduleName}" mencapai ${progress.progressPercentage.toFixed(0)}%.`,
-  //     { modulId, progressPercentage: progress.progressPercentage },
-  //   );
-  // }
-
   return { message: 'Materi berhasil ditandai selesai.', progress };
 };
 
@@ -225,6 +214,33 @@ export const markItemCompletedService = async (
     });
   }
 
+  // If marking a QUIZ item, also mark all sibling quizzes in the same QuizGroup
+  if (itemType.toUpperCase() === 'QUIZ') {
+    try {
+      const quizRecord = await prisma.quiz.findUnique({
+        where: { id: itemId },
+        select: { quizGroupId: true },
+      });
+      if (quizRecord?.quizGroupId) {
+        const siblingQuizzes = await prisma.quiz.findMany({
+          where: { quizGroupId: quizRecord.quizGroupId, id: { not: itemId } },
+          select: { id: true },
+        });
+        for (const sq of siblingQuizzes) {
+          if (!completedItems.some((e) => e.itemId === sq.id)) {
+            completedItems.push({
+              itemId: sq.id,
+              itemType: 'QUIZ',
+              completedAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error marking sibling quizzes:', err);
+    }
+  }
+
   const totalSequenceSteps = await getTotalSequenceSteps(modulId);
   const completedCount = completedItems.length;
   const progressPercentage = totalSequenceSteps > 0
@@ -256,7 +272,13 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
   const modul = await prisma.modul.findUnique({
     where: { id: modulId },
     include: {
-      topiks: { include: { topikItems: true } },
+      topiks: {
+        include: {
+          topikItems: true,
+          quizzes: { select: { id: true, quizGroupId: true } },
+          quizGroups: { select: { id: true } },
+        },
+      },
       pretest: true,
       posttest: true,
     },
@@ -268,21 +290,30 @@ async function getTotalSequenceSteps(modulId: string): Promise<number> {
 
   if (modul.pretest) count += 1;
 
+  // Track quiz groups to count each group as 1 step
+  const countedQuizGroups = new Set<string>();
+
   for (const topik of modul.topiks) {
     for (const ti of topik.topikItems) {
-      if (ti.itemType === 'MATERI' || ti.itemType === 'QUIZ' || ti.itemType === 'RANGKUMAN_TOPIK') {
+      if (ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK') {
         count += 1;
+      } else if (ti.itemType === 'QUIZ') {
+        const quiz = topik.quizzes.find((q: any) => q.id === ti.itemId);
+        if (quiz?.quizGroupId) {
+          if (!countedQuizGroups.has(quiz.quizGroupId)) {
+            countedQuizGroups.add(quiz.quizGroupId);
+            count += 1;
+          }
+        } else {
+          count += 1;
+        }
       }
     }
-    // topik rangkuman (summary) is client-side only — not submitted
   }
 
-  // rangkumanAkhir is client-side only — not submitted
+  if (modul.rangkumanAkhir) count += 1;
 
   if (modul.posttest) count += 1;
-
-  count += 1; // rating
-  if (modul.hasCertificate) count += 1;
 
   return Math.max(count, 1);
 }
@@ -305,45 +336,34 @@ export const isMateriCompletedService = async (
 };
 
 /**
- * Hitung skor pretest.
+ * Submit jawaban pretest dan hitung skor.
  */
 export const calculatePretestScoreService = async (
   siswaId: string,
   modulId: string,
-  answers: { questionId: string; answer: string }[],
+  answers: Array<{ questionId: string; answer: string }>,
   timeSpent?: number,
-): Promise<{ score: number; totalBenar: number; totalSalah: number; unlockedCount: number }> => {
+): Promise<{
+  score: number;
+  totalBenar: number;
+  totalSalah: number;
+  unlockedCount: number;
+}> => {
   const pretest = await prisma.pretest.findFirst({
-    where: {
-      modul: {
-        id: modulId,
-      },
-    },
+    where: { modul: { id: modulId } },
     include: { pretestQuestions: true, pretestSettings: true },
   });
 
-  if (!pretest) return { score: 0, totalBenar: 0, totalSalah: 0 };
+  if (!pretest) throw new Error('Pretest tidak ditemukan');
 
-  // Reject duplicate submission — pretest is one-shot
-  const existingProgress = await prisma.progress.findUnique({
-    where: { siswaId_modulId: { siswaId, modulId } },
-    select: { pretestCompleted: true },
-  });
-  if (existingProgress?.pretestCompleted) {
-    throw new Error('Pretest sudah dikerjakan dan tidak dapat diulang');
-  }
-
-  // Server-side time validation — reject submissions that exceed duration + 30s
-  const setting = pretest.pretestSettings?.[0];
-  if (setting && timeSpent != null && timeSpent > setting.duration + 30) {
-    throw new Error('Waktu pengerjaan telah habis');
-  }
+  // Initialize progress
+  await initializeProgressService(siswaId, modulId);
 
   let totalRawScore = 0;
   let maxRawScore = 0;
   let totalBenar = 0;
   let totalSalah = 0;
-  const answerLogs: { questionId: string; isCorrect: boolean }[] = [];
+  const answerLogs: Array<{ questionId: string; isCorrect: boolean }> = [];
 
   for (const answer of answers) {
     const question = pretest.pretestQuestions.find(
@@ -351,7 +371,6 @@ export const calculatePretestScoreService = async (
     );
     if (question) {
       const isCorrect = question.correctAnswer === answer.answer;
-      // accumulate raw scores
       maxRawScore += question.skor;
       if (isCorrect) {
         totalRawScore += question.skor;
@@ -450,45 +469,50 @@ export const calculatePretestScoreService = async (
   }
 
   if (changed) {
+    const totalSequenceSteps = await getTotalSequenceSteps(modulId);
+    const progressPercentage = totalSequenceSteps > 0
+      ? Math.min(100, Math.round((completedItems.length / totalSequenceSteps) * 100))
+      : 0;
     await prisma.progress.updateMany({
       where: { siswaId, modulId },
-      data: { completedContentItems: JSON.stringify(completedItems) },
+      data: { completedContentItems: JSON.stringify(completedItems), progressPercentage },
     });
   }
+
+  // Sync summary
+  await bktService.syncModuleProgressSummary(siswaId, modulId);
+
+  const updatedProg = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    select: { isGraduated: true },
+  });
 
   return { score: totalScore, totalBenar, totalSalah, unlockedCount };
 };
 
 /**
- * Hitung skor posttest.
+ * Submit jawaban posttest dan hitung skor.
  */
 export const calculatePosttestScoreService = async (
   siswaId: string,
   modulId: string,
-  answers: { questionId: string; answer: string }[],
+  answers: Array<{ questionId: string; answer: string }>,
   timeSpent?: number,
-): Promise<{ score: number; totalBenar: number; totalSalah: number; isGraduated: boolean }> => {
+): Promise<{
+  score: number;
+  totalBenar: number;
+  totalSalah: number;
+  isGraduated: boolean;
+}> => {
   const posttest = await prisma.posttest.findFirst({
     where: { modul: { id: modulId } },
     include: { soals: true, posttestSettings: true },
   });
 
-  if (!posttest) return { score: 0, totalBenar: 0, totalSalah: 0, isGraduated: false };
+  if (!posttest) throw new Error('Posttest tidak ditemukan');
 
-  // Reject duplicate submission — posttest is one-shot
-  const existingProgress = await prisma.progress.findUnique({
-    where: { siswaId_modulId: { siswaId, modulId } },
-    select: { posttestCompleted: true },
-  });
-  if (existingProgress?.posttestCompleted) {
-    throw new Error('Posttest sudah dikerjakan dan tidak dapat diulang');
-  }
-
-  // Server-side time validation — reject submissions that exceed duration + 30s
-  const posttestSetting = posttest.posttestSettings?.[0];
-  if (posttestSetting && timeSpent != null && timeSpent > posttestSetting.duration + 30) {
-    throw new Error('Waktu pengerjaan telah habis');
-  }
+  // Initialize progress
+  await initializeProgressService(siswaId, modulId);
 
   let totalRawScore = 0;
   let maxRawScore = 0;
@@ -540,6 +564,29 @@ export const calculatePosttestScoreService = async (
 
   // Sync summary (sets isGraduated based on finalScore)
   await bktService.syncModuleProgressSummary(siswaId, modulId);
+
+  // Add posttest to completedContentItems
+  const posttestProgress = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    select: { completedContentItems: true },
+  });
+  const posttestCompletedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
+    try {
+      const parsed = JSON.parse(posttestProgress?.completedContentItems || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+  if (!posttestCompletedItems.some((e) => e.itemId === 'posttest')) {
+    posttestCompletedItems.push({ itemId: 'posttest', itemType: 'POSTTEST', completedAt: new Date().toISOString() });
+    const totalSequenceSteps = await getTotalSequenceSteps(modulId);
+    const progressPercentage = totalSequenceSteps > 0 ? Math.min(100, Math.round((posttestCompletedItems.length / totalSequenceSteps) * 100)) : 0;
+    await prisma.progress.updateMany({
+      where: { siswaId, modulId },
+      data: { completedContentItems: JSON.stringify(posttestCompletedItems), progressPercentage },
+    });
+  }
 
   const updatedProg = await prisma.progress.findUnique({
     where: { siswaId_modulId: { siswaId, modulId } },

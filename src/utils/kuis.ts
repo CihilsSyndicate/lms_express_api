@@ -10,6 +10,7 @@ import {
   buildCursorWhere,
   decodeCursor,
 } from './pagination';
+import { CreateQuizGroupInput } from '@/validators/kuis/quizGroup.validator';
 
 export const createQuiz = async (payload: QuizPayload) => {
   try {
@@ -20,10 +21,12 @@ export const createQuiz = async (payload: QuizPayload) => {
     const newQuiz = await prisma.quiz.create({
       data: {
         ...quiz,
+        judul: quiz.judul ?? null,
         quizImgQuestionUrl: quiz.quizImgQuestionUrl ?? null,
         ctGroupId: quiz.ctGroupId ?? null,
         ctStory: quiz.ctStory ?? null,
         ctAspect: quiz.ctAspect ?? null,
+        quizGroupId: quiz.quizGroupId ?? null,
         quizAnswerOptions: {
           createMany: { data: answerOptions },
         },
@@ -110,6 +113,7 @@ export const updateQuiz = async (quizId: string, payload: CreateQuizInput) => {
       where: { id: quizId },
       data: {
         ...payload,
+        judul: payload.judul ?? null,
         quizImgQuestionUrl: payload.quizImgQuestionUrl ?? null,
       },
     });
@@ -138,9 +142,11 @@ export const createQuizWithTransaction = async (payload: CreateQuizTxInput) => {
         ctGroupId: quiz.ctGroupId ?? null,
         ctStory: quiz.ctStory ?? null,
         ctAspect: quiz.ctAspect ?? null,
+        judul: quiz.judul ?? null,
         question: quiz.question,
         correctAnswer: quiz.correctAnswer,
         skor: quiz.skor,
+        quizGroupId: quiz.quizGroupId ?? null,
       },
     });
 
@@ -181,11 +187,13 @@ export const updateQuizWithTransaction = async (
     question?: string | undefined;
     correctAnswer?: string | undefined;
     skor?: number | undefined;
+    judul?: string | null | undefined;
     quizType?: 'REGULER' | 'COMPUTATIONAL_THINKING' | undefined;
     quizImgQuestionUrl?: string | null | undefined;
     ctGroupId?: string | null | undefined;
     ctStory?: string | null | undefined;
     ctAspect?: string | null | undefined;
+    quizGroupId?: string | null | undefined;
     answerOptions?: { option: string }[] | undefined;
     setting?:
       | {
@@ -203,11 +211,13 @@ export const updateQuizWithTransaction = async (
     if (payload.question !== undefined) updateData.question = payload.question;
     if (payload.correctAnswer !== undefined) updateData.correctAnswer = payload.correctAnswer;
     if (payload.skor !== undefined) updateData.skor = payload.skor;
+    if (payload.judul !== undefined) updateData.judul = payload.judul;
     if (payload.quizType !== undefined) updateData.quizType = payload.quizType;
     if (payload.quizImgQuestionUrl !== undefined) updateData.quizImgQuestionUrl = payload.quizImgQuestionUrl;
     if (payload.ctGroupId !== undefined) updateData.ctGroupId = payload.ctGroupId;
     if (payload.ctStory !== undefined) updateData.ctStory = payload.ctStory;
     if (payload.ctAspect !== undefined) updateData.ctAspect = payload.ctAspect;
+    if (payload.quizGroupId !== undefined) updateData.quizGroupId = payload.quizGroupId;
 
     if (Object.keys(updateData).length > 0) {
       await tx.quiz.update({
@@ -254,6 +264,87 @@ export const deleteQuiz = async (quizId: string) => {
     return { message: 'Quiz deleted successfully' };
   } catch (error) {
     console.error('Error deleting quiz:', error);
+    throw error;
+  }
+};
+
+// --- QuizGroup CRUD ---
+
+export const createQuizGroupRecord = async (payload: CreateQuizGroupInput) => {
+  try {
+    const newGroup = await prisma.quizGroup.create({
+      data: {
+        topikId: payload.topikId,
+        nama: payload.nama,
+        quizType: payload.quizType ?? 'REGULER',
+      },
+    });
+    return newGroup;
+  } catch (error) {
+    console.error('Error creating quiz group:', error);
+    throw error;
+  }
+};
+
+export const updateQuizGroupRecord = async (
+  groupId: string,
+  payload: Partial<CreateQuizGroupInput>,
+) => {
+  try {
+    const updated = await prisma.quizGroup.update({
+      where: { id: groupId },
+      data: {
+        ...(payload.nama !== undefined && { nama: payload.nama }),
+        ...(payload.quizType !== undefined && { quizType: payload.quizType }),
+      },
+    });
+    return updated;
+  } catch (error) {
+    console.error('Error updating quiz group:', error);
+    throw error;
+  }
+};
+
+export const deleteQuizGroup = async (groupId: string) => {
+  try {
+    // First unlink all quizzes in this group
+    await prisma.quiz.updateMany({
+      where: { quizGroupId: groupId },
+      data: { quizGroupId: null },
+    });
+    // Then delete the group itself (quizzes remain, just ungrouped)
+    await prisma.quizGroup.delete({
+      where: { id: groupId },
+    });
+    return { message: 'Quiz group deleted successfully' };
+  } catch (error) {
+    console.error('Error deleting quiz group:', error);
+    throw error;
+  }
+};
+
+export const getQuizGroupById = async (groupId: string) => {
+  try {
+    const group = await prisma.quizGroup.findUnique({
+      where: { id: groupId },
+      include: { quizzes: true },
+    });
+    return group;
+  } catch (error) {
+    console.error('Error fetching quiz group:', error);
+    throw error;
+  }
+};
+
+export const getQuizGroupsByTopik = async (topikId: string) => {
+  try {
+    const groups = await prisma.quizGroup.findMany({
+      where: { topikId },
+      include: { quizzes: true },
+    });
+    return groups;
+  } catch (error) {
+    console.error('Error fetching quiz groups:', error);
     throw error;
   }
 };

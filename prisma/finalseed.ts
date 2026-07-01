@@ -15,24 +15,40 @@ async function main() {
   // =====================================================
   console.log('Cleaning previous test data...');
 
-  const existingSiswa = await prisma.siswa.findUnique({ where: { email: TEST_EMAILS.siswa } });
+  const existingSiswa = await prisma.siswa.findUnique({
+    where: { email: TEST_EMAILS.siswa },
+  });
   if (existingSiswa) {
-    await prisma.certificate.deleteMany({ where: { siswaId: existingSiswa.id } });
+    await prisma.certificate.deleteMany({
+      where: { siswaId: existingSiswa.id },
+    });
     await prisma.rating.deleteMany({ where: { siswaId: existingSiswa.id } });
-    await prisma.studentKnowledgeState.deleteMany({ where: { siswaId: existingSiswa.id } });
-    await prisma.studentAnswerLog.deleteMany({ where: { siswaId: existingSiswa.id } });
-    await prisma.progressDetail.deleteMany({ where: { siswaId: existingSiswa.id } });
+    await prisma.studentKnowledgeState.deleteMany({
+      where: { siswaId: existingSiswa.id },
+    });
+    await prisma.studentAnswerLog.deleteMany({
+      where: { siswaId: existingSiswa.id },
+    });
+    await prisma.progressDetail.deleteMany({
+      where: { siswaId: existingSiswa.id },
+    });
   }
 
-  const existingTutor = await prisma.tutor.findUnique({ where: { email: TEST_EMAILS.tutor } });
+  const existingTutor = await prisma.tutor.findUnique({
+    where: { email: TEST_EMAILS.tutor },
+  });
   if (existingTutor) {
     await prisma.modul.deleteMany({ where: { tutorId: existingTutor.id } });
     await prisma.materi.deleteMany({ where: { tutorId: existingTutor.id } });
     await prisma.rangkuman.deleteMany({ where: { tutorId: existingTutor.id } });
-    await prisma.socialMedia.deleteMany({ where: { tutorId: existingTutor.id } });
+    await prisma.socialMedia.deleteMany({
+      where: { tutorId: existingTutor.id },
+    });
   }
 
-  await prisma.progress.deleteMany({ where: { siswa: { email: TEST_EMAILS.siswa } } });
+  await prisma.progress.deleteMany({
+    where: { siswa: { email: TEST_EMAILS.siswa } },
+  });
   await prisma.siswa.deleteMany({ where: { email: TEST_EMAILS.siswa } });
   await prisma.tutor.deleteMany({ where: { email: TEST_EMAILS.tutor } });
   await prisma.admin.deleteMany({ where: { email: TEST_EMAILS.admin } });
@@ -130,10 +146,25 @@ async function main() {
   console.log('Creating Computational Thinking aspects...');
 
   const ctAspects = [
-    { aspek: 'Decomposition', deskripsi: 'Memecah masalah kompleks menjadi bagian-bagian kecil yang lebih mudah dikelola.' },
-    { aspek: 'Pattern Recognition', deskripsi: 'Mengenali pola dan kesamaan dalam data atau masalah.' },
-    { aspek: 'Abstraction', deskripsi: 'Menyaring informasi penting dan mengabaikan detail yang tidak relevan.' },
-    { aspek: 'Algorithm Design', deskripsi: 'Menyusun langkah-langkah sistematis untuk menyelesaikan masalah.' },
+    {
+      aspek: 'Decomposition',
+      deskripsi:
+        'Memecah masalah kompleks menjadi bagian-bagian kecil yang lebih mudah dikelola.',
+    },
+    {
+      aspek: 'Pattern Recognition',
+      deskripsi: 'Mengenali pola dan kesamaan dalam data atau masalah.',
+    },
+    {
+      aspek: 'Abstraction',
+      deskripsi:
+        'Menyaring informasi penting dan mengabaikan detail yang tidak relevan.',
+    },
+    {
+      aspek: 'Algorithm Design',
+      deskripsi:
+        'Menyusun langkah-langkah sistematis untuk menyelesaikan masalah.',
+    },
   ];
 
   for (const ct of ctAspects) {
@@ -182,12 +213,19 @@ async function main() {
       correctAnswerIdx: 0,
     },
     {
-      pertanyaan: 'Simbol apakah yang digunakan dalam flowchart untuk menunjukkan keputusan/kondisi?',
-      options: ['Persegi panjang', 'Belah ketupat', 'Lingkaran', 'Jajar genjang'],
+      pertanyaan:
+        'Simbol apakah yang digunakan dalam flowchart untuk menunjukkan keputusan/kondisi?',
+      options: [
+        'Persegi panjang',
+        'Belah ketupat',
+        'Lingkaran',
+        'Jajar genjang',
+      ],
       correctAnswerIdx: 1,
     },
     {
-      pertanyaan: 'Struktur data yang menggunakan prinsip LIFO (Last In First Out) adalah...',
+      pertanyaan:
+        'Struktur data yang menggunakan prinsip LIFO (Last In First Out) adalah...',
       options: ['Queue', 'Stack', 'Array', 'Tree'],
       correctAnswerIdx: 1,
     },
@@ -198,7 +236,12 @@ async function main() {
     },
     {
       pertanyaan: 'Manakah yang BUKAN termasuk aspek Computational Thinking?',
-      options: ['Dekomposisi', 'Pengenalan Pola', 'Hardware Configuration', 'Abstraksi'],
+      options: [
+        'Dekomposisi',
+        'Pengenalan Pola',
+        'Hardware Configuration',
+        'Abstraksi',
+      ],
       correctAnswerIdx: 2,
     },
   ];
@@ -240,7 +283,7 @@ async function main() {
   await prisma.posttestSetting.create({
     data: {
       posttestId: posttest.id,
-      duration: 30,
+      duration: 1,
       countShownQuestions: 5,
     },
   });
@@ -287,8 +330,14 @@ async function main() {
       correctAnswer: 'Menggambarkan logika algoritma dalam bahasa manusia',
     },
     {
-      question: 'Algoritma sorting yang memiliki kompleksitas rata-rata O(n log n) adalah...',
-      pilihan: ['Bubble Sort', 'Selection Sort', 'Merge Sort', 'Insertion Sort'],
+      question:
+        'Algoritma sorting yang memiliki kompleksitas rata-rata O(n log n) adalah...',
+      pilihan: [
+        'Bubble Sort',
+        'Selection Sort',
+        'Merge Sort',
+        'Insertion Sort',
+      ],
       correctAnswer: 'Merge Sort',
     },
   ];
@@ -430,7 +479,8 @@ async function main() {
       quizType: 'COMPUTATIONAL_THINKING',
       question:
         'Bu Dewi seorang pengusaha katering ingin mengembangkan usahanya. Ia menulis rencana: (1) riset pasar untuk mengetahui menu favorit pelanggan, (2) menentukan 10 menu andalan berdasarkan riset, (3) mencari 3 pemasok bahan baku terpercaya, (4) membuat jadwal produksi mingguan, (5) melatih 2 orang karyawan baru, (6) menentukan rute pengiriman yang efisien, (7) meluncurkan website pemesanan online.\n\nDengan membagi rencana pengembangan menjadi 7 langkah terpisah, Bu Dewi lebih mudah karena...',
-      correctAnswer: 'Setiap langkah memiliki fokus dan tujuan yang jelas sehingga bisa dikerjakan secara bertahap',
+      correctAnswer:
+        'Setiap langkah memiliki fokus dan tujuan yang jelas sehingga bisa dikerjakan secara bertahap',
       skor: 10,
     },
   });
@@ -466,7 +516,8 @@ async function main() {
       quizType: 'COMPUTATIONAL_THINKING',
       question:
         'Seorang kasir mencatat jumlah pengunjung toko setiap hari selama 4 minggu:\nMinggu 1: Sen(45), Sel(52), Rab(48), Kam(55), Jum(70), Sab(90)\nMinggu 2: Sen(42), Sel(50), Rab(45), Kam(58), Jum(75), Sab(95)\nMinggu 3: Sen(47), Sel(55), Rab(50), Kam(60), Jum(80), Sab(100)\nMinggu 4: Sen(43), Sel(48), Rab(52), Kam(57), Jum(72), Sab(92)\n\nBerdasarkan pola data tersebut, tindakan paling tepat untuk mengantisipasi lonjakan pengunjung adalah...',
-      correctAnswer: 'Menambah stok dan jumlah kasir di hari Jumat dan Sabtu karena akhir pekan selalu lebih ramai',
+      correctAnswer:
+        'Menambah stok dan jumlah kasir di hari Jumat dan Sabtu karena akhir pekan selalu lebih ramai',
       skor: 10,
     },
   });
@@ -502,7 +553,8 @@ async function main() {
       quizType: 'COMPUTATIONAL_THINKING',
       question:
         'Seorang developer diminta membuat fitur pencarian buku untuk perpustakaan yang memiliki 50.000 buku. Setiap buku memiliki 13 atribut data: ISBN, judul, penulis, penerbit, tahun terbit, jumlah halaman, genre, bahasa, nomor rak, status, rating, sinopsis, dan daftar isi.\n\nUntuk keperluan pencarian, developer hanya menggunakan 4 atribut: judul, penulis, genre, dan status. Atribut lainnya seperti sinopsis, daftar isi, dan jumlah halaman tidak digunakan dalam pencarian.\n\nMengapa developer mengambil keputusan tersebut?',
-      correctAnswer: 'Atribut sinopsis, daftar isi, dan jumlah halaman tidak relevan untuk menemukan buku berdasarkan judul atau penulis',
+      correctAnswer:
+        'Atribut sinopsis, daftar isi, dan jumlah halaman tidak relevan untuk menemukan buku berdasarkan judul atau penulis',
       skor: 10,
     },
   });
@@ -538,7 +590,8 @@ async function main() {
       quizType: 'COMPUTATIONAL_THINKING',
       question:
         'Seorang kurir harus mengirimkan 5 paket ke 5 alamat berbeda di satu kota. Ia menyusun langkah-langkah:\n(1) Catat kelima alamat tujuan\n(2) Urutkan alamat berdasarkan jarak dari kantor\n(3) Kunjungi alamat terdekat yang belum dikunjungi\n(4) Ulangi langkah (3) sampai semua paket terkirim\n(5) Kembali ke kantor\n\nKeuntungan utama dari menuliskan langkah berurutan seperti di atas adalah...',
-      correctAnswer: 'Kurir memiliki panduan kerja yang jelas dan prosedur yang konsisten dapat dijalankan setiap hari',
+      correctAnswer:
+        'Kurir memiliki panduan kerja yang jelas dan prosedur yang konsisten dapat dijalankan setiap hari',
       skor: 10,
     },
   });
@@ -570,36 +623,124 @@ async function main() {
   console.log(' Quizzes: 5 records (1 REGULER, 4 COMPUTATIONAL_THINKING)\n');
 
   // =====================================================
+  // QUIZ GROUPS
+  // =====================================================
+  console.log('Creating Quiz Groups...');
+
+  // Quiz Group 1: REGULER (Topik 1)
+  const quizGroup1 = await prisma.quizGroup.create({
+    data: {
+      topikId: topik1.id,
+      nama: 'Kuis Algoritma Dasar',
+      quizType: 'REGULER',
+    },
+  });
+  await prisma.quiz.update({
+    where: { id: quiz1.id },
+    data: { quizGroupId: quizGroup1.id },
+  });
+
+  // Quiz Group 2: COMPUTATIONAL THINKING (Topik 2) — groups quiz2, quiz3, quiz4, quiz5
+  const quizGroup2 = await prisma.quizGroup.create({
+    data: {
+      topikId: topik2.id,
+      nama: 'Kuis Computational Thinking',
+      quizType: 'COMPUTATIONAL_THINKING',
+    },
+  });
+  await prisma.quiz.update({
+    where: { id: quiz2.id },
+    data: { quizGroupId: quizGroup2.id },
+  });
+  await prisma.quiz.update({
+    where: { id: quiz3.id },
+    data: { quizGroupId: quizGroup2.id },
+  });
+  await prisma.quiz.update({
+    where: { id: quiz4.id },
+    data: { quizGroupId: quizGroup2.id },
+  });
+  await prisma.quiz.update({
+    where: { id: quiz5.id },
+    data: { quizGroupId: quizGroup2.id },
+  });
+
+  // =====================================================
   // TOPIK ITEMS
   // =====================================================
   console.log('Creating Topik Items...');
 
   await prisma.topikItem.create({
-    data: { topikId: topik1.id, itemId: m1.id, orderNumber: 1, itemType: 'MATERI' },
+    data: {
+      topikId: topik1.id,
+      itemId: m1.id,
+      orderNumber: 1,
+      itemType: 'MATERI',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik1.id, itemId: m2.id, orderNumber: 2, itemType: 'MATERI' },
+    data: {
+      topikId: topik1.id,
+      itemId: m2.id,
+      orderNumber: 2,
+      itemType: 'MATERI',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik2.id, itemId: m3.id, orderNumber: 1, itemType: 'MATERI' },
+    data: {
+      topikId: topik2.id,
+      itemId: m3.id,
+      orderNumber: 1,
+      itemType: 'MATERI',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik2.id, itemId: m4.id, orderNumber: 2, itemType: 'MATERI' },
+    data: {
+      topikId: topik2.id,
+      itemId: m4.id,
+      orderNumber: 2,
+      itemType: 'MATERI',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik1.id, itemId: quiz1.id, orderNumber: 3, itemType: 'QUIZ' },
+    data: {
+      topikId: topik1.id,
+      itemId: quiz1.id,
+      orderNumber: 3,
+      itemType: 'QUIZ',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik2.id, itemId: quiz2.id, orderNumber: 3, itemType: 'QUIZ' },
+    data: {
+      topikId: topik2.id,
+      itemId: quiz2.id,
+      orderNumber: 3,
+      itemType: 'QUIZ',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik2.id, itemId: quiz3.id, orderNumber: 4, itemType: 'QUIZ' },
+    data: {
+      topikId: topik2.id,
+      itemId: quiz3.id,
+      orderNumber: 4,
+      itemType: 'QUIZ',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik2.id, itemId: quiz4.id, orderNumber: 5, itemType: 'QUIZ' },
+    data: {
+      topikId: topik2.id,
+      itemId: quiz4.id,
+      orderNumber: 5,
+      itemType: 'QUIZ',
+    },
   });
   await prisma.topikItem.create({
-    data: { topikId: topik2.id, itemId: quiz5.id, orderNumber: 6, itemType: 'QUIZ' },
+    data: {
+      topikId: topik2.id,
+      itemId: quiz5.id,
+      orderNumber: 6,
+      itemType: 'QUIZ',
+    },
   });
   console.log(' Topik Items: 9 records\n');
 
@@ -613,7 +754,8 @@ async function main() {
       modulId: modul.id,
       code: 'algoritma_dasar',
       nama: 'Algoritma Dasar',
-      deskripsi: 'Pemahaman tentang konsep dasar algoritma, flowchart, dan pseudocode.',
+      deskripsi:
+        'Pemahaman tentang konsep dasar algoritma, flowchart, dan pseudocode.',
     },
   });
 
@@ -622,7 +764,8 @@ async function main() {
       modulId: modul.id,
       code: 'ct_skills',
       nama: 'Computational Thinking Skills',
-      deskripsi: 'Kemampuan menerapkan dekomposisi, pengenalan pola, abstraksi, dan perancangan algoritma.',
+      deskripsi:
+        'Kemampuan menerapkan dekomposisi, pengenalan pola, abstraksi, dan perancangan algoritma.',
     },
   });
 
@@ -715,11 +858,16 @@ async function main() {
     },
   ]);
 
-  const pretestAssignedQuestions = JSON.stringify(allSoalPretest.map((s) => s.id));
+  const pretestAssignedQuestions = JSON.stringify(
+    allSoalPretest.map((s) => s.id),
+  );
   const posttestAssignedQuestions = JSON.stringify(
-    (await prisma.soalPosttest.findMany({ where: { posttestId: posttest.id }, select: { id: true } })).map(
-      (s) => s.id,
-    ),
+    (
+      await prisma.soalPosttest.findMany({
+        where: { posttestId: posttest.id },
+        select: { id: true },
+      })
+    ).map((s) => s.id),
   );
 
   const progress = await prisma.progress.create({

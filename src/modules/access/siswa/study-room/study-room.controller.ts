@@ -14,12 +14,14 @@ export const getStudyRoomData = async (req: Request, res: Response) => {
       modulId as string,
       siswaId as string,
     );
-    console.log(payload);
     res.status(200).json(payload);
   } catch (error: any) {
     console.error('[STUDY-ROOM-ERROR]', error);
     if (error.message === 'Modul tidak ditemukan') {
       return res.status(404).json({ message: error.message });
+    }
+    if (error.message === 'Anda belum terdaftar di modul ini') {
+      return res.status(403).json({ message: error.message });
     }
     res.status(500).json({
       message: 'Internal server error saat mengambil data study room.',

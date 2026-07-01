@@ -21,7 +21,7 @@ export const createMaterial = async (req: Request, res: Response) => {
     const payload = {
       judul: req.body.title,
       topik_id: req.body.topikId,
-      is_video: req.body.isVideo ?? false,
+      is_video: req.body.isVideo ?? req.body.is_video ?? false,
     };
     const newMaterial = await createMateri(payload as any, req.user?.id, req.user?.role);
 

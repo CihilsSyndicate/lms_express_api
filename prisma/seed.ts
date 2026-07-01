@@ -23,6 +23,7 @@ async function main() {
   await prisma.knowledgeComponent.deleteMany();
   await prisma.quizSetting.deleteMany();
   await prisma.quizAnswerOption.deleteMany();
+  await prisma.quizGroup.deleteMany();
   await prisma.quiz.deleteMany();
   await prisma.topikItem.deleteMany();
   await prisma.materi.deleteMany();
@@ -920,6 +921,30 @@ async function main() {
     });
   }
   console.log('16. QuizSetting: 10 records');
+
+  // =====================================================
+  // 16b. QUIZ GROUP
+  // =====================================================
+  const quizGroups: { id: string; quizId: string }[] = [];
+  for (let i = 0; i < quizzes.length; i++) {
+    const quiz = quizzes[i];
+    const modulTopiks = topiks.filter((t) => t.modulId === moduls[i].id);
+    if (modulTopiks.length > 0) {
+      const group = await prisma.quizGroup.create({
+        data: {
+          topikId: modulTopiks[0].id,
+          nama: `Kuis ${moduls[i].moduleName}`,
+          quizType: 'REGULER',
+        },
+      });
+      await prisma.quiz.update({
+        where: { id: quiz.id },
+        data: { quizGroupId: group.id },
+      });
+      quizGroups.push({ id: group.id, quizId: quiz.id });
+    }
+  }
+  console.log(`16b. QuizGroup: ${quizGroups.length} records`);
 
   // =====================================================
   // 17. KNOWLEDGE COMPONENT

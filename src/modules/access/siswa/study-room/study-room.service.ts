@@ -26,6 +26,8 @@ export interface StudyRoomItem {
   id: string;
   itemType: 'MATERI' | 'QUIZ' | 'RANGKUMAN_TOPIK';
   quizType?: string;
+  ctGroupId?: string | null;
+  ctStory?: string | null;
   judul: string;
   isVideo?: boolean;
   videoUrl?: string | null;
@@ -36,6 +38,7 @@ export interface StudyRoomItem {
   quizImgQuestionUrl?: string | null;
   quizAnswerOptions?: { id: string; option: string }[];
   timeLimit?: number | null;
+  quizGroupId?: string | null;
 }
 
 export interface StudyRoomTopik {
@@ -211,13 +214,7 @@ export const getStudyRoomDataService = async (
   });
 
   if (!progress) {
-    progress = await prisma.progress.create({
-      data: {
-        siswaId,
-        modulId,
-        progressPercentage: 0,
-      },
-    });
+    throw new Error('Anda belum terdaftar di modul ini');
   }
 
   // --- Pretest question assignment ---
@@ -225,20 +222,32 @@ export const getStudyRoomDataService = async (
   const pretestQuestions = modul.pretest?.pretestQuestions ?? [];
   if (modul.pretest && pretestQuestions.length > 0) {
     const stored = parseAssignedQuestions(progress.pretestAssignedQuestions);
-    if (stored.length > 0) {
-      pretestSelectedIds = stored;
-    } else {
-      const countShown = modul.pretest.pretestSettings?.[0]?.countShownQuestions ?? 0;
+    const countShown = modul.pretest.pretestSettings?.[0]?.countShownQuestions ?? 0;
+    const assignFromPool = () => {
       const assigned = assignQuestions(pretestQuestions, countShown);
-      pretestSelectedIds = assigned.map((q: any) => q.id);
-      if (pretestSelectedIds.length > 0) {
-        progress = await prisma.progress.update({
-          where: { id: progress.id },
-          data: {
-            pretestAssignedQuestions: JSON.stringify(pretestSelectedIds),
-          },
-        });
+      return assigned.map((q: any) => q.id);
+    };
+    let needPersist = false;
+    if (stored.length > 0) {
+      const storedValid = stored.filter((id: string) =>
+        pretestQuestions.some((q: any) => q.id === id),
+      );
+      const effectiveCount = countShown > 0 ? countShown : pretestQuestions.length;
+      if (storedValid.length !== stored.length || stored.length !== effectiveCount) {
+        pretestSelectedIds = assignFromPool();
+        needPersist = true;
+      } else {
+        pretestSelectedIds = stored;
       }
+    } else {
+      pretestSelectedIds = assignFromPool();
+      needPersist = true;
+    }
+    if (needPersist && pretestSelectedIds.length > 0) {
+      progress = await prisma.progress.update({
+        where: { id: progress.id },
+        data: { pretestAssignedQuestions: JSON.stringify(pretestSelectedIds) },
+      });
     }
   }
 
@@ -247,20 +256,32 @@ export const getStudyRoomDataService = async (
   const posttestQuestions = modul.posttest?.soals ?? [];
   if (modul.posttest && posttestQuestions.length > 0) {
     const stored = parseAssignedQuestions(progress.posttestAssignedQuestions);
-    if (stored.length > 0) {
-      posttestSelectedIds = stored;
-    } else {
-      const countShown = modul.posttest.posttestSettings?.[0]?.countShownQuestions ?? 0;
+    const countShown = modul.posttest.posttestSettings?.[0]?.countShownQuestions ?? 0;
+    const assignFromPool = () => {
       const assigned = assignQuestions(posttestQuestions, countShown);
-      posttestSelectedIds = assigned.map((q: any) => q.id);
-      if (posttestSelectedIds.length > 0) {
-        progress = await prisma.progress.update({
-          where: { id: progress.id },
-          data: {
-            posttestAssignedQuestions: JSON.stringify(posttestSelectedIds),
-          },
-        });
+      return assigned.map((q: any) => q.id);
+    };
+    let needPersist = false;
+    if (stored.length > 0) {
+      const storedValid = stored.filter((id: string) =>
+        posttestQuestions.some((q: any) => q.id === id),
+      );
+      const effectiveCount = countShown > 0 ? countShown : posttestQuestions.length;
+      if (storedValid.length !== stored.length || stored.length !== effectiveCount) {
+        posttestSelectedIds = assignFromPool();
+        needPersist = true;
+      } else {
+        posttestSelectedIds = stored;
       }
+    } else {
+      posttestSelectedIds = assignFromPool();
+      needPersist = true;
+    }
+    if (needPersist && posttestSelectedIds.length > 0) {
+      progress = await prisma.progress.update({
+        where: { id: progress.id },
+        data: { posttestAssignedQuestions: JSON.stringify(posttestSelectedIds) },
+      });
     }
   }
 
@@ -349,11 +370,14 @@ export const getStudyRoomDataService = async (
       } else if (ti.itemType === 'QUIZ') {
         const quiz = topik.quizzes.find((q) => ti.itemId === q.id);
         if (quiz) {
-          quizItems.push({
+            quizItems.push({
             id: quiz.id,
             itemType: 'QUIZ',
             quizType: quiz.quizType,
-            judul: quiz.question,
+            ctGroupId: quiz.ctGroupId,
+            ctStory: quiz.ctStory,
+            quizGroupId: quiz.quizGroupId,
+            judul: quiz.judul ?? quiz.question,
             question: quiz.question,
             correctAnswer: quiz.correctAnswer,
             skor: quiz.skor,

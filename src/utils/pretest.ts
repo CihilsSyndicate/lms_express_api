@@ -113,6 +113,19 @@ export const addPretestQuestion = async (
     },
   });
 
+  const existingSettings = await prisma.pretestSetting.findFirst({
+    where: { pretestId: payload.pretest_id },
+  });
+  if (!existingSettings) {
+    await prisma.pretestSetting.create({
+      data: {
+        pretestId: payload.pretest_id,
+        duration: 90,
+        countShownQuestions: 0,
+      },
+    });
+  }
+
   console.log(`[PRETEST] Soal pretest ditambah: ${newSoal.id}`);
 
   return newSoal;
@@ -418,19 +431,30 @@ export const upsertPretestSettings = async (
   });
 
   if (existing) {
-    return prisma.pretestSetting.update({
+    const updated = await prisma.pretestSetting.update({
       where: { id: existing.id },
       data,
     });
+
+    if (data.countShownQuestions !== undefined && pretest.modul) {
+      await prisma.progress.updateMany({
+        where: { modulId: pretest.modul.id, pretestCompleted: false },
+        data: { pretestAssignedQuestions: '[]' },
+      });
+    }
+
+    return updated;
   }
 
-  return prisma.pretestSetting.create({
+  const created = await prisma.pretestSetting.create({
     data: {
       pretestId,
       duration: data.duration,
       countShownQuestions: data.countShownQuestions,
     },
   });
+
+  return created;
 };
 
 export const deleteAllPretestQuestions = async (

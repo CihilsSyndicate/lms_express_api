@@ -5,12 +5,14 @@ export const tutorQuizSchema = z.object({
     topikId: z.string().min(1),
     quizType: z.enum(['REGULER', 'COMPUTATIONAL_THINKING']).default('REGULER'),
     quizImgQuestionUrl: z.string().nullable().optional(),
+    judul: z.string().nullable().optional(),
     question: z.string().min(1),
     correctAnswer: z.string().min(1),
     skor: z.number().int().default(10),
     ctGroupId: z.string().nullable().optional(),
     ctStory: z.string().nullable().optional(),
     ctAspect: z.string().nullable().optional(),
+    quizGroupId: z.string().nullable().optional(),
   }),
   answerOptions: z
     .array(
@@ -32,11 +34,13 @@ export const tutorQuizUpdateSchema = z.object({
   question: z.string().min(1).optional(),
   correctAnswer: z.string().min(1).optional(),
   skor: z.number().int().optional(),
+  judul: z.string().nullable().optional(),
   quizType: z.enum(['REGULER', 'COMPUTATIONAL_THINKING']).optional(),
   quizImgQuestionUrl: z.string().nullable().optional(),
   ctGroupId: z.string().nullable().optional(),
   ctStory: z.string().nullable().optional(),
   ctAspect: z.string().nullable().optional(),
+  quizGroupId: z.string().nullable().optional(),
   answerOptions: z
     .array(z.object({ option: z.string().min(1) }))
     .optional(),

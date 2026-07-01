@@ -58,6 +58,7 @@ model Topik {
     updatedAt   DateTime    @updatedAt
     materis     Materi[]
     quizzes     Quiz[]
+    quizGroups  QuizGroup[]
     rangkumans  Rangkuman[]
 }
 
@@ -108,12 +109,13 @@ model Rangkuman {
 }
 
 model Quiz {
-    id                 String  @id @default(cuid())
+    id                 String     @id @default(cuid())
     topikId            String
-    topik              Topik   @relation(fields: [topikId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    topik              Topik      @relation(fields: [topikId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     quizType           QuizType @default(REGULER)
     quizImgQuestionUrl String?
 
+    judul    String? // display title for the quiz, separate from question text
     question String @db.Text
 
     correctAnswer String
@@ -122,8 +124,24 @@ model Quiz {
     ctStory       String?  @db.Text
     ctAspect      String?
 
+    quizGroupId String?
+    quizGroup   QuizGroup? @relation(fields: [quizGroupId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
     quizAnswerOptions QuizAnswerOption[]
     quizSettings      QuizSetting[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model QuizGroup {
+    id       String   @id @default(cuid())
+    topikId  String
+    topik    Topik    @relation(fields: [topikId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    nama     String
+    quizType QuizType @default(REGULER)
+
+    quizzes  Quiz[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
