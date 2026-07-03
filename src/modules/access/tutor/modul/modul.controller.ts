@@ -110,6 +110,6 @@ export const deleteModule = async (req: Request, res: Response) => {
     res.status(200).json(payload);
   } catch (error) {
     console.error('Error deleting module:', error);
-    res.status(500).json({ error: 'Failed to delete module' });
+    res.status(500).json({ error: 'Failed to delete module', message: (error as Error).message });
   }
 };

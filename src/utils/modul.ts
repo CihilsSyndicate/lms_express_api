@@ -12,6 +12,7 @@ import {
 
 export const createModule = async (payload: Record<string, unknown>) => {
   try {
+    const modulType = (payload.modulType ?? payload.type ?? 'SISWA') as 'SISWA' | 'UMUM';
     const newModule = await prisma.modul.create({
       data: {
         moduleName: String(payload.moduleName ?? ''),
@@ -21,11 +22,9 @@ export const createModule = async (payload: Record<string, unknown>) => {
         difficulty: String(payload.difficulty ?? 'Menengah'),
         isPaid: Boolean(payload.isPaid ?? false),
         modulPrice: Number(payload.modulPrice ?? 0),
-        level: (payload.level as string | null) ?? null,
-        class: (payload.class as string | null) ?? null,
-        modulType: (payload.modulType ?? payload.type ?? 'SISWA') as
-          | 'SISWA'
-          | 'UMUM',
+        level: modulType === 'UMUM' ? null : ((payload.level as string | null) ?? null),
+        class: modulType === 'UMUM' ? null : ((payload.class as string | null) ?? null),
+        modulType,
         isDraft: Boolean(payload.isDraft ?? true),
         moduleImgUrl: (payload.moduleImgUrl as string | null) ?? null,
         pretestPostTestEnabled: Boolean(payload.pretestPostTestEnabled ?? true),
@@ -72,6 +71,8 @@ export const getModules = async (
   limit: number = 10,
   cursor?: string,
   modulType?: 'SISWA' | 'UMUM',
+  level?: string,
+  kelas?: string,
 ) => {
   try {
     const cursorPayload = cursor ? decodeCursor(cursor) : undefined;
@@ -79,6 +80,12 @@ export const getModules = async (
 
     if (modulType) {
       (where as any).modulType = modulType;
+    }
+    if (modulType === 'SISWA' && level) {
+      (where as any).level = level;
+    }
+    if (modulType === 'SISWA' && kelas) {
+      (where as any).class = kelas;
     }
     (where as any).isDraft = false;
 
@@ -171,11 +178,12 @@ export const updateModule = async (
         'Module price must be a positive number if the module is paid',
       );
     }
+    const newModulType = payload.modulType ?? existingModule.modulType;
     const updatedModule = await prisma.modul.update({
       where: { id },
       data: {
         ...payload,
-        modulType: payload.modulType ?? existingModule.modulType,
+        modulType: newModulType,
         subtitle: payload.subtitle ?? existingModule.subtitle,
         moduleName: payload.moduleName ?? existingModule.moduleName,
         description: payload.description ?? existingModule.description,
@@ -183,8 +191,8 @@ export const updateModule = async (
         difficulty: payload.difficulty ?? existingModule.difficulty,
         isPaid: payload.isPaid ?? existingModule.isPaid,
         modulPrice: payload.modulPrice ?? existingModule.modulPrice,
-        level: payload.level ?? existingModule.level,
-        class: payload.class ?? existingModule.class,
+        level: newModulType === 'UMUM' ? null : (payload.level !== undefined ? payload.level : existingModule.level),
+        class: newModulType === 'UMUM' ? null : (payload.class !== undefined ? payload.class : existingModule.class),
         pretestId: payload.pretestId ?? existingModule.pretestId,
         posttestId: payload.posttestId ?? existingModule.posttestId,
       },
@@ -199,7 +207,10 @@ export const updateModule = async (
 
 export const deleteModule = async (id: string, tutorId?: string) => {
   try {
-    const existingModule = await getModuleById(id);
+    const existingModule = await prisma.modul.findUnique({
+      where: { id },
+      select: { id: true, tutorId: true },
+    });
     if (!existingModule) {
       throw new Error('Module not found');
     }
@@ -212,8 +223,11 @@ export const deleteModule = async (id: string, tutorId?: string) => {
     });
 
     return { message: 'Module deleted successfully' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting module:', error);
+    if (error?.code === 'P2014' || error?.code === 'P2003') {
+      throw new Error('Gagal menghapus: modul masih memiliki data terkait. Hapus data siswa terlebih dahulu.');
+    }
     throw error;
   }
 };

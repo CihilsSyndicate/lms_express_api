@@ -12,8 +12,26 @@ import { pushNotification, triggerAdminEvent } from '@/utils/realtime';
 export const getModulesController = async (req: Request, res: Response) => {
   try {
     const { limit, cursor } = parsePaginationQuery(req.query);
-    const modules = await getModules(limit, cursor);
-    return res.status(200).json(modules);
+    const siswaId = req.user?.id;
+    let siswaLevel: string | undefined;
+    let siswaKelas: string | undefined;
+    if (siswaId) {
+      const siswa = await prisma.siswa.findUnique({
+        where: { id: siswaId },
+        select: { jenjang: true, kelas_sekolah: true },
+      });
+      siswaLevel = siswa?.jenjang;
+      siswaKelas = siswa?.kelas_sekolah;
+    }
+    const [siswaModules, umumModules] = await Promise.all([
+      getModules(limit, cursor, 'SISWA', siswaLevel, siswaKelas),
+      getModules(limit, cursor, 'UMUM'),
+    ]);
+    const combined = {
+      items: [...(siswaModules as any).items, ...(umumModules as any).items],
+      pagination: (siswaModules as any).pagination,
+    };
+    return res.status(200).json(combined);
   } catch (error: any) {
     if (
       error.message === 'Invalid limit parameter' ||
