@@ -2,11 +2,19 @@ import pusher from '@/lib/pusher';
 import { prisma } from '@/lib/prisma';
 
 export function triggerUserEvent(userId: string, eventName: string, data: any) {
-  pusher.trigger(`private-user-${userId}`, eventName, data);
+  try {
+    pusher.trigger(`private-user-${userId}`, eventName, data);
+  } catch (err) {
+    console.error('[WS-EMIT-ERROR] triggerUserEvent gagal:', err);
+  }
 }
 
 export function triggerAdminEvent(eventName: string, data: any) {
-  pusher.trigger('private-admin', eventName, data);
+  try {
+    pusher.trigger('private-admin', eventName, data);
+  } catch (err) {
+    console.error('[WS-EMIT-ERROR] triggerAdminEvent gagal:', err);
+  }
 }
 
 export async function pushNotification(

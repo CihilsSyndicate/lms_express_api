@@ -135,22 +135,21 @@ function mapPretestQuestions(
 function mapPosttestQuestions(
   posttest: any,
   selectedIds: string[],
+  pretestQuestions: any[],
 ): StudyRoomQuestion[] {
-  if (!posttest?.soals) return [];
-  const allQs = posttest.soals;
+  if (!pretestQuestions || pretestQuestions.length === 0) return [];
+  const qById = new Map(pretestQuestions.map((q: any) => [q.id, q]));
   const qs = selectedIds.length > 0
-    ? allQs.filter((q: any) => selectedIds.includes(q.id))
-    : allQs;
-  const shuffled = shuffleArray(qs);
-  return shuffled.map((q: any) => {
-    const options: { key: string; label: string }[] = [];
-    if (Array.isArray(q.pilihan)) {
-      q.pilihan.forEach((label: string, idx: number) => {
-        options.push({ key: OPTION_KEYS[idx] ?? `opt_${idx}`, label });
-      });
-    }
-    return { id: q.id, text: q.question, options };
-  });
+    ? selectedIds.map((id: string) => qById.get(id)).filter(Boolean)
+    : pretestQuestions;
+  return qs.map((q: any) => ({
+    id: q.id,
+    text: q.pertanyaan,
+    options: (q.answerOptions ?? []).map((opt: any, idx: number) => ({
+      key: OPTION_KEYS[idx] ?? `opt_${idx}`,
+      label: opt.option,
+    })),
+  }));
 }
 
 function parseCompletedContentItems(raw: string): string[] {
@@ -173,6 +172,28 @@ function parseAssignedQuestions(raw: string): string[] {
   }
 }
 
+/**
+ * Given pretest question IDs, find the matching posttest questions
+ * by linking through questionNumber on both SoalPretest and SoalPosttest.
+ */
+function linkPosttestFromPretest(
+  pretestQuestionIds: string[],
+  allPretestQuestions: { id: string; questionNumber?: number | null }[],
+  allPosttestQuestions: { id: string; questionNumber?: number | null }[],
+): string[] {
+  const numberSet = new Set<number>();
+  for (const pq of allPretestQuestions) {
+    if (pretestQuestionIds.includes(pq.id) && pq.questionNumber != null) {
+      numberSet.add(pq.questionNumber);
+    }
+  }
+  if (numberSet.size === 0) return [];
+  return allPosttestQuestions
+    .filter((q) => q.questionNumber != null && numberSet.has(q.questionNumber))
+    .sort((a, b) => (a.questionNumber ?? 0) - (b.questionNumber ?? 0))
+    .map((q) => q.id);
+}
+
 export const getStudyRoomDataService = async (
   modulId: string,
   siswaId: string,
@@ -185,13 +206,12 @@ export const getStudyRoomDataService = async (
           pretestSettings: true,
           pretestQuestions: {
             include: { answerOptions: true },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { questionNumber: { sort: 'asc', nulls: 'last' } },
           },
         },
       },
       posttest: {
         include: {
-          soals: { orderBy: { createdAt: 'asc' } },
           posttestSettings: true,
         },
       },
@@ -251,30 +271,33 @@ export const getStudyRoomDataService = async (
     }
   }
 
+  // Refresh progress to include updated pretestAssignedQuestions for posttest linking
+  progress = await prisma.progress.findUnique({
+    where: { id: progress!.id },
+  });
+  if (!progress) {
+    throw new Error('Anda belum terdaftar di modul ini');
+  }
+
   // --- Posttest question assignment ---
+  // Posttest uses the same questions as pretest (SoalPretest bank)
   let posttestSelectedIds: string[] = [];
-  const posttestQuestions = modul.posttest?.soals ?? [];
-  if (modul.posttest && posttestQuestions.length > 0) {
+  if (modul.posttest && pretestQuestions.length > 0) {
     const stored = parseAssignedQuestions(progress.posttestAssignedQuestions);
     const countShown = modul.posttest.posttestSettings?.[0]?.countShownQuestions ?? 0;
-    const assignFromPool = () => {
-      const assigned = assignQuestions(posttestQuestions, countShown);
-      return assigned.map((q: any) => q.id);
-    };
+    const effectiveCount = countShown > 0 ? countShown : pretestQuestions.length;
     let needPersist = false;
-    if (stored.length > 0) {
-      const storedValid = stored.filter((id: string) =>
-        posttestQuestions.some((q: any) => q.id === id),
-      );
-      const effectiveCount = countShown > 0 ? countShown : posttestQuestions.length;
-      if (storedValid.length !== stored.length || stored.length !== effectiveCount) {
-        posttestSelectedIds = assignFromPool();
-        needPersist = true;
-      } else {
-        posttestSelectedIds = stored;
-      }
+    if (stored.length > 0 && stored.length === effectiveCount) {
+      posttestSelectedIds = stored;
     } else {
-      posttestSelectedIds = assignFromPool();
+      // Copy from pretest assigned questions (same bank, same IDs)
+      const pretestStored = parseAssignedQuestions(progress.pretestAssignedQuestions);
+      if (pretestStored.length > 0) {
+        // Use the SAME question IDs as pretest, then shuffle for different order
+        posttestSelectedIds = shuffleArray(pretestStored);
+      } else {
+        posttestSelectedIds = assignQuestions(pretestQuestions, effectiveCount).map((q: any) => q.id);
+      }
       needPersist = true;
     }
     if (needPersist && posttestSelectedIds.length > 0) {
@@ -345,6 +368,7 @@ export const getStudyRoomDataService = async (
         questions: mapPosttestQuestions(
           modul.posttest,
           posttestSelectedIds,
+          pretestQuestions,
         ),
         timeLimit: posttestTimeLimit,
       }

@@ -78,6 +78,7 @@ export const addPretestQuestion = async (
     pilihan: string[];
     jawaban_benar: string;
     skor?: number;
+    questionNumber?: number | null;
     ctGroupId?: string;
     ctStory?: string;
     ctAspect?: string;
@@ -107,6 +108,7 @@ export const addPretestQuestion = async (
       },
       correctAnswer: payload.jawaban_benar,
       skor: payload.skor ?? 10,
+      questionNumber: payload.questionNumber ?? null,
       ctGroupId: payload.ctGroupId,
       ctStory: payload.ctStory,
       ctAspect: payload.ctAspect,
@@ -334,6 +336,7 @@ export const updatePretestQuestion = async (
     pilihan?: string[];
     jawaban_benar?: string;
     skor?: number;
+    questionNumber?: number | null;
     ctGroupId?: string;
     ctStory?: string;
     ctAspect?: string;
@@ -357,6 +360,7 @@ export const updatePretestQuestion = async (
   if (data.pertanyaan !== undefined) updateData.pertanyaan = data.pertanyaan;
   if (data.jawaban_benar !== undefined) updateData.correctAnswer = data.jawaban_benar;
   if (data.skor !== undefined) updateData.skor = data.skor;
+  if (data.questionNumber !== undefined) updateData.questionNumber = data.questionNumber;
   if (data.ctGroupId !== undefined) updateData.ctGroupId = data.ctGroupId;
   if (data.ctStory !== undefined) updateData.ctStory = data.ctStory;
   if (data.ctAspect !== undefined) updateData.ctAspect = data.ctAspect;
@@ -439,7 +443,10 @@ export const upsertPretestSettings = async (
     if (data.countShownQuestions !== undefined && pretest.modul) {
       await prisma.progress.updateMany({
         where: { modulId: pretest.modul.id, pretestCompleted: false },
-        data: { pretestAssignedQuestions: '[]' },
+        data: {
+          pretestAssignedQuestions: '[]',
+          posttestAssignedQuestions: '[]',
+        },
       });
     }
 

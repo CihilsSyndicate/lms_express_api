@@ -506,7 +506,7 @@ export const calculatePosttestScoreService = async (
 }> => {
   const posttest = await prisma.posttest.findFirst({
     where: { modul: { id: modulId } },
-    include: { soals: true, posttestSettings: true },
+    include: { posttestSettings: true },
   });
 
   if (!posttest) throw new Error('Posttest tidak ditemukan');
@@ -514,13 +514,20 @@ export const calculatePosttestScoreService = async (
   // Initialize progress
   await initializeProgressService(siswaId, modulId);
 
+  const pretest = await prisma.pretest.findFirst({
+    where: { modul: { id: modulId } },
+    include: { pretestQuestions: true },
+  });
+
+  if (!pretest) throw new Error('Pretest tidak ditemukan');
+
   let totalRawScore = 0;
   let maxRawScore = 0;
   let totalBenar = 0;
   let totalSalah = 0;
 
   for (const answer of answers) {
-    const question = posttest.soals.find(
+    const question = pretest.pretestQuestions.find(
       (item) => item.id === answer.questionId,
     );
     if (question) {
@@ -665,13 +672,17 @@ export const generateCertificateIfEligibleService = async (
       throw err;
     }
 
-    await pushNotification(
-      siswaId,
-      'certificate',
-      'Sertifikat Terbit',
-      `Selamat! Sertifikat untuk modul "${progress.modul.moduleName}" telah terbit.`,
-      { modulId, certificateCode },
-    );
+    try {
+      await pushNotification(
+        siswaId,
+        'certificate',
+        'Sertifikat Terbit',
+        `Selamat! Sertifikat untuk modul "${progress.modul.moduleName}" telah terbit.`,
+        { modulId, certificateCode },
+      );
+    } catch (err) {
+      console.error('[CERTIFICATE] Gagal mengirim notifikasi realtime:', err);
+    }
 
     return {
       certificate: {

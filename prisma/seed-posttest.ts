@@ -153,9 +153,10 @@ function selectBank(moduleName: string): QuestionSeed[] {
 // ---------------------------------------------------------------------------
 // Pick N random distinct questions from a bank (3 ≤ N ≤ 5)
 // ---------------------------------------------------------------------------
-function pickQuestions(bank: QuestionSeed[]): QuestionSeed[] {
+function pickQuestions(bank: QuestionSeed[]): { question: QuestionSeed; questionNumber: number }[] {
   const count = Math.floor(Math.random() * 3) + 3; // 3, 4, or 5
-  const shuffled = [...bank].sort(() => Math.random() - 0.5);
+  const indexed = bank.map((q, idx) => ({ question: q, questionNumber: idx + 1 }));
+  const shuffled = [...indexed].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, bank.length));
 }
 
@@ -210,17 +211,25 @@ async function main() {
       console.log(`  + "${modul.moduleName}" — created Posttest (${posttestId})`);
     }
 
-    // Create soal
-    for (const q of selected) {
-      await prisma.soalPosttest.create({
+    // Create soal in shared SoalPretest bank (SoalPosttest merged into SoalPretest)
+    const pretest = await prisma.pretest.findFirst({ where: { modul: { id: modul.id } } });
+    const pretestId = pretest?.id;
+    for (const { question: q, questionNumber } of selected) {
+      if (!pretestId) break;
+      const soal = await prisma.soalPretest.create({
         data: {
-          posttestId,
-          question: q.question,
-          pilihan: q.options,
+          pretestId,
+          pertanyaan: q.question,
           correctAnswer: q.correctAnswer,
           skor: 10,
+          questionNumber,
         },
       });
+      for (const opt of q.options) {
+        await prisma.pretestAnswerOptions.create({
+          data: { soalPretestId: soal.id, option: opt },
+        });
+      }
     }
 
     console.log(`     → ${selected.length} question(s) added`);

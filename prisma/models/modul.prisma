@@ -183,9 +183,9 @@ model Pretest {
 }
 
 model Posttest {
-    id    String         @id @default(cuid())
+    id    String   @id @default(cuid())
     modul Modul?
-    soals SoalPosttest[]
+    posttestName String?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -210,6 +210,7 @@ model SoalPretest {
     answerOptions         PretestAnswerOptions[]
     correctAnswer         String
     skor                  Int                       @default(10)
+    questionNumber        Int?
     ctGroupId             String?
     ctStory               String?                   @db.Text
     ctAspect              String?
@@ -233,7 +234,7 @@ model PretestSetting {
     id                  String  @id @default(cuid())
     pretestId           String
     pretest             Pretest @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    duration            Int // dalam detik
+    duration            Int // dalam menit — dikonversi ke detik di study-room
     countShownQuestions Int
 
     createdAt DateTime @default(now())
@@ -254,22 +255,6 @@ model AutomaticAccessMatery {
     modulId       String?
     soalPretest   SoalPretest? @relation(fields: [soalPretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     soalPretestId String?
-}
-
-model SoalPosttest {
-    id            String   @id @default(cuid())
-    posttestId    String
-    posttest      Posttest @relation(fields: [posttestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    question      String   @db.Text
-    pilihan       Json
-    correctAnswer String
-    skor          Int      @default(10)
-    ctGroupId     String?
-    ctStory       String?  @db.Text
-    ctAspect      String?
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
 }
 
 // Computational Thinking

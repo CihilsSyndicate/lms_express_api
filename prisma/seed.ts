@@ -28,7 +28,7 @@ async function main() {
   await prisma.topikItem.deleteMany();
   await prisma.materi.deleteMany();
   await prisma.topik.deleteMany();
-  await prisma.soalPosttest.deleteMany();
+  // SoalPosttest has been merged into SoalPretest, no separate deletion needed
   await prisma.pretestSetting.deleteMany();
   await prisma.pretestAnswerOptions.deleteMany();
   await prisma.soalPretest.deleteMany();
@@ -628,13 +628,15 @@ async function main() {
   const allSoalPretest: { id: string; pretestId: string }[] = [];
 
   for (const pt of pretests) {
-    for (const q of pretestQuestions) {
+    for (let qIdx = 0; qIdx < pretestQuestions.length; qIdx++) {
+      const q = pretestQuestions[qIdx];
       const soal = await prisma.soalPretest.create({
         data: {
           pretestId: pt.id,
           pertanyaan: q.pertanyaan,
           correctAnswer: q.options[q.correctAnswerIdx],
           skor: q.skor,
+          questionNumber: qIdx + 1,
         },
       });
 
@@ -706,20 +708,31 @@ async function main() {
     },
   ];
 
-  for (const pt of posttests) {
-    for (const q of posttestQuestions) {
-      await prisma.soalPosttest.create({
+  // Posttest questions are now stored as SoalPretest (shared bank)
+  const allPretests = await prisma.pretest.findMany({ include: { modul: true } });
+  for (let i = 0; i < posttests.length; i++) {
+    const pt = posttests[i];
+    const matchingPretest = allPretests.find((p: any) => p.modul?.id === pt.modulId);
+    if (!matchingPretest) continue;
+    for (let qIdx = 0; qIdx < posttestQuestions.length; qIdx++) {
+      const q = posttestQuestions[qIdx];
+      const soal = await prisma.soalPretest.create({
         data: {
-          posttestId: pt.id,
-          question: q.question,
-          pilihan: q.pilihan,
+          pretestId: matchingPretest.id,
+          pertanyaan: q.question,
           correctAnswer: q.correctAnswer,
           skor: q.skor,
+          questionNumber: (await prisma.soalPretest.count({ where: { pretestId: matchingPretest.id } })) + 1,
         },
       });
+      for (const opt of q.pilihan) {
+        await prisma.pretestAnswerOptions.create({
+          data: { soalPretestId: soal.id, option: opt },
+        });
+      }
     }
   }
-  console.log('11. SoalPosttest: 20 records');
+  console.log('11. Posttest questions (via SoalPretest): 20 records');
 
   // =====================================================
   // 12. TOPIK

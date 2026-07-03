@@ -248,13 +248,15 @@ async function main() {
 
   const allSoalPretest: { id: string; pretestId: string }[] = [];
 
-  for (const q of pretestQuestionsData) {
+  for (let qIdx = 0; qIdx < pretestQuestionsData.length; qIdx++) {
+    const q = pretestQuestionsData[qIdx];
     const soal = await prisma.soalPretest.create({
       data: {
         pretestId: pretest.id,
         pertanyaan: q.pertanyaan,
         correctAnswer: q.options[q.correctAnswerIdx],
         skor: 10,
+        questionNumber: qIdx + 1,
       },
     });
 
@@ -342,18 +344,25 @@ async function main() {
     },
   ];
 
-  for (const q of posttestQuestionsData) {
-    await prisma.soalPosttest.create({
+  // Posttest questions stored in shared SoalPretest bank
+  for (let qIdx = 0; qIdx < posttestQuestionsData.length; qIdx++) {
+    const q = posttestQuestionsData[qIdx];
+    const soal = await prisma.soalPretest.create({
       data: {
-        posttestId: posttest.id,
-        question: q.question,
-        pilihan: q.pilihan,
+        pretestId: pretest.id,
+        pertanyaan: q.question,
         correctAnswer: q.correctAnswer,
         skor: 10,
+        questionNumber: qIdx + 1,
       },
     });
+    for (const opt of q.pilihan) {
+      await prisma.pretestAnswerOptions.create({
+        data: { soalPretestId: soal.id, option: opt },
+      });
+    }
   }
-  console.log(` Posttest questions: ${posttestQuestionsData.length} records\n`);
+  console.log(` Posttest questions (via SoalPretest): ${posttestQuestionsData.length} records\n`);
 
   // =====================================================
   // TOPICS
@@ -863,8 +872,8 @@ async function main() {
   );
   const posttestAssignedQuestions = JSON.stringify(
     (
-      await prisma.soalPosttest.findMany({
-        where: { posttestId: posttest.id },
+      await prisma.soalPretest.findMany({
+        where: { pretestId: pretest.id },
         select: { id: true },
       })
     ).map((s) => s.id),
