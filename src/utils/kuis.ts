@@ -16,7 +16,7 @@ export const createQuiz = async (payload: QuizPayload) => {
   try {
     const { quiz, answerOptions, setting } = payload;
 
-    console.log(payload);
+    // console.log(payload);
 
     const newQuiz = await prisma.quiz.create({
       data: {
@@ -209,15 +209,19 @@ export const updateQuizWithTransaction = async (
   return prisma.$transaction(async (tx) => {
     const updateData: Record<string, unknown> = {};
     if (payload.question !== undefined) updateData.question = payload.question;
-    if (payload.correctAnswer !== undefined) updateData.correctAnswer = payload.correctAnswer;
+    if (payload.correctAnswer !== undefined)
+      updateData.correctAnswer = payload.correctAnswer;
     if (payload.skor !== undefined) updateData.skor = payload.skor;
     if (payload.judul !== undefined) updateData.judul = payload.judul;
     if (payload.quizType !== undefined) updateData.quizType = payload.quizType;
-    if (payload.quizImgQuestionUrl !== undefined) updateData.quizImgQuestionUrl = payload.quizImgQuestionUrl;
-    if (payload.ctGroupId !== undefined) updateData.ctGroupId = payload.ctGroupId;
+    if (payload.quizImgQuestionUrl !== undefined)
+      updateData.quizImgQuestionUrl = payload.quizImgQuestionUrl;
+    if (payload.ctGroupId !== undefined)
+      updateData.ctGroupId = payload.ctGroupId;
     if (payload.ctStory !== undefined) updateData.ctStory = payload.ctStory;
     if (payload.ctAspect !== undefined) updateData.ctAspect = payload.ctAspect;
-    if (payload.quizGroupId !== undefined) updateData.quizGroupId = payload.quizGroupId;
+    if (payload.quizGroupId !== undefined)
+      updateData.quizGroupId = payload.quizGroupId;
 
     if (Object.keys(updateData).length > 0) {
       await tx.quiz.update({
@@ -229,7 +233,10 @@ export const updateQuizWithTransaction = async (
     if (payload.answerOptions) {
       await tx.quizAnswerOption.deleteMany({ where: { quizId } });
       await tx.quizAnswerOption.createMany({
-        data: payload.answerOptions.map((opt) => ({ quizId, option: opt.option })),
+        data: payload.answerOptions.map((opt) => ({
+          quizId,
+          option: opt.option,
+        })),
       });
     }
 
@@ -243,7 +250,8 @@ export const updateQuizWithTransaction = async (
           isComputationalThinkingEnabled:
             payload.setting.isComputationalThinkingEnabled ?? false,
           minScoreTreshold: payload.setting.minScoreTreshold ?? null,
-          standardScorePerQuestion: payload.setting.standardScorePerQuestion ?? 100,
+          standardScorePerQuestion:
+            payload.setting.standardScorePerQuestion ?? 100,
         },
       });
     }

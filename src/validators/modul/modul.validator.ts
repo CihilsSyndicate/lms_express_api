@@ -16,6 +16,8 @@ export const modulBaseSchema = z.object({
   tutorId: z.string().cuid(),
   pretestId: z.string().cuid().optional().nullable(),
   posttestId: z.string().cuid().optional().nullable(),
+  hasStudyGroup: z.boolean().optional(),
+  whatsappGroupUrl: z.string().url().optional().nullable(),
 });
 
 export const createModulSchema = modulBaseSchema.omit({

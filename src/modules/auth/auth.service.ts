@@ -7,6 +7,7 @@ import {
   hashPassword,
 } from '@/lib/auth';
 import { UserTokenPayload } from '@/lib/auth';
+import { sendPasswordResetEmail } from '@/lib/email';
 import type {
   CreateSiswaRecord,
   UpdateSiswaRecord,
@@ -379,8 +380,11 @@ export const forgotPasswordService = async (email: string) => {
   if (!user) throw new Error('Email tidak ditemukan.');
 
   const resetToken = generateResetToken(user.email, user.role);
+  const userName = (user as any).nama_lengkap || (user as any).fullName || 'User';
 
-  return { message: 'Link reset password telah dikirim ke email.', resetToken };
+  await sendPasswordResetEmail(user.email, resetToken, userName);
+
+  return { message: 'Link reset password telah dikirim ke email Anda.' };
 };
 
 export const resetPasswordService = async (

@@ -12,7 +12,9 @@ import {
 
 export const createModule = async (payload: Record<string, unknown>) => {
   try {
-    const modulType = (payload.modulType ?? payload.type ?? 'SISWA') as 'SISWA' | 'UMUM';
+    const modulType = (payload.modulType ?? payload.type ?? 'SISWA') as
+      | 'SISWA'
+      | 'UMUM';
     const newModule = await prisma.modul.create({
       data: {
         moduleName: String(payload.moduleName ?? ''),
@@ -22,8 +24,14 @@ export const createModule = async (payload: Record<string, unknown>) => {
         difficulty: String(payload.difficulty ?? 'Menengah'),
         isPaid: Boolean(payload.isPaid ?? false),
         modulPrice: Number(payload.modulPrice ?? 0),
-        level: modulType === 'UMUM' ? null : ((payload.level as string | null) ?? null),
-        class: modulType === 'UMUM' ? null : ((payload.class as string | null) ?? null),
+        level:
+          modulType === 'UMUM'
+            ? null
+            : ((payload.level as string | null) ?? null),
+        class:
+          modulType === 'UMUM'
+            ? null
+            : ((payload.class as string | null) ?? null),
         modulType,
         isDraft: Boolean(payload.isDraft ?? true),
         moduleImgUrl: (payload.moduleImgUrl as string | null) ?? null,
@@ -142,7 +150,7 @@ export const getModuleById = async (id: string, siswaId?: string) => {
     });
     if (!findModuleById) return null;
 
-    console.log(findModuleById);
+    // console.log(findModuleById);
 
     let progress = null;
     if (siswaId) {
@@ -191,8 +199,18 @@ export const updateModule = async (
         difficulty: payload.difficulty ?? existingModule.difficulty,
         isPaid: payload.isPaid ?? existingModule.isPaid,
         modulPrice: payload.modulPrice ?? existingModule.modulPrice,
-        level: newModulType === 'UMUM' ? null : (payload.level !== undefined ? payload.level : existingModule.level),
-        class: newModulType === 'UMUM' ? null : (payload.class !== undefined ? payload.class : existingModule.class),
+        level:
+          newModulType === 'UMUM'
+            ? null
+            : payload.level !== undefined
+              ? payload.level
+              : existingModule.level,
+        class:
+          newModulType === 'UMUM'
+            ? null
+            : payload.class !== undefined
+              ? payload.class
+              : existingModule.class,
         pretestId: payload.pretestId ?? existingModule.pretestId,
         posttestId: payload.posttestId ?? existingModule.posttestId,
       },
@@ -226,7 +244,9 @@ export const deleteModule = async (id: string, tutorId?: string) => {
   } catch (error: any) {
     console.error('Error deleting module:', error);
     if (error?.code === 'P2014' || error?.code === 'P2003') {
-      throw new Error('Gagal menghapus: modul masih memiliki data terkait. Hapus data siswa terlebih dahulu.');
+      throw new Error(
+        'Gagal menghapus: modul masih memiliki data terkait. Hapus data siswa terlebih dahulu.',
+      );
     }
     throw error;
   }
