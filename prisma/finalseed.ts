@@ -4,8 +4,14 @@ import { hashPassword } from '../src/lib/auth';
 const TEST_EMAILS = {
   admin: 'finaladmin@lms.test',
   tutor: 'finaltutor@lms.test',
-  siswa: 'finalsiswa@lms.test',
 };
+
+const TEST_SISWA = [
+  { email: 'finalsiswa@lms.test', name: 'Siswa Mahir CT', studentType: 'SISWA' as const },
+  { email: 'siswa2@lms.test', name: 'Siswa Perlu Bimbingan', studentType: 'SISWA' as const },
+  { email: 'siswa3@lms.test', name: 'Siswa Mixed CT', studentType: 'SISWA' as const },
+  { email: 'siswa4@lms.test', name: 'Siswa In Progress', studentType: 'SISWA' as const },
+];
 
 async function main() {
   console.log('=== FINAL TEST SEEDER ===\n');
@@ -15,24 +21,33 @@ async function main() {
   // =====================================================
   console.log('Cleaning previous test data...');
 
-  const existingSiswa = await prisma.siswa.findUnique({
-    where: { email: TEST_EMAILS.siswa },
-  });
-  if (existingSiswa) {
-    await prisma.certificate.deleteMany({
-      where: { siswaId: existingSiswa.id },
+  for (const s of TEST_SISWA) {
+    const existing = await prisma.siswa.findUnique({
+      where: { email: s.email },
     });
-    await prisma.rating.deleteMany({ where: { siswaId: existingSiswa.id } });
-    await prisma.studentKnowledgeState.deleteMany({
-      where: { siswaId: existingSiswa.id },
-    });
-    await prisma.studentAnswerLog.deleteMany({
-      where: { siswaId: existingSiswa.id },
-    });
-    await prisma.progressDetail.deleteMany({
-      where: { siswaId: existingSiswa.id },
+    if (existing) {
+      await prisma.certificate.deleteMany({
+        where: { siswaId: existing.id },
+      });
+      await prisma.rating.deleteMany({ where: { siswaId: existing.id } });
+      await prisma.studentKnowledgeState.deleteMany({
+        where: { siswaId: existing.id },
+      });
+      await prisma.studentAnswerLog.deleteMany({
+        where: { siswaId: existing.id },
+      });
+      await prisma.progressDetail.deleteMany({
+        where: { siswaId: existing.id },
+      });
+    }
+    await prisma.progress.deleteMany({
+      where: { siswa: { email: s.email } },
     });
   }
+
+  await prisma.siswa.deleteMany({
+    where: { email: { in: TEST_SISWA.map((s) => s.email) } },
+  });
 
   const existingTutor = await prisma.tutor.findUnique({
     where: { email: TEST_EMAILS.tutor },
@@ -46,10 +61,6 @@ async function main() {
     });
   }
 
-  await prisma.progress.deleteMany({
-    where: { siswa: { email: TEST_EMAILS.siswa } },
-  });
-  await prisma.siswa.deleteMany({ where: { email: TEST_EMAILS.siswa } });
   await prisma.tutor.deleteMany({ where: { email: TEST_EMAILS.tutor } });
   await prisma.admin.deleteMany({ where: { email: TEST_EMAILS.admin } });
 
@@ -96,19 +107,24 @@ async function main() {
   console.log(` Tutor: ${tutor.email}`);
 
   const siswaPassword = await hashPassword('siswa123');
-  const siswa = await prisma.siswa.create({
-    data: {
-      email: TEST_EMAILS.siswa,
-      password: siswaPassword,
-      nama_lengkap: 'Siswa Final Lulus',
-      jenjang: 'SMA',
-      kelas_sekolah: '11 IPA 1',
-      role: 'siswa',
-      studentType: 'SISWA',
-      isActive: true,
-    },
-  });
-  console.log(` Siswa: ${siswa.email}\n`);
+  const allSiswa = await Promise.all(
+    TEST_SISWA.map((s) =>
+      prisma.siswa.create({
+        data: {
+          email: s.email,
+          password: siswaPassword,
+          nama_lengkap: s.name,
+          jenjang: 'SMA',
+          kelas_sekolah: '11 IPA 1',
+          role: 'siswa',
+          studentType: s.studentType,
+          isActive: true,
+        },
+      }),
+    ),
+  );
+  const siswaMap = Object.fromEntries(allSiswa.map((s) => [s.email, s]));
+  console.log(` Siswa: ${allSiswa.length} records\n`);
 
   // =====================================================
   // CREATE MODULE
@@ -486,6 +502,7 @@ async function main() {
     data: {
       topikId: topik2.id,
       quizType: 'COMPUTATIONAL_THINKING',
+      ctAspect: 'decomposition',
       question:
         'Bu Dewi seorang pengusaha katering ingin mengembangkan usahanya. Ia menulis rencana: (1) riset pasar untuk mengetahui menu favorit pelanggan, (2) menentukan 10 menu andalan berdasarkan riset, (3) mencari 3 pemasok bahan baku terpercaya, (4) membuat jadwal produksi mingguan, (5) melatih 2 orang karyawan baru, (6) menentukan rute pengiriman yang efisien, (7) meluncurkan website pemesanan online.\n\nDengan membagi rencana pengembangan menjadi 7 langkah terpisah, Bu Dewi lebih mudah karena...',
       correctAnswer:
@@ -523,6 +540,7 @@ async function main() {
     data: {
       topikId: topik2.id,
       quizType: 'COMPUTATIONAL_THINKING',
+      ctAspect: 'pattern_recognition',
       question:
         'Seorang kasir mencatat jumlah pengunjung toko setiap hari selama 4 minggu:\nMinggu 1: Sen(45), Sel(52), Rab(48), Kam(55), Jum(70), Sab(90)\nMinggu 2: Sen(42), Sel(50), Rab(45), Kam(58), Jum(75), Sab(95)\nMinggu 3: Sen(47), Sel(55), Rab(50), Kam(60), Jum(80), Sab(100)\nMinggu 4: Sen(43), Sel(48), Rab(52), Kam(57), Jum(72), Sab(92)\n\nBerdasarkan pola data tersebut, tindakan paling tepat untuk mengantisipasi lonjakan pengunjung adalah...',
       correctAnswer:
@@ -560,6 +578,7 @@ async function main() {
     data: {
       topikId: topik2.id,
       quizType: 'COMPUTATIONAL_THINKING',
+      ctAspect: 'abstraction',
       question:
         'Seorang developer diminta membuat fitur pencarian buku untuk perpustakaan yang memiliki 50.000 buku. Setiap buku memiliki 13 atribut data: ISBN, judul, penulis, penerbit, tahun terbit, jumlah halaman, genre, bahasa, nomor rak, status, rating, sinopsis, dan daftar isi.\n\nUntuk keperluan pencarian, developer hanya menggunakan 4 atribut: judul, penulis, genre, dan status. Atribut lainnya seperti sinopsis, daftar isi, dan jumlah halaman tidak digunakan dalam pencarian.\n\nMengapa developer mengambil keputusan tersebut?',
       correctAnswer:
@@ -597,6 +616,7 @@ async function main() {
     data: {
       topikId: topik2.id,
       quizType: 'COMPUTATIONAL_THINKING',
+      ctAspect: 'algorithm',
       question:
         'Seorang kurir harus mengirimkan 5 paket ke 5 alamat berbeda di satu kota. Ia menyusun langkah-langkah:\n(1) Catat kelima alamat tujuan\n(2) Urutkan alamat berdasarkan jarak dari kantor\n(3) Kunjungi alamat terdekat yang belum dikunjungi\n(4) Ulangi langkah (3) sampai semua paket terkirim\n(5) Kembali ke kantor\n\nKeuntungan utama dari menuliskan langkah berurutan seperti di atas adalah...',
       correctAnswer:
@@ -800,183 +820,220 @@ async function main() {
   console.log(` PretestQuestionSkillMap: ${allSoalPretest.length} records\n`);
 
   // =====================================================
-  // PROGRESS (Student enrolled + completed)
+  // PROGRESS + ANSWER LOGS + QUIZ SCORES + KNOWLEDGE STATES
   // =====================================================
-  console.log('Creating Progress...');
+  console.log('Creating Progress, Answer Logs, Quiz Scores & Knowledge States...');
 
-  const completedContentItems = JSON.stringify([
-    {
-      itemId: 'pretest',
-      itemType: 'PRETEST',
-      completedAt: new Date(Date.now() - 7 * 86400000).toISOString(),
-    },
-    {
-      itemId: m1.id,
-      itemType: 'MATERI',
-      completedAt: new Date(Date.now() - 6 * 86400000).toISOString(),
-    },
-    {
-      itemId: m2.id,
-      itemType: 'MATERI',
-      completedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-    },
-    {
-      itemId: quiz1.id,
-      itemType: 'QUIZ',
-      completedAt: new Date(Date.now() - 4 * 86400000).toISOString(),
-    },
-    {
-      itemId: m3.id,
-      itemType: 'MATERI',
-      completedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-    },
-    {
-      itemId: m4.id,
-      itemType: 'MATERI',
-      completedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      itemId: quiz2.id,
-      itemType: 'QUIZ',
-      completedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      itemId: quiz3.id,
-      itemType: 'QUIZ',
-      completedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      itemId: quiz4.id,
-      itemType: 'QUIZ',
-      completedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-    },
-    {
-      itemId: quiz5.id,
-      itemType: 'QUIZ',
-      completedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-    },
-    {
-      itemId: 'posttest',
-      itemType: 'POSTTEST',
-      completedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-    },
-    {
-      itemId: 'rating',
-      itemType: 'RATING',
-      completedAt: new Date(Date.now()).toISOString(),
-    },
-  ]);
-
-  const pretestAssignedQuestions = JSON.stringify(
-    allSoalPretest.map((s) => s.id),
-  );
+  const pretestAssignedQuestions = JSON.stringify(allSoalPretest.map((s) => s.id));
   const posttestAssignedQuestions = JSON.stringify(
-    (
-      await prisma.soalPretest.findMany({
-        where: { pretestId: pretest.id },
-        select: { id: true },
-      })
-    ).map((s) => s.id),
+    (await prisma.soalPretest.findMany({ where: { pretestId: pretest.id }, select: { id: true } })).map((s) => s.id),
   );
 
-  const progress = await prisma.progress.create({
-    data: {
-      siswaId: siswa.id,
-      modulId: modul.id,
+  // Define per-student answer patterns
+  const studentAnswerPatterns: Array<{
+    email: string;
+    pretestCorrect: number[];        // indices of correct pretest questions (0-4)
+    quizCorrect: string[];           // quiz IDs the student answered correctly
+    quizTaken: string[];             // all quiz IDs the student attempted
+    posttestScore: number | null;
+    status: 'COMPLETED' | 'IN_PROGRESS';
+  }> = [
+    // 1 — Mahir CT: all correct, completed, graduated
+    {
+      email: 'finalsiswa@lms.test',
+      pretestCorrect: [0, 1, 2, 3],
+      quizCorrect: [quiz1.id, quiz2.id, quiz3.id, quiz4.id, quiz5.id],
+      quizTaken: [quiz1.id, quiz2.id, quiz3.id, quiz4.id, quiz5.id],
+      posttestScore: 85,
       status: 'COMPLETED',
-      isGraduated: true,
-      progressPercentage: 100,
-      finalScore: 90,
-      pretestScore: 40,
-      pretestCorrectCount: 4,
-      pretestWrongCount: 1,
-      pretestTimeSpent: 600,
-      pretestCompleted: true,
-      posttestScore: 50,
-      posttestCorrectCount: 5,
-      posttestWrongCount: 0,
-      posttestTimeSpent: 900,
-      posttestCompleted: true,
-      completedContentItems,
-      pretestAssignedQuestions,
-      posttestAssignedQuestions,
     },
-  });
-  console.log(' Progress: 1 record (COMPLETED)\n');
+    // 2 — Perlu Bimbingan: all wrong, completed but not graduated
+    {
+      email: 'siswa2@lms.test',
+      pretestCorrect: [0, 1],
+      quizCorrect: [],
+      quizTaken: [quiz1.id, quiz2.id, quiz3.id, quiz4.id, quiz5.id],
+      posttestScore: 55,
+      status: 'COMPLETED',
+    },
+    // 3 — Mixed CT: mix of correct/incorrect, completed, graduated
+    {
+      email: 'siswa3@lms.test',
+      pretestCorrect: [0, 1, 2],
+      quizCorrect: [quiz1.id, quiz2.id, quiz4.id],
+      quizTaken: [quiz1.id, quiz2.id, quiz3.id, quiz4.id, quiz5.id],
+      posttestScore: 70,
+      status: 'COMPLETED',
+    },
+    // 4 — In Progress: partial, still learning
+    {
+      email: 'siswa4@lms.test',
+      pretestCorrect: [0, 1, 2],
+      quizCorrect: [quiz1.id, quiz2.id, quiz3.id],
+      quizTaken: [quiz1.id, quiz2.id, quiz3.id],
+      posttestScore: null,
+      status: 'IN_PROGRESS',
+    },
+  ];
 
-  // =====================================================
-  // QUIZ SCORES
-  // =====================================================
-  console.log('Creating Quiz Scores...');
+  let totalQuizScores = 0;
+  let totalAnswerLogs = 0;
+  let totalKnowledgeStates = 0;
 
-  await prisma.quizScore.create({
-    data: {
+  for (const pattern of studentAnswerPatterns) {
+    const currentSiswa = siswaMap[pattern.email];
+    if (!currentSiswa) continue;
+
+    const isCompleted = pattern.status === 'COMPLETED';
+    const pretestCorrectCount = pattern.pretestCorrect.length;
+    const pretestWrongCount = allSoalPretest.length - pretestCorrectCount;
+
+    // Build completedContentItems based on the quizzes taken
+    const contentItems: Array<{ itemId: string; itemType: string; completedAt: string }> = [
+      { itemId: 'pretest', itemType: 'PRETEST', completedAt: new Date(Date.now() - 7 * 86400000).toISOString() },
+      { itemId: m1.id, itemType: 'MATERI', completedAt: new Date(Date.now() - 6 * 86400000).toISOString() },
+      { itemId: m2.id, itemType: 'MATERI', completedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+    ];
+
+    if (pattern.quizTaken.includes(quiz1.id)) {
+      contentItems.push({ itemId: quiz1.id, itemType: 'QUIZ', completedAt: new Date(Date.now() - 4 * 86400000).toISOString() });
+    }
+    contentItems.push(
+      { itemId: m3.id, itemType: 'MATERI', completedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
+      { itemId: m4.id, itemType: 'MATERI', completedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+    );
+    if (pattern.quizTaken.includes(quiz2.id)) {
+      contentItems.push({ itemId: quiz2.id, itemType: 'QUIZ', completedAt: new Date(Date.now() - 2 * 86400000).toISOString() });
+    }
+    if (pattern.quizTaken.includes(quiz3.id)) {
+      contentItems.push({ itemId: quiz3.id, itemType: 'QUIZ', completedAt: new Date(Date.now() - 2 * 86400000).toISOString() });
+    }
+    if (pattern.quizTaken.includes(quiz4.id)) {
+      contentItems.push({ itemId: quiz4.id, itemType: 'QUIZ', completedAt: new Date(Date.now() - 1 * 86400000).toISOString() });
+    }
+    if (pattern.quizTaken.includes(quiz5.id)) {
+      contentItems.push({ itemId: quiz5.id, itemType: 'QUIZ', completedAt: new Date(Date.now() - 1 * 86400000).toISOString() });
+    }
+    if (pattern.posttestScore !== null) {
+      contentItems.push({ itemId: 'posttest', itemType: 'POSTTEST', completedAt: new Date(Date.now() - 1 * 86400000).toISOString() });
+    }
+
+    const totalMateri = 4; // m1, m2, m3, m4
+    const completedCount = contentItems.length;
+    const progressPct = Math.round((completedCount / (totalMateri + 5 + (pattern.posttestScore !== null ? 1 : 0) + 1)) * 100);
+
+    const progress = await prisma.progress.create({
+      data: {
+        siswaId: currentSiswa.id,
+        modulId: modul.id,
+        status: pattern.status,
+        isGraduated: isCompleted && (pattern.posttestScore ?? 0) >= 60,
+        progressPercentage: Math.min(progressPct, 100),
+        finalScore: pattern.posttestScore ?? null,
+        pretestScore: Math.round((pretestCorrectCount / allSoalPretest.length) * 100),
+        pretestCorrectCount,
+        pretestWrongCount,
+        pretestTimeSpent: 600,
+        pretestCompleted: true,
+        posttestScore: pattern.posttestScore,
+        posttestCorrectCount: pattern.posttestScore !== null ? Math.round(pattern.posttestScore! / 10) : null,
+        posttestWrongCount: pattern.posttestScore !== null ? 5 - Math.round(pattern.posttestScore! / 10) : null,
+        posttestTimeSpent: pattern.posttestScore !== null ? 900 : null,
+        posttestCompleted: pattern.posttestScore !== null,
+        completedContentItems: JSON.stringify(contentItems),
+        pretestAssignedQuestions,
+        posttestAssignedQuestions,
+      },
+    });
+
+    // ── Quiz Scores ──
+    const quizScoreData = pattern.quizTaken.map((qId, idx) => ({
       progressId: progress.id,
-      score: 10,
-      quizType: 'QUIZ',
-      questionId: quiz1.id,
-      answeredAt: new Date(Date.now() - 4 * 86400000),
-    },
-  });
+      score: pattern.quizCorrect.includes(qId) ? 10 : 0,
+      quizType: 'QUIZ' as const,
+      questionId: qId,
+      answeredAt: new Date(Date.now() - (pattern.quizTaken.length - idx) * 86400000),
+    }));
+    await prisma.quizScore.createMany({ data: quizScoreData });
+    totalQuizScores += quizScoreData.length;
 
-  await prisma.quizScore.create({
-    data: {
-      progressId: progress.id,
-      score: 10,
-      quizType: 'QUIZ',
-      questionId: quiz2.id,
-      answeredAt: new Date(Date.now() - 2 * 86400000),
-    },
-  });
-
-  await prisma.quizScore.create({
-    data: {
-      progressId: progress.id,
-      score: 10,
-      quizType: 'QUIZ',
-      questionId: quiz3.id,
-      answeredAt: new Date(Date.now() - 2 * 86400000),
-    },
-  });
-
-  await prisma.quizScore.create({
-    data: {
-      progressId: progress.id,
-      score: 10,
-      quizType: 'QUIZ',
-      questionId: quiz4.id,
-      answeredAt: new Date(Date.now() - 1 * 86400000),
-    },
-  });
-
-  await prisma.quizScore.create({
-    data: {
-      progressId: progress.id,
-      score: 10,
-      quizType: 'QUIZ',
-      questionId: quiz5.id,
-      answeredAt: new Date(Date.now() - 1 * 86400000),
-    },
-  });
-  console.log(' Quiz Scores: 5 records\n');
-
-  // =====================================================
-  // CERTIFICATE
-  // =====================================================
-  console.log('Creating Certificate...');
-
-  const kodeSertif = `CERT-FINAL-${Date.now().toString().slice(-6)}`;
-
-  await prisma.certificate.create({
-    data: {
-      siswaId: siswa.id,
+    // ── Student Answer Logs (Pretest) ──
+    const pretestLogsData = allSoalPretest.map((soal, i) => ({
+      siswaId: currentSiswa.id,
       modulId: modul.id,
-      kode_sertif: kodeSertif,
-      certificateUrl: `https://storage.example.com/certificates/${kodeSertif}.pdf`,
-      issued_at: new Date(),
-    },
-  });
-  console.log(` Certificate: ${kodeSertif}\n`);
+      questionSource: 'PRETEST' as const,
+      questionId: soal.id,
+      knowledgeComponentId: i < 4 ? kc1.id : kc2.id,
+      isCorrect: pattern.pretestCorrect.includes(i),
+      attemptNo: 1,
+      answeredAt: new Date(Date.now() - 7 * 86400000),
+    }));
+    await prisma.studentAnswerLog.createMany({ data: pretestLogsData });
+    totalAnswerLogs += pretestLogsData.length;
+
+    // ── Student Answer Logs (Quizzes) ──
+    const quizLogsData = pattern.quizTaken.map((qId, idx) => ({
+      siswaId: currentSiswa.id,
+      modulId: modul.id,
+      questionSource: 'QUIZ' as const,
+      questionId: qId,
+      knowledgeComponentId: qId === quiz1.id ? kc1.id : kc2.id,
+      isCorrect: pattern.quizCorrect.includes(qId),
+      attemptNo: 1,
+      answeredAt: new Date(Date.now() - (pattern.quizTaken.length - idx) * 86400000),
+    }));
+    await prisma.studentAnswerLog.createMany({ data: quizLogsData });
+    totalAnswerLogs += quizLogsData.length;
+
+    // ── Student Knowledge States ──
+    const kcMasteryMap: Array<{ kcId: string; mastery: number }> = [];
+    if (pattern.email === 'finalsiswa@lms.test') {
+      kcMasteryMap.push({ kcId: kc1.id, mastery: 0.90 }, { kcId: kc2.id, mastery: 0.95 });
+    } else if (pattern.email === 'siswa2@lms.test') {
+      kcMasteryMap.push({ kcId: kc1.id, mastery: 0.25 }, { kcId: kc2.id, mastery: 0.15 });
+    } else if (pattern.email === 'siswa3@lms.test') {
+      kcMasteryMap.push({ kcId: kc1.id, mastery: 0.70 }, { kcId: kc2.id, mastery: 0.55 });
+    } else {
+      kcMasteryMap.push({ kcId: kc1.id, mastery: 0.60 }, { kcId: kc2.id, mastery: 0.65 });
+    }
+    for (const { kcId, mastery } of kcMasteryMap) {
+      await prisma.studentKnowledgeState.create({
+        data: {
+          siswaId: currentSiswa.id,
+          modulId: modul.id,
+          knowledgeComponentId: kcId,
+          p_mastery_current: mastery,
+        },
+      });
+    }
+    totalKnowledgeStates += kcMasteryMap.length;
+  }
+  console.log(` Progress: ${studentAnswerPatterns.length} records`);
+  console.log(` Quiz Scores: ${totalQuizScores} records`);
+  console.log(` Student Answer Logs: ${totalAnswerLogs} records`);
+  console.log(` Knowledge States: ${totalKnowledgeStates} records\n`);
+
+  // ── Certificates (for graduated students) ──
+  console.log('Creating Certificates...');
+  let certCount = 0;
+  for (const pattern of studentAnswerPatterns) {
+    const currentSiswa = siswaMap[pattern.email];
+    if (!currentSiswa) continue;
+    const isGraduated = pattern.status === 'COMPLETED' && (pattern.posttestScore ?? 0) >= 60;
+    if (!isGraduated) continue;
+    const kodeSertif = `CERT-FINAL-${Date.now().toString().slice(-6)}-${pattern.email.split('@')[0]}`;
+    await prisma.certificate.create({
+      data: {
+        siswaId: currentSiswa.id,
+        modulId: modul.id,
+        kode_sertif: kodeSertif,
+        certificateUrl: `https://storage.example.com/certificates/${kodeSertif}.pdf`,
+        issued_at: new Date(),
+      },
+    });
+    certCount++;
+  }
+  console.log(` Certificates: ${certCount} records\n`);
 
   // =====================================================
   // SUMMARY
@@ -987,7 +1044,7 @@ async function main() {
   console.log('Login credentials:');
   console.log(`  Admin: ${TEST_EMAILS.admin} / admin123`);
   console.log(`  Tutor: ${TEST_EMAILS.tutor} / tutor123`);
-  console.log(`  Siswa: ${TEST_EMAILS.siswa} / siswa123\n`);
+  console.log(`  Siswa: finalsiswa@lms.test, siswa2@lms.test, siswa3@lms.test, siswa4@lms.test / siswa123\n`);
   console.log('Module:');
   console.log(`  ${modul.moduleName}`);
   console.log(`  Status: GRATIS | Bersertifikat | Published\n`);
@@ -995,11 +1052,11 @@ async function main() {
   console.log(`  - ${allSoalPretest.length} pretest questions`);
   console.log(`  - ${posttestQuestionsData.length} posttest questions`);
   console.log(`  - ${allMateri.length} materials`);
-  console.log(`  - 5 quizzes (1 REGULER, 4 COMPUTATIONAL_THINKING)`);
+  console.log(`  - 5 quizzes (1 REGULER, 4 COMPUTATIONAL_THINKING with ctAspect)`);
   console.log(`  - ${ctAspects.length} CT aspects`);
   console.log(`  - ${allKc.length} knowledge components`);
-  console.log(`  - 1 siswa enrolled (COMPLETED)`);
-  console.log(`  - 1 certificate issued\n`);
+  console.log(`  - ${allSiswa.length} siswa enrolled`);
+  console.log(`  - 2 certificates issued\n`);
   console.log('Run with: npx tsx prisma/finalseed.ts');
 }
 

@@ -363,6 +363,8 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       select: {
         id: true,
         topikId: true,
+        ctAspect: true,
+        topik: { select: { nama: true } },
         quizSettings: {
           select: { minScoreTreshold: true },
         },
@@ -370,6 +372,14 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
     });
 
     const ctQuizIdSet = new Set(ctQuizzes.map((q) => q.id));
+
+    // Map quiz → topik info for per-topik grouping
+    const quizTopikMap = new Map<string, { topikId: string; topikName: string; ctAspect: string | null }>();
+    const topikNames = new Map<string, string>();
+    for (const q of ctQuizzes) {
+      quizTopikMap.set(q.id, { topikId: q.topikId, topikName: q.topik.nama, ctAspect: q.ctAspect });
+      topikNames.set(q.topikId, q.topik.nama);
+    }
 
     // Get answer logs for CT quizzes with KC data
     const answerLogs = await prisma.studentAnswerLog.findMany({
@@ -379,6 +389,7 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
         questionId: { in: Array.from(ctQuizIdSet) },
       },
       select: {
+        questionId: true,
         isCorrect: true,
         knowledgeComponent: {
           select: { code: true, nama: true },
@@ -474,6 +485,43 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
     const abstraction = getScore('abstraction');
     const algorithm = getScore('algorithm');
 
+    // ── Per-topik CT analysis ──
+    const rawTopikPillar: Record<string, Record<string, { correct: number; total: number }>> = {};
+    for (const log of answerLogs) {
+      const topikInfo = quizTopikMap.get(log.questionId);
+      if (!topikInfo) continue;
+      const tId = topikInfo.topikId;
+      if (!rawTopikPillar[tId]) rawTopikPillar[tId] = {};
+      const aspect = topikInfo.ctAspect || log.knowledgeComponent?.code || 'unknown';
+      const pillarKey = pillarAlias[aspect] || aspect;
+      if (!rawTopikPillar[tId][pillarKey]) rawTopikPillar[tId][pillarKey] = { correct: 0, total: 0 };
+      rawTopikPillar[tId][pillarKey].total++;
+      if (log.isCorrect) rawTopikPillar[tId][pillarKey].correct++;
+    }
+
+    const getTopikScore = (raw: Record<string, { correct: number; total: number }>, key: string): number => {
+      const d = raw[key];
+      if (d && d.total > 0) return Math.round((d.correct / d.total) * 100);
+      const totalCorrect = Object.values(raw).reduce((s, v) => s + v.correct, 0);
+      const totalAll = Object.values(raw).reduce((s, v) => s + v.total, 0);
+      if (totalAll > 0) return Math.round((totalCorrect / totalAll) * 100);
+      return 0;
+    };
+
+    const topikCTAnalysis = Array.from(topikNames.entries()).map(([topikId, topikName]) => {
+      const raw = rawTopikPillar[topikId] || {};
+      return {
+        topikId,
+        topikName,
+        computationalThinking: {
+          decomposition:      { score: getTopikScore(raw, 'decomposition'),      label: getLabel(getTopikScore(raw, 'decomposition')) },
+          patternRecognition: { score: getTopikScore(raw, 'patternRecognition'), label: getLabel(getTopikScore(raw, 'patternRecognition')) },
+          abstraction:        { score: getTopikScore(raw, 'abstraction'),        label: getLabel(getTopikScore(raw, 'abstraction')) },
+          algorithm:          { score: getTopikScore(raw, 'algorithm'),          label: getLabel(getTopikScore(raw, 'algorithm')) },
+        },
+      };
+    });
+
     // Build quiz records
     const allQuizScores = targetProgress?.quizScores || [];
     const topikQuizzes = await prisma.quiz.findMany({
@@ -559,6 +607,7 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
         abstraction: { score: abstraction, label: getLabel(abstraction), preTest: getPretestScore('abstraction'), postTest: abstraction },
         algorithm: { score: algorithm, label: getLabel(algorithm), preTest: getPretestScore('algorithm'), postTest: algorithm },
       },
+      topikCTAnalysis,
       quizRecords,
       recommendation,
     };
