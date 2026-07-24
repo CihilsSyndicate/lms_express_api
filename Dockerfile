@@ -6,7 +6,6 @@ RUN npm ci
 COPY prisma/ ./prisma/
 COPY tsconfig.json build.mjs ./
 COPY src/ ./src/
-RUN npx prisma generate --schema=./prisma
 RUN npm run build
 
 FROM node:26-alpine AS runner
