@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+﻿import { prisma } from '@/lib/prisma';
 import { Request, Response } from 'express';
 import {
   buildCursorPaginatedResponse,
@@ -167,7 +167,9 @@ export const getProgressByStudentId = async (studentId: string) => {
     const progress = allProgress.map((progress) => {
       const completedItems = (() => {
         try {
-          return JSON.parse(progress.completedContentItems || '[]');
+          const parsed = JSON.parse(progress.completedContentItems || '[]');
+          if (Array.isArray(parsed)) return parsed;
+          return [];
         } catch {
           return [];
         }
@@ -177,6 +179,9 @@ export const getProgressByStudentId = async (studentId: string) => {
         (sum, t) => sum + t._count.materis,
         0,
       );
+      const completedMateriCount = completedItems.filter(
+        (item: any) => item.itemType === 'MATERI',
+      ).length;
 
       // Build quiz records from QuizScores
       const quizRecords = progress.quizScores
@@ -221,8 +226,9 @@ export const getProgressByStudentId = async (studentId: string) => {
         status: progress.status,
         isGraduated: progress.isGraduated,
         progressPercentage: progress.progressPercentage,
+        completedMateri: completedMateriCount,
         completionRate: totalMateri > 0
-          ? Math.round((completedItems.length / totalMateri) * 100)
+          ? Math.round((completedMateriCount / totalMateri) * 100)
           : 0,
         recommendation,
         quizRecords,
@@ -340,6 +346,7 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
                 id: true,
                 nama: true,
                 _count: { select: { materis: true } },
+                materis: { select: { id: true } },
               },
             },
           },
@@ -351,6 +358,18 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
     const targetProgress = modulId
       ? progressRecords.find((p) => p.modul.id === modulId)
       : progressRecords[0];
+
+    console.log('[DEBUG analyzeCT] targetProgress found:', !!targetProgress);
+    if (targetProgress) {
+      console.log('[DEBUG analyzeCT] moduleId:', targetProgress.modul.id, 'topik count:', targetProgress.modul.topiks.length);
+      console.log('[DEBUG analyzeCT] topik IDs:', targetProgress.modul.topiks.map(t => t.id));
+    } else {
+      console.log('[DEBUG analyzeCT] progressRecords count:', progressRecords.length);
+      console.log('[DEBUG analyzeCT] modulId param:', modulId);
+      if (progressRecords.length > 0) {
+        console.log('[DEBUG analyzeCT] available modulIds:', progressRecords.map(p => p.modul.id));
+      }
+    }
 
     const modulIds = progressRecords.map((p) => p.modul.id);
 
@@ -373,7 +392,7 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
 
     const ctQuizIdSet = new Set(ctQuizzes.map((q) => q.id));
 
-    // Map quiz → topik info for per-topik grouping
+    // Map quiz â†’ topik info for per-topik grouping
     const quizTopikMap = new Map<string, { topikId: string; topikName: string; ctAspect: string | null }>();
     const topikNames = new Map<string, string>();
     for (const q of ctQuizzes) {
@@ -397,17 +416,6 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       },
     });
 
-    // Group by knowledge component code (CT pillar)
-    const rawPillar: Record<string, { correct: number; total: number }> = {};
-    for (const log of answerLogs) {
-      const code = log.knowledgeComponent?.code || 'unknown';
-      if (!rawPillar[code]) {
-        rawPillar[code] = { correct: 0, total: 0 };
-      }
-      rawPillar[code].total++;
-      if (log.isCorrect) rawPillar[code].correct++;
-    }
-
     // Map known CT pillar codes
     const pillarAlias: Record<string, string> = {
       decomposition: 'decomposition',
@@ -417,6 +425,19 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       abstraction: 'abstraction',
       algorithm: 'algorithm',
     };
+
+    // Group by ctAspect (CT pillar) from quiz metadata
+    const rawPillar: Record<string, { correct: number; total: number }> = {};
+    for (const log of answerLogs) {
+      const topikInfo = quizTopikMap.get(log.questionId);
+      const code = topikInfo?.ctAspect || log.knowledgeComponent?.code || 'unknown';
+      const pillarKey = pillarAlias[code] || code;
+      if (!rawPillar[pillarKey]) {
+        rawPillar[pillarKey] = { correct: 0, total: 0 };
+      }
+      rawPillar[pillarKey].total++;
+      if (log.isCorrect) rawPillar[pillarKey].correct++;
+    }
 
     // Per-pillar pretest scores
     const targetModulId = targetProgress?.modul.id;
@@ -448,13 +469,68 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       rawPretest[code].total++;
       if (isCorrect) rawPretest[code].correct++;
     }
+    console.log('[DEBUG CT] pretestLogs count:', pretestLogs.length, 'pretestMappings count:', pretestMappings.length);
+    console.log('[DEBUG CT] rawPretest keys:', Object.keys(rawPretest), 'values:', JSON.stringify(rawPretest));
 
     const getPretestScore = (key: string): number => {
       for (const [alias, target] of Object.entries(pillarAlias)) {
         if (target !== key) continue;
         const d = rawPretest[alias];
-        if (d && d.total > 0) return Math.round((d.correct / d.total) * 100);
+        if (d && d.total > 0) { const r = Math.round((d.correct / d.total) * 100); console.log('[DEBUG CT] getPretestScore(' + key + ') =', r, '(hit alias', alias + ')'); return r; }
       }
+      const direct = rawPretest[key];
+      if (direct && direct.total > 0) { const r = Math.round((direct.correct / direct.total) * 100); console.log('[DEBUG CT] getPretestScore(' + key + ') =', r, '(direct hit)'); return r; }
+      const totalCorrect = Object.values(rawPretest).reduce((s, v) => s + v.correct, 0);
+      const totalAll = Object.values(rawPretest).reduce((s, v) => s + v.total, 0);
+      if (totalAll > 0) { const r = Math.round((totalCorrect / totalAll) * 100); console.log('[DEBUG CT] getPretestScore(' + key + ') =', r, '(overall avg)'); return r; }
+      console.log('[DEBUG CT] getPretestScore(' + key + ') = 0 (no data)');
+      return 0;
+    };
+
+    // Per-pillar posttest scores (posttest uses the same question pool as pretest)
+    const posttestLogs = targetModulId
+      ? await prisma.studentAnswerLog.findMany({
+          where: { siswaId: studentId, modulId: targetModulId, questionSource: 'POSTTEST' },
+          select: { questionId: true, isCorrect: true },
+        })
+      : [];
+
+    const posttestMappings =
+      posttestLogs.length > 0
+        ? await prisma.pretestQuestionSkillMap.findMany({
+            where: { pretestQuestionId: { in: posttestLogs.map((l) => l.questionId) } },
+            select: {
+              pretestQuestionId: true,
+              knowledgeComponent: { select: { code: true } },
+            },
+          })
+        : [];
+
+    const correctByPosttestQId = new Map(posttestLogs.map((l) => [l.questionId, l.isCorrect]));
+    const rawPosttest: Record<string, { correct: number; total: number }> = {};
+    for (const m of posttestMappings) {
+      const isCorrect = correctByPosttestQId.get(m.pretestQuestionId);
+      if (isCorrect === undefined) continue;
+      const code = m.knowledgeComponent?.code || 'unknown';
+      if (!rawPosttest[code]) rawPosttest[code] = { correct: 0, total: 0 };
+      rawPosttest[code].total++;
+      if (isCorrect) rawPosttest[code].correct++;
+    }
+    console.log('[DEBUG CT] posttestLogs count:', posttestLogs.length, 'posttestMappings count:', posttestMappings.length);
+    console.log('[DEBUG CT] rawPosttest keys:', Object.keys(rawPosttest), 'values:', JSON.stringify(rawPosttest));
+
+    const getPosttestScore = (key: string): number => {
+      for (const [alias, target] of Object.entries(pillarAlias)) {
+        if (target !== key) continue;
+        const d = rawPosttest[alias];
+        if (d && d.total > 0) { const r = Math.round((d.correct / d.total) * 100); console.log('[DEBUG CT] getPosttestScore(' + key + ') =', r, '(hit alias', alias + ')'); return r; }
+      }
+      const direct = rawPosttest[key];
+      if (direct && direct.total > 0) { const r = Math.round((direct.correct / direct.total) * 100); console.log('[DEBUG CT] getPosttestScore(' + key + ') =', r, '(direct hit)'); return r; }
+      const totalCorrect = Object.values(rawPosttest).reduce((s, v) => s + v.correct, 0);
+      const totalAll = Object.values(rawPosttest).reduce((s, v) => s + v.total, 0);
+      if (totalAll > 0) { const r = Math.round((totalCorrect / totalAll) * 100); console.log('[DEBUG CT] getPosttestScore(' + key + ') =', r, '(overall avg)'); return r; }
+      console.log('[DEBUG CT] getPosttestScore(' + key + ') = 0 (no data)');
       return 0;
     };
 
@@ -469,7 +545,7 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       const totalCorrect = Object.values(rawPillar).reduce((s, v) => s + v.correct, 0);
       const totalAll = Object.values(rawPillar).reduce((s, v) => s + v.total, 0);
       if (totalAll > 0) return Math.round((totalCorrect / totalAll) * 100);
-      // No data at all — return neutral score
+      // No data at all â€” return neutral score
       return 0;
     };
 
@@ -485,7 +561,7 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
     const abstraction = getScore('abstraction');
     const algorithm = getScore('algorithm');
 
-    // ── Per-topik CT analysis ──
+    // â”€â”€ Per-topik CT analysis â”€â”€
     const rawTopikPillar: Record<string, Record<string, { correct: number; total: number }>> = {};
     for (const log of answerLogs) {
       const topikInfo = quizTopikMap.get(log.questionId);
@@ -559,19 +635,67 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
         };
       });
 
-    // Module progress from first module
-    const completedItems = targetProgress
-      ? (() => {
-          try {
-            return JSON.parse(targetProgress.completedContentItems || '[]');
-          } catch {
-            return [];
-          }
-        })()
-      : [];
-    const totalMateri = targetProgress
-      ? targetProgress.modul.topiks.reduce((s, t) => s + t._count.materis, 0)
+    // Module progress â€” count by topik (not materi) using ProgressDetail
+    const totalTopik = targetProgress
+      ? targetProgress.modul.topiks.length
       : 0;
+
+    let completedTopik = 0;
+    if (targetProgress) {
+      const topikIds = targetProgress.modul.topiks.map(t => t.id);
+      const topikMateriCount = new Map(
+        targetProgress.modul.topiks.map(t => [t.id, t._count.materis]),
+      );
+      const completedDetails = await prisma.progressDetail.findMany({
+        where: {
+          siswaId: studentId,
+          isCompleted: true,
+          materi: { topikId: { in: topikIds } },
+        },
+        select: {
+          materiId: true,
+          materi: { select: { topikId: true } },
+        },
+      });
+      const completedPerTopik = new Map<string, Set<string>>();
+      for (const d of completedDetails) {
+        const tid = d.materi.topikId;
+        if (!completedPerTopik.has(tid)) completedPerTopik.set(tid, new Set());
+        completedPerTopik.get(tid)!.add(d.materiId);
+      }
+      for (const [tid, total] of topikMateriCount) {
+        const done = completedPerTopik.get(tid);
+        if (done && done.size >= total) completedTopik++;
+      }
+    }
+
+    // ── Topic-level completion: count topics where ALL materis are completed ──
+    // Uses completedContentItems JSON from Progress (not ProgressDetail),
+    // matching how getProgressByStudentId counts completed materis.
+    let totalTopics = 0;
+    let completedTopics = 0;
+    for (const progress of progressRecords) {
+      const completedItems: Array<{ itemId: string; itemType: string }> = (() => {
+        try {
+          const parsed = JSON.parse(progress.completedContentItems || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
+      const completedMateriIds = new Set(
+        completedItems
+          .filter((item) => item.itemType === 'MATERI')
+          .map((item) => item.itemId),
+      );
+      for (const topik of progress.modul.topiks) {
+        totalTopics++;
+        if (topik.materis.length === 0) { completedTopics++; continue; }
+        if (topik.materis.every((m) => completedMateriIds.has(m.id))) {
+          completedTopics++;
+        }
+      }
+    }
 
     let recommendation = 'Perlu Penguatan';
     if (targetProgress?.posttestScore && targetProgress.posttestScore >= 75) {
@@ -579,6 +703,9 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
     } else if (targetProgress?.posttestScore && targetProgress.posttestScore >= 60) {
       recommendation = 'Perlu Remedial';
     }
+
+    console.log('[DEBUG analyzeCT] totalTopik:', totalTopik, 'completedTopik:', completedTopik);
+    console.log('[DEBUG analyzeCT] totalTopics:', totalTopics, 'completedTopics:', completedTopics);
 
     return {
       studentInfo: {
@@ -597,22 +724,25 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
             pretestScore: targetProgress.pretestScore,
             posttestScore: targetProgress.posttestScore,
             progressPercentage: targetProgress.progressPercentage,
-            totalMateri,
-            completedMateri: completedItems.length,
+            totalTopik,
+            completedTopik,
           }
         : null,
       computationalThinking: {
-        decomposition: { score: decomposition, label: getLabel(decomposition), preTest: getPretestScore('decomposition'), postTest: decomposition },
-        patternRecognition: { score: patternRecognition, label: getLabel(patternRecognition), preTest: getPretestScore('patternRecognition'), postTest: patternRecognition },
-        abstraction: { score: abstraction, label: getLabel(abstraction), preTest: getPretestScore('abstraction'), postTest: abstraction },
-        algorithm: { score: algorithm, label: getLabel(algorithm), preTest: getPretestScore('algorithm'), postTest: algorithm },
+        decomposition: { score: decomposition, label: getLabel(decomposition), preTest: getPretestScore('decomposition'), postTest: getPosttestScore('decomposition') },
+        patternRecognition: { score: patternRecognition, label: getLabel(patternRecognition), preTest: getPretestScore('patternRecognition'), postTest: getPosttestScore('patternRecognition') },
+        abstraction: { score: abstraction, label: getLabel(abstraction), preTest: getPretestScore('abstraction'), postTest: getPosttestScore('abstraction') },
+        algorithm: { score: algorithm, label: getLabel(algorithm), preTest: getPretestScore('algorithm'), postTest: getPosttestScore('algorithm') },
       },
       topikCTAnalysis,
       quizRecords,
       recommendation,
+      totalTopics,
+      completedTopics,
     };
   } catch (error) {
     console.error('Error analyzing computational thinking:', error);
     throw error;
   }
 };
+

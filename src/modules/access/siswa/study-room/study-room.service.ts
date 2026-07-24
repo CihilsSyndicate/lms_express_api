@@ -4,6 +4,10 @@ export interface StudyRoomQuestion {
   id: string;
   text: string;
   options: { key: string; label: string }[];
+  isComputationalThinking?: boolean;
+  knowledgeComponentId?: string | null;
+  ctAspect?: string | null;
+  ceritaCT?: string | null;
 }
 
 export interface StudyRoomAssessment {
@@ -28,6 +32,7 @@ export interface StudyRoomItem {
   quizType?: string;
   ctGroupId?: string | null;
   ctStory?: string | null;
+  ctAspect?: string | null;
   judul: string;
   isVideo?: boolean;
   videoUrl?: string | null;
@@ -122,14 +127,22 @@ function mapPretestQuestions(
     ? allQs.filter((q: any) => selectedIds.includes(q.id))
     : allQs;
   const shuffled = shuffleArray(qs);
-  return shuffled.map((q: any) => ({
-    id: q.id,
-    text: q.pertanyaan,
-    options: (q.answerOptions ?? []).map((opt: any, idx: number) => ({
-      key: OPTION_KEYS[idx] ?? `opt_${idx}`,
-      label: opt.option,
-    })),
-  }));
+  return shuffled.map((q: any) => {
+    const skillMap = q.skillMaps?.[0];
+    const kc = skillMap?.knowledgeComponent;
+    return {
+      id: q.id,
+      text: q.pertanyaan,
+      options: (q.answerOptions ?? []).map((opt: any, idx: number) => ({
+        key: OPTION_KEYS[idx] ?? `opt_${idx}`,
+        label: opt.option,
+      })),
+      isComputationalThinking: !!skillMap,
+      knowledgeComponentId: kc?.id ?? null,
+      ctAspect: kc?.code ?? null,
+      ceritaCT: null,
+    };
+  });
 }
 
 function mapPosttestQuestions(
@@ -142,14 +155,22 @@ function mapPosttestQuestions(
   const qs = selectedIds.length > 0
     ? selectedIds.map((id: string) => qById.get(id)).filter(Boolean)
     : pretestQuestions;
-  return qs.map((q: any) => ({
-    id: q.id,
-    text: q.pertanyaan,
-    options: (q.answerOptions ?? []).map((opt: any, idx: number) => ({
-      key: OPTION_KEYS[idx] ?? `opt_${idx}`,
-      label: opt.option,
-    })),
-  }));
+  return qs.map((q: any) => {
+    const skillMap = q.skillMaps?.[0];
+    const kc = skillMap?.knowledgeComponent;
+    return {
+      id: q.id,
+      text: q.pertanyaan,
+      options: (q.answerOptions ?? []).map((opt: any, idx: number) => ({
+        key: OPTION_KEYS[idx] ?? `opt_${idx}`,
+        label: opt.option,
+      })),
+      isComputationalThinking: !!skillMap,
+      knowledgeComponentId: kc?.id ?? null,
+      ctAspect: kc?.code ?? null,
+      ceritaCT: null,
+    };
+  });
 }
 
 function parseCompletedContentItems(raw: string): string[] {
@@ -205,7 +226,14 @@ export const getStudyRoomDataService = async (
         include: {
           pretestSettings: true,
           pretestQuestions: {
-            include: { answerOptions: true },
+            include: {
+              answerOptions: true,
+              skillMaps: {
+                include: {
+                  knowledgeComponent: true,
+                },
+              },
+            },
             orderBy: { questionNumber: { sort: 'asc', nulls: 'last' } },
           },
         },
@@ -400,6 +428,7 @@ export const getStudyRoomDataService = async (
             quizType: quiz.quizType,
             ctGroupId: quiz.ctGroupId,
             ctStory: quiz.ctStory,
+            ctAspect: quiz.ctAspect,
             quizGroupId: quiz.quizGroupId,
             judul: quiz.judul ?? quiz.question,
             question: quiz.question,

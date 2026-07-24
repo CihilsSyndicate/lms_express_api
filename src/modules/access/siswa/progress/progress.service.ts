@@ -171,6 +171,34 @@ export const markMateriCompletedService = async (
   );
 
   const modulId = (materi as any).topik.modulId;
+
+  // Track in completedContentItems so tutor/admin views count it correctly
+  const progressRec = await prisma.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+    select: { id: true, completedContentItems: true },
+  });
+  if (progressRec) {
+    const completedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
+      try {
+        const parsed = JSON.parse(progressRec.completedContentItems || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    if (!completedItems.some((e) => e.itemId === materiId)) {
+      completedItems.push({ itemId: materiId, itemType: 'MATERI', completedAt: new Date().toISOString() });
+      const totalSequenceSteps = await getTotalSequenceSteps(modulId);
+      const progressPercentage = totalSequenceSteps > 0
+        ? Math.min(100, Math.round((completedItems.length / totalSequenceSteps) * 100))
+        : 0;
+      await prisma.progress.update({
+        where: { id: progressRec.id },
+        data: { completedContentItems: JSON.stringify(completedItems), progressPercentage },
+      });
+    }
+  }
+
   const progress = await prisma.progress.findUnique({
     where: { siswaId_modulId: { siswaId, modulId } },
     include: { modul: true },

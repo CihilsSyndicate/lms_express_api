@@ -306,79 +306,9 @@ async function main() {
     },
   });
 
-  const posttestQuestionsData = [
-    {
-      question: 'Langkah pertama dalam menyusun algoritma adalah...',
-      pilihan: [
-        'Mendefinisikan masalah',
-        'Menulis kode program',
-        'Menguji program',
-        'Menginstal compiler',
-      ],
-      correctAnswer: 'Mendefinisikan masalah',
-    },
-    {
-      question: 'Perbedaan utama antara while dan do-while adalah...',
-      pilihan: [
-        'While menjalankan minimal sekali, do-while bisa 0 kali',
-        'Do-while menjalankan minimal sekali, while bisa 0 kali',
-        'While lebih cepat dari do-while',
-        'Tidak ada perbedaan',
-      ],
-      correctAnswer: 'Do-while menjalankan minimal sekali, while bisa 0 kali',
-    },
-    {
-      question: 'Manakah yang merupakan contoh dekomposisi dalam CT?',
-      pilihan: [
-        'Membuat diagram alir',
-        'Memecah aplikasi menjadi modul-modul kecil',
-        'Mengulang pola yang sama',
-        'Menyederhanakan detail kompleks',
-      ],
-      correctAnswer: 'Memecah aplikasi menjadi modul-modul kecil',
-    },
-    {
-      question: 'Apa fungsi dari pseudocode?',
-      pilihan: [
-        'Menjalankan program secara langsung',
-        'Menggambarkan logika algoritma dalam bahasa manusia',
-        'Mengompilasi kode menjadi binary',
-        'Mendesain tampilan aplikasi',
-      ],
-      correctAnswer: 'Menggambarkan logika algoritma dalam bahasa manusia',
-    },
-    {
-      question:
-        'Algoritma sorting yang memiliki kompleksitas rata-rata O(n log n) adalah...',
-      pilihan: [
-        'Bubble Sort',
-        'Selection Sort',
-        'Merge Sort',
-        'Insertion Sort',
-      ],
-      correctAnswer: 'Merge Sort',
-    },
-  ];
-
-  // Posttest questions stored in shared SoalPretest bank
-  for (let qIdx = 0; qIdx < posttestQuestionsData.length; qIdx++) {
-    const q = posttestQuestionsData[qIdx];
-    const soal = await prisma.soalPretest.create({
-      data: {
-        pretestId: pretest.id,
-        pertanyaan: q.question,
-        correctAnswer: q.correctAnswer,
-        skor: 10,
-        questionNumber: qIdx + 1,
-      },
-    });
-    for (const opt of q.pilihan) {
-      await prisma.pretestAnswerOptions.create({
-        data: { soalPretestId: soal.id, option: opt },
-      });
-    }
-  }
-  console.log(` Posttest questions (via SoalPretest): ${posttestQuestionsData.length} records\n`);
+  // Posttest uses the SAME 5 pretest questions — no separate posttest question bank.
+  // The study-room service copies pretest assigned question IDs for posttest.
+  console.log(' Posttest reuses the same 5 pretest questions (SoalPretest bank)\n');
 
   // =====================================================
   // TOPICS
@@ -825,8 +755,9 @@ async function main() {
   console.log('Creating Progress, Answer Logs, Quiz Scores & Knowledge States...');
 
   const pretestAssignedQuestions = JSON.stringify(allSoalPretest.map((s) => s.id));
+  // Posttest uses the SAME questions as pretest (same 5 IDs, shuffled order)
   const posttestAssignedQuestions = JSON.stringify(
-    (await prisma.soalPretest.findMany({ where: { pretestId: pretest.id }, select: { id: true } })).map((s) => s.id),
+    [...allSoalPretest.map((s) => s.id)].sort(() => Math.random() - 0.5),
   );
 
   // Define per-student answer patterns
@@ -936,8 +867,8 @@ async function main() {
         pretestTimeSpent: 600,
         pretestCompleted: true,
         posttestScore: pattern.posttestScore,
-        posttestCorrectCount: pattern.posttestScore !== null ? Math.round(pattern.posttestScore! / 10) : null,
-        posttestWrongCount: pattern.posttestScore !== null ? 5 - Math.round(pattern.posttestScore! / 10) : null,
+        posttestCorrectCount: pattern.posttestScore !== null ? Math.round(pattern.posttestScore! / 20) : null,
+        posttestWrongCount: pattern.posttestScore !== null ? 5 - Math.round(pattern.posttestScore! / 20) : null,
         posttestTimeSpent: pattern.posttestScore !== null ? 900 : null,
         posttestCompleted: pattern.posttestScore !== null,
         completedContentItems: JSON.stringify(contentItems),
@@ -949,7 +880,7 @@ async function main() {
     // ── Quiz Scores ──
     const quizScoreData = pattern.quizTaken.map((qId, idx) => ({
       progressId: progress.id,
-      score: pattern.quizCorrect.includes(qId) ? 10 : 0,
+      score: pattern.quizCorrect.includes(qId) ? 100 : 0,
       quizType: 'QUIZ' as const,
       questionId: qId,
       answeredAt: new Date(Date.now() - (pattern.quizTaken.length - idx) * 86400000),
@@ -1049,8 +980,7 @@ async function main() {
   console.log(`  ${modul.moduleName}`);
   console.log(`  Status: GRATIS | Bersertifikat | Published\n`);
   console.log('Data created:');
-  console.log(`  - ${allSoalPretest.length} pretest questions`);
-  console.log(`  - ${posttestQuestionsData.length} posttest questions`);
+  console.log(`  - ${allSoalPretest.length} pretest questions (reused for posttest)`);
   console.log(`  - ${allMateri.length} materials`);
   console.log(`  - 5 quizzes (1 REGULER, 4 COMPUTATIONAL_THINKING with ctAspect)`);
   console.log(`  - ${ctAspects.length} CT aspects`);

@@ -6,7 +6,7 @@ import passport from './lib/passport';
 import { verifyToken } from './lib/auth';
 
 const app = express();
-const APP_PORT = process.env.API_PORT || 3000;
+const APP_PORT = process.env.API_PORT || process.env.PORT || 3000;
 
 app.use(express.json({ limit: '100mb' }));
 app.use(cookieParser());

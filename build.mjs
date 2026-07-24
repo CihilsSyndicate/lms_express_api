@@ -7,7 +7,7 @@ await build({
   bundle: true,
   platform: 'node',
   format: 'cjs',          // 🔥 UBAH INI
-  target: 'node18',
+  target: 'node26',
 
   sourcemap: true,
 
@@ -15,7 +15,6 @@ await build({
     'express',
     '@prisma/client',
     'prisma',
-    'bcrypt',
     'passport'
   ],
 
