@@ -4,9 +4,10 @@ RUN apk add --no-cache openssl
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY prisma/ ./prisma/
+COPY prisma.config.ts ./      
 COPY tsconfig.json build.mjs ./
 COPY src/ ./src/
-RUN npx prisma generate --schema=./prisma
+RUN npx prisma generate --schema=./prisma/models
 RUN npm run build
 
 FROM node:26-alpine AS runner
