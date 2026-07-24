@@ -18,7 +18,8 @@
     "db:migrate": "prisma migrate dev"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "schema": "prisma/models"
   },
   "keywords": [],
   "author": "",
