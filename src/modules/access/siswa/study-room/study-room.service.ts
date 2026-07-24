@@ -128,7 +128,7 @@ function mapPretestQuestions(
     : allQs;
   const shuffled = shuffleArray(qs);
   return shuffled.map((q: any) => {
-    const skillMap = q.skillMaps?.[0];
+    const skillMap = q.questionMaps?.[0];
     const kc = skillMap?.knowledgeComponent;
     return {
       id: q.id,
@@ -156,7 +156,7 @@ function mapPosttestQuestions(
     ? selectedIds.map((id: string) => qById.get(id)).filter(Boolean)
     : pretestQuestions;
   return qs.map((q: any) => {
-    const skillMap = q.skillMaps?.[0];
+    const skillMap = q.questionMaps?.[0];
     const kc = skillMap?.knowledgeComponent;
     return {
       id: q.id,
@@ -228,7 +228,7 @@ export const getStudyRoomDataService = async (
           pretestQuestions: {
             include: {
               answerOptions: true,
-              skillMaps: {
+              questionMaps: {
                 include: {
                   knowledgeComponent: true,
                 },
