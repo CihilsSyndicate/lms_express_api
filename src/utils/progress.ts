@@ -459,15 +459,40 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
           })
         : [];
 
+    // Fallback: ctAspect directly from SoalPretest for questions without KC mappings
+    const pretestQuestionsMeta = pretestLogs.length > 0
+      ? await prisma.soalPretest.findMany({
+          where: { id: { in: pretestLogs.map((l) => l.questionId) } },
+          select: { id: true, ctAspect: true },
+        })
+      : [];
+    const pretestQuestionAspect = new Map(
+      pretestQuestionsMeta
+        .filter((q) => !!q.ctAspect)
+        .map((q) => [q.id, q.ctAspect as string]),
+    );
+
     const correctByQId = new Map(pretestLogs.map((l) => [l.questionId, l.isCorrect]));
     const rawPretest: Record<string, { correct: number; total: number }> = {};
+    const pretestMappedIds = new Set(pretestMappings.map((m) => m.pretestQuestionId));
     for (const m of pretestMappings) {
       const isCorrect = correctByQId.get(m.pretestQuestionId);
       if (isCorrect === undefined) continue;
-      const code = m.knowledgeComponent?.code || 'unknown';
-      if (!rawPretest[code]) rawPretest[code] = { correct: 0, total: 0 };
-      rawPretest[code].total++;
-      if (isCorrect) rawPretest[code].correct++;
+      const code = m.knowledgeComponent?.code ||
+                   pretestQuestionAspect.get(m.pretestQuestionId) || 'unknown';
+      const pillarKey = pillarAlias[code.toLowerCase()] || code;
+      if (!rawPretest[pillarKey]) rawPretest[pillarKey] = { correct: 0, total: 0 };
+      rawPretest[pillarKey].total++;
+      if (isCorrect) rawPretest[pillarKey].correct++;
+    }
+    for (const log of pretestLogs) {
+      if (pretestMappedIds.has(log.questionId)) continue;
+      const aspect = pretestQuestionAspect.get(log.questionId);
+      if (!aspect) continue;
+      const pillarKey = pillarAlias[aspect.toLowerCase()] || aspect;
+      if (!rawPretest[pillarKey]) rawPretest[pillarKey] = { correct: 0, total: 0 };
+      rawPretest[pillarKey].total++;
+      if (log.isCorrect) rawPretest[pillarKey].correct++;
     }
     console.log('[DEBUG CT] pretestLogs count:', pretestLogs.length, 'pretestMappings count:', pretestMappings.length);
     console.log('[DEBUG CT] rawPretest keys:', Object.keys(rawPretest), 'values:', JSON.stringify(rawPretest));
@@ -506,15 +531,40 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
           })
         : [];
 
+    // Fallback: ctAspect directly from SoalPretest for posttest questions without KC mappings
+    const posttestQuestionsMeta = posttestLogs.length > 0
+      ? await prisma.soalPretest.findMany({
+          where: { id: { in: posttestLogs.map((l) => l.questionId) } },
+          select: { id: true, ctAspect: true },
+        })
+      : [];
+    const posttestQuestionAspect = new Map(
+      posttestQuestionsMeta
+        .filter((q) => !!q.ctAspect)
+        .map((q) => [q.id, q.ctAspect as string]),
+    );
+
     const correctByPosttestQId = new Map(posttestLogs.map((l) => [l.questionId, l.isCorrect]));
     const rawPosttest: Record<string, { correct: number; total: number }> = {};
+    const posttestMappedIds = new Set(posttestMappings.map((m) => m.pretestQuestionId));
     for (const m of posttestMappings) {
       const isCorrect = correctByPosttestQId.get(m.pretestQuestionId);
       if (isCorrect === undefined) continue;
-      const code = m.knowledgeComponent?.code || 'unknown';
-      if (!rawPosttest[code]) rawPosttest[code] = { correct: 0, total: 0 };
-      rawPosttest[code].total++;
-      if (isCorrect) rawPosttest[code].correct++;
+      const code = m.knowledgeComponent?.code ||
+                   posttestQuestionAspect.get(m.pretestQuestionId) || 'unknown';
+      const pillarKey = pillarAlias[code.toLowerCase()] || code;
+      if (!rawPosttest[pillarKey]) rawPosttest[pillarKey] = { correct: 0, total: 0 };
+      rawPosttest[pillarKey].total++;
+      if (isCorrect) rawPosttest[pillarKey].correct++;
+    }
+    for (const log of posttestLogs) {
+      if (posttestMappedIds.has(log.questionId)) continue;
+      const aspect = posttestQuestionAspect.get(log.questionId);
+      if (!aspect) continue;
+      const pillarKey = pillarAlias[aspect.toLowerCase()] || aspect;
+      if (!rawPosttest[pillarKey]) rawPosttest[pillarKey] = { correct: 0, total: 0 };
+      rawPosttest[pillarKey].total++;
+      if (log.isCorrect) rawPosttest[pillarKey].correct++;
     }
     console.log('[DEBUG CT] posttestLogs count:', posttestLogs.length, 'posttestMappings count:', posttestMappings.length);
     console.log('[DEBUG CT] rawPosttest keys:', Object.keys(rawPosttest), 'values:', JSON.stringify(rawPosttest));
@@ -619,11 +669,19 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       });
     }
 
-    const quizRecords = allQuizScores
+    const quizRecords: Array<{
+      activityType: string;
+      topik: string;
+      quizType: 'REGULER' | 'COMPUTATIONAL_THINKING';
+      score: number;
+      minScoreTreshold: number | null;
+      status: 'tuntas' | 'di-bawah';
+    }> = allQuizScores
       .filter((qs) => qs.quizType === 'QUIZ')
       .map((qs) => {
         const qd = quizLookup.get(qs.questionId);
         return {
+          activityType: 'Kuis',
           topik: qd?.topik || 'Unknown',
           quizType: (qd?.quizType as 'REGULER' | 'COMPUTATIONAL_THINKING') || 'REGULER',
           score: qs.score,
@@ -634,6 +692,27 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
               : ('di-bawah' as const),
         };
       });
+
+    if (targetProgress?.pretestScore != null) {
+      quizRecords.push({
+        activityType: 'Pre-Test',
+        topik: 'Pre-Test',
+        quizType: 'REGULER',
+        score: targetProgress.pretestScore,
+        minScoreTreshold: null,
+        status: targetProgress.pretestScore >= 60 ? 'tuntas' : 'di-bawah',
+      });
+    }
+    if (targetProgress?.posttestScore != null) {
+      quizRecords.push({
+        activityType: 'Post-Test',
+        topik: 'Post-Test',
+        quizType: 'REGULER',
+        score: targetProgress.posttestScore,
+        minScoreTreshold: null,
+        status: targetProgress.posttestScore >= 60 ? 'tuntas' : 'di-bawah',
+      });
+    }
 
     // Module progress â€” count by topik (not materi) using ProgressDetail
     const totalTopik = targetProgress

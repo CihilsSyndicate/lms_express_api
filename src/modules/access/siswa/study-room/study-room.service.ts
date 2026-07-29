@@ -139,8 +139,8 @@ function mapPretestQuestions(
       })),
       isComputationalThinking: !!skillMap,
       knowledgeComponentId: kc?.id ?? null,
-      ctAspect: kc?.code ?? null,
-      ceritaCT: null,
+      ctAspect: q.ctAspect ?? kc?.code ?? null,
+      ceritaCT: q.ctStory ?? null,
     };
   });
 }
@@ -167,8 +167,8 @@ function mapPosttestQuestions(
       })),
       isComputationalThinking: !!skillMap,
       knowledgeComponentId: kc?.id ?? null,
-      ctAspect: kc?.code ?? null,
-      ceritaCT: null,
+      ctAspect: q.ctAspect ?? kc?.code ?? null,
+      ceritaCT: q.ctStory ?? null,
     };
   });
 }

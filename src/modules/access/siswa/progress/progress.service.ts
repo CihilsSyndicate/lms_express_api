@@ -247,11 +247,17 @@ export const markItemCompletedService = async (
     try {
       const quizRecord = await prisma.quiz.findUnique({
         where: { id: itemId },
-        select: { quizGroupId: true },
+        select: { quizGroupId: true, quizType: true, ctGroupId: true },
       });
       if (quizRecord?.quizGroupId) {
         const siblingQuizzes = await prisma.quiz.findMany({
-          where: { quizGroupId: quizRecord.quizGroupId, id: { not: itemId } },
+          where: {
+            quizGroupId: quizRecord.quizGroupId,
+            id: { not: itemId },
+            ...(quizRecord.quizType === 'COMPUTATIONAL_THINKING' && quizRecord.ctGroupId
+              ? { ctGroupId: quizRecord.ctGroupId }
+              : {}),
+          },
           select: { id: true },
         });
         for (const sq of siblingQuizzes) {
