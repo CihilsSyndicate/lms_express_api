@@ -33,6 +33,7 @@ export interface StudyRoomItem {
   ctGroupId?: string | null;
   ctStory?: string | null;
   ctAspect?: string | null;
+  ctSubIds?: string[];
   judul: string;
   isVideo?: boolean;
   videoUrl?: string | null;
@@ -109,6 +110,30 @@ function shuffleArray<T>(arr: T[]): T[] {
   return copy;
 }
 
+function shuffleByGroup(qs: any[]): any[] {
+  const grouped = new Map<string, any[]>();
+  const ungrouped: any[] = [];
+  for (const q of qs) {
+    if (q.ctGroupId) {
+      if (!grouped.has(q.ctGroupId)) grouped.set(q.ctGroupId, []);
+      grouped.get(q.ctGroupId)!.push(q);
+    } else {
+      ungrouped.push(q);
+    }
+  }
+  const units: any[][] = [
+    ...ungrouped.map((q) => [q]),
+    ...Array.from(grouped.values()),
+  ];
+  return shuffleArray(units).flat();
+}
+
+function shuffleIdsByGroup(ids: string[], allQuestions: any[]): string[] {
+  const qById = new Map(allQuestions.map((q: any) => [q.id, q]));
+  const qs = ids.map((id) => qById.get(id)).filter(Boolean);
+  return shuffleByGroup(qs).map((q: any) => q.id);
+}
+
 function assignQuestions<T>(allItems: T[], count: number): T[] {
   const shuffled = shuffleArray([...allItems]);
   if (count > 0 && count < shuffled.length) {
@@ -126,7 +151,7 @@ function mapPretestQuestions(
   const qs = selectedIds.length > 0
     ? allQs.filter((q: any) => selectedIds.includes(q.id))
     : allQs;
-  const shuffled = shuffleArray(qs);
+  const shuffled = shuffleByGroup(qs);
   return shuffled.map((q: any) => {
     const skillMap = q.questionMaps?.[0];
     const kc = skillMap?.knowledgeComponent;
@@ -322,7 +347,7 @@ export const getStudyRoomDataService = async (
       const pretestStored = parseAssignedQuestions(progress.pretestAssignedQuestions);
       if (pretestStored.length > 0) {
         // Use the SAME question IDs as pretest, then shuffle for different order
-        posttestSelectedIds = shuffleArray(pretestStored);
+        posttestSelectedIds = shuffleIdsByGroup(pretestStored, pretestQuestions);
       } else {
         posttestSelectedIds = assignQuestions(pretestQuestions, effectiveCount).map((q: any) => q.id);
       }
@@ -405,6 +430,7 @@ export const getStudyRoomDataService = async (
   const topiks: StudyRoomTopik[] = modul.topiks.map((topik) => {
     const materiItems: StudyRoomItem[] = [];
     const quizItems: StudyRoomItem[] = [];
+    const ctQuizItems: StudyRoomItem[] = [];
 
     for (const ti of topik.topikItems) {
       if (ti.itemType === 'MATERI') {
@@ -422,7 +448,7 @@ export const getStudyRoomDataService = async (
       } else if (ti.itemType === 'QUIZ') {
         const quiz = topik.quizzes.find((q) => ti.itemId === q.id);
         if (quiz) {
-            quizItems.push({
+          const mapped: StudyRoomItem = {
             id: quiz.id,
             itemType: 'QUIZ',
             quizType: quiz.quizType,
@@ -440,7 +466,13 @@ export const getStudyRoomDataService = async (
               option: o.option,
             })),
             timeLimit: quiz.quizSettings[0]?.timeLimit ?? null,
-          });
+            allowMultipleAttempts: quiz.quizSettings[0]?.allowMultipleAttempts ?? false,
+          };
+          if (quiz.quizType === 'COMPUTATIONAL_THINKING') {
+            ctQuizItems.push(mapped);
+          } else {
+            quizItems.push(mapped);
+          }
         }
       } else if (ti.itemType === 'RANGKUMAN_TOPIK') {
         const rangkuman = (topik as any).rangkumans?.find((r: any) => r.id === ti.itemId);
@@ -455,13 +487,97 @@ export const getStudyRoomDataService = async (
       }
     }
 
+    // Quizzes are stored directly on topik (not via topikItems) — process them here
+    const alreadyMappedIds = new Set([
+      ...quizItems.map((q) => q.id),
+      ...ctQuizItems.map((q) => q.id),
+    ]);
+    for (const quiz of topik.quizzes) {
+      if (alreadyMappedIds.has(quiz.id)) continue;
+      const mapped: StudyRoomItem = {
+        id: quiz.id,
+        itemType: 'QUIZ',
+        quizType: quiz.quizType,
+        ctGroupId: quiz.ctGroupId ?? null,
+        ctStory: quiz.ctStory ?? null,
+        ctAspect: quiz.ctAspect ?? null,
+        quizGroupId: quiz.quizGroupId ?? null,
+        judul: quiz.judul ?? quiz.question,
+        question: quiz.question,
+        correctAnswer: quiz.correctAnswer,
+        skor: quiz.skor,
+        quizImgQuestionUrl: quiz.quizImgQuestionUrl,
+        quizAnswerOptions: quiz.quizAnswerOptions.map((o) => ({ id: o.id, option: o.option })),
+        timeLimit: quiz.quizSettings[0]?.timeLimit ?? null,
+        allowMultipleAttempts: quiz.quizSettings[0]?.allowMultipleAttempts ?? false,
+      };
+      if (quiz.quizType === 'COMPUTATIONAL_THINKING') {
+        ctQuizItems.push(mapped);
+      } else {
+        quizItems.push(mapped);
+      }
+    }
+
+    // Preserve individual items for frontend question-data lookup (itemMap.get(subId))
+    const allIndividualQuizItems = [...quizItems, ...ctQuizItems];
+
+    // Group REGULER (only from quizItems — CT not yet mixed in)
+    let regulerGroupItem: StudyRoomItem | null = null;
+    if (quizItems.length > 0) {
+      regulerGroupItem = {
+        id: quizItems[0].id,
+        itemType: 'QUIZ',
+        quizType: 'REGULER',
+        ctGroupId: null,
+        ctSubIds: quizItems.map((q) => q.id),
+        judul: quizItems[0].judul ?? 'Kuis',
+        question: quizItems[0].question ?? '',
+        correctAnswer: quizItems[0].correctAnswer ?? '',
+        skor: quizItems[0].skor,
+        quizImgQuestionUrl: quizItems[0].quizImgQuestionUrl,
+        quizAnswerOptions: quizItems[0].quizAnswerOptions,
+        timeLimit: quizItems.reduce((m, q) => Math.max(m, q.timeLimit ?? 0), 0) || null,
+        allowMultipleAttempts: quizItems[0].allowMultipleAttempts ?? false,
+      };
+    }
+
+    // Group CT separately — never absorbed into REGULER
+    let ctGroupItem: StudyRoomItem | null = null;
+    if (ctQuizItems.length > 0) {
+      ctGroupItem = {
+        id: ctQuizItems[0].id,
+        itemType: 'QUIZ',
+        quizType: 'COMPUTATIONAL_THINKING',
+        ctGroupId: null,
+        ctSubIds: ctQuizItems.map((q) => q.id),
+        ctStory: ctQuizItems[0].ctStory ?? null,
+        ctAspect: ctQuizItems[0].ctAspect ?? null,
+        judul: 'Kuis CT',
+        question: ctQuizItems[0].question ?? '',
+        correctAnswer: ctQuizItems[0].correctAnswer ?? '',
+        skor: ctQuizItems[0].skor,
+        quizImgQuestionUrl: ctQuizItems[0].quizImgQuestionUrl,
+        quizAnswerOptions: ctQuizItems[0].quizAnswerOptions,
+        timeLimit: ctQuizItems.reduce((m, q) => Math.max(m, q.timeLimit ?? 0), 0) || null,
+        allowMultipleAttempts: ctQuizItems[0].allowMultipleAttempts ?? false,
+      };
+    }
+
+    // Group wrappers first (frontend Priority 0/0b marks their ctSubIds as handled),
+    // then individual items (skipped in sidebar, but present for question-data lookup).
+    const finalQuizItems: StudyRoomItem[] = [
+      ...(regulerGroupItem ? [regulerGroupItem] : []),
+      ...(ctGroupItem ? [ctGroupItem] : []),
+      ...allIndividualQuizItems,
+    ];
+
     return {
       id: topik.id,
       nama: topik.nama,
       rangkumanTopik: topik.rangkumanTopik ?? null,
       items: [
         ...materiItems,
-        ...quizItems,
+        ...finalQuizItems,
       ],
     };
   });

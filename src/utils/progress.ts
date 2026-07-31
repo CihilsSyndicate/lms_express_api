@@ -648,25 +648,42 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       };
     });
 
-    // Build quiz records
-    const allQuizScores = targetProgress?.quizScores || [];
+    // Build quiz records from StudentAnswerLog (QuizScore is never populated for QUIZ type)
     const topikQuizzes = await prisma.quiz.findMany({
       where: { topik: { modulId: { in: modulIds } } },
       select: {
         id: true,
         quizType: true,
+        skor: true,
         topik: { select: { nama: true } },
         quizSettings: { select: { minScoreTreshold: true } },
       },
     });
 
-    const quizLookup = new Map<string, { topik: string; quizType: string; minScoreTreshold: number | null }>();
+    const quizLookup = new Map<string, { topik: string; quizType: string; skor: number; minScoreTreshold: number | null }>();
     for (const q of topikQuizzes) {
       quizLookup.set(q.id, {
         topik: q.topik.nama,
         quizType: q.quizType,
+        skor: q.skor,
         minScoreTreshold: q.quizSettings[0]?.minScoreTreshold ?? null,
       });
+    }
+
+    const quizAnswerLogs = await prisma.studentAnswerLog.findMany({
+      where: {
+        siswaId: studentId,
+        modulId: { in: modulIds },
+        questionSource: 'QUIZ',
+        questionId: { in: Array.from(quizLookup.keys()) },
+      },
+      select: { questionId: true, isCorrect: true, answeredAt: true },
+      orderBy: { answeredAt: 'desc' },
+    });
+
+    const latestByQuiz = new Map<string, typeof quizAnswerLogs[0]>();
+    for (const log of quizAnswerLogs) {
+      if (!latestByQuiz.has(log.questionId)) latestByQuiz.set(log.questionId, log);
     }
 
     const quizRecords: Array<{
@@ -676,22 +693,19 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
       score: number;
       minScoreTreshold: number | null;
       status: 'tuntas' | 'di-bawah';
-    }> = allQuizScores
-      .filter((qs) => qs.quizType === 'QUIZ')
-      .map((qs) => {
-        const qd = quizLookup.get(qs.questionId);
-        return {
-          activityType: 'Kuis',
-          topik: qd?.topik || 'Unknown',
-          quizType: (qd?.quizType as 'REGULER' | 'COMPUTATIONAL_THINKING') || 'REGULER',
-          score: qs.score,
-          minScoreTreshold: qd?.minScoreTreshold ?? null,
-          status:
-            qd?.minScoreTreshold != null && qs.score >= qd.minScoreTreshold
-              ? ('tuntas' as const)
-              : ('di-bawah' as const),
-        };
-      });
+    }> = Array.from(latestByQuiz.values()).map((log) => {
+      const qd = quizLookup.get(log.questionId);
+      const score = log.isCorrect ? (qd?.skor ?? 10) : 0;
+      const minT = qd?.minScoreTreshold ?? null;
+      return {
+        activityType: 'Kuis',
+        topik: qd?.topik || 'Unknown',
+        quizType: (qd?.quizType as 'REGULER' | 'COMPUTATIONAL_THINKING') || 'REGULER',
+        score,
+        minScoreTreshold: minT,
+        status: minT != null && score >= minT ? ('tuntas' as const) : ('di-bawah' as const),
+      };
+    });
 
     if (targetProgress?.pretestScore != null) {
       quizRecords.push({
