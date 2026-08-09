@@ -140,6 +140,7 @@ export const getModuleById = async (id: string, siswaId?: string) => {
                 quizAnswerOptions: true,
                 quizSettings: true,
               },
+              orderBy: { createdAt: 'asc' },
             },
             topikItems: true,
           },
