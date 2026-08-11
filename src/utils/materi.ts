@@ -87,6 +87,7 @@ export const getTopiksWithMateri = async (modulId: string) => {
           quizAnswerOptions: true,
           quizSettings: true,
         },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       },
       rangkumans: true,
     },
