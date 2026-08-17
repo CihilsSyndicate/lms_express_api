@@ -643,13 +643,14 @@ export const calculatePretestScoreService = async (
         where: { topikId: { in: targetTopicIds } },
         select: { id: true },
       });
-      pushItems(
-        targetTopikItems
-          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-          .map((ti: any) => ti.itemId),
-        'MATERI',
-      );
-      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
+      // NOTE: User requested progress not to be artificially inflated by unlocks
+      // pushItems(
+      //   targetTopikItems
+      //     .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+      //     .map((ti: any) => ti.itemId),
+      //   'MATERI',
+      // );
+      // pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
     }
 
     // Formula-based sequential unlock: first N materis in topic/item order
@@ -662,7 +663,8 @@ export const calculatePretestScoreService = async (
         orderBy: [{ topik: { createdAt: 'asc' } }, { orderNumber: 'asc' }],
         take: formulaCount,
       });
-      pushItems(orderedTopikItems.map((ti: any) => ti.itemId), 'MATERI');
+      // NOTE: User requested progress not to be artificially inflated by unlocks
+      // pushItems(orderedTopikItems.map((ti: any) => ti.itemId), 'MATERI');
     }
 
     if (unlockedCount > 0) {
@@ -820,13 +822,14 @@ export const calculatePosttestScoreService = async (
         where: { topikId: { in: targetTopicIds } },
         select: { id: true },
       });
-      pushItems(
-        targetTopikItems
-          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-          .map((ti: any) => ti.itemId),
-        'MATERI',
-      );
-      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
+      // NOTE: User requested progress not to be artificially inflated by unlocks
+      // pushItems(
+      //   targetTopikItems
+      //     .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+      //     .map((ti: any) => ti.itemId),
+      //   'MATERI',
+      // );
+      // pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
     }
 
     if (mutated) {
