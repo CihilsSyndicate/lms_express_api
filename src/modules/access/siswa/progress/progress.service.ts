@@ -506,7 +506,7 @@ export const calculatePretestScoreService = async (
       (item) => item.id === answer.questionId,
     );
     if (question) {
-      const isCorrect = question.correctAnswer === answer.answer;
+      const isCorrect = question.correctAnswer.trim() === answer.answer.trim();
       maxRawScore += question.skor;
       if (isCorrect) {
         totalRawScore += question.skor;
@@ -677,7 +677,7 @@ export const calculatePosttestScoreService = async (
       (item) => item.id === answer.questionId,
     );
     if (question) {
-      const isCorrect = question.correctAnswer === answer.answer;
+      const isCorrect = question.correctAnswer.trim() === answer.answer.trim();
       maxRawScore += question.skor;
       if (isCorrect) {
         totalRawScore += question.skor;

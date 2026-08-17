@@ -144,11 +144,12 @@ function mapPretestQuestions(
 ): StudyRoomQuestion[] {
   if (!pretest?.pretestQuestions) return [];
   const allQs = pretest.pretestQuestions;
+  const qById = new Map(allQs.map((q: any) => [q.id, q]));
   const qs = selectedIds.length > 0
-    ? allQs.filter((q: any) => selectedIds.includes(q.id))
+    ? selectedIds.map((id) => qById.get(id)).filter(Boolean)
     : allQs;
-  const shuffled = shuffleByGroup(qs);
-  return shuffled.map((q: any) => {
+  // No shuffle — order fixed by pretestAssignedQuestions (shuffled once on first assignment, stored in DB)
+  return qs.map((q: any) => {
     const skillMap = q.questionMaps?.[0];
     const kc = skillMap?.knowledgeComponent;
     return {
@@ -248,7 +249,7 @@ export const getStudyRoomDataService = async (
           pretestSettings: true,
           pretestQuestions: {
             include: {
-              answerOptions: true,
+              answerOptions: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
               questionMaps: {
                 include: {
                   knowledgeComponent: true,
