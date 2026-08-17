@@ -136,7 +136,7 @@ export const submitQuizAnswer = async (
     }
   }
 
-  const isCorrect = quiz.correctAnswer === answer;
+  const isCorrect = quiz.correctAnswer.trim() === answer.trim();
   const modulId = quiz.topik.modul.id;
 
   // Sequential access: previous TopikItem must be completed.

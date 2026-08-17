@@ -137,7 +137,7 @@ export const getModuleById = async (id: string, siswaId?: string) => {
             materis: true,
             quizzes: {
               include: {
-                quizAnswerOptions: true,
+                quizAnswerOptions: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
                 quizSettings: true,
               },
               orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
