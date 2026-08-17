@@ -623,9 +623,9 @@ export const calculatePretestScoreService = async (
 
     const pushItems = (itemIds: string[], itemType: string) => {
       for (const id of itemIds) {
-        if (!existingIds.has(id)) {
-          completedItems.push({ itemId: id, itemType, completedAt: new Date().toISOString() });
-          existingIds.add(id);
+        if (!existingIds.has(id) && !existingIds.has(`unlocked:${id}`)) {
+          completedItems.push({ itemId: `unlocked:${id}`, itemType: 'UNLOCKED', completedAt: new Date().toISOString() });
+          existingIds.add(`unlocked:${id}`);
           unlockedCount++;
         }
       }
@@ -643,14 +643,13 @@ export const calculatePretestScoreService = async (
         where: { topikId: { in: targetTopicIds } },
         select: { id: true },
       });
-      // NOTE: User requested progress not to be artificially inflated by unlocks
-      // pushItems(
-      //   targetTopikItems
-      //     .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-      //     .map((ti: any) => ti.itemId),
-      //   'MATERI',
-      // );
-      // pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
+      pushItems(
+        targetTopikItems
+          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+          .map((ti: any) => ti.itemId),
+        'MATERI',
+      );
+      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
     }
 
     // Formula-based sequential unlock: first N materis in topic/item order
@@ -663,8 +662,7 @@ export const calculatePretestScoreService = async (
         orderBy: [{ topik: { createdAt: 'asc' } }, { orderNumber: 'asc' }],
         take: formulaCount,
       });
-      // NOTE: User requested progress not to be artificially inflated by unlocks
-      // pushItems(orderedTopikItems.map((ti: any) => ti.itemId), 'MATERI');
+      pushItems(orderedTopikItems.map((ti: any) => ti.itemId), 'MATERI');
     }
 
     if (unlockedCount > 0) {
@@ -798,8 +796,8 @@ export const calculatePosttestScoreService = async (
 
     const pushItems = (itemIds: string[], itemType: string) => {
       for (const id of itemIds) {
-        if (!posttestCompletedItems.some((e) => e.itemId === id)) {
-          posttestCompletedItems.push({ itemId: id, itemType, completedAt: new Date().toISOString() });
+        if (!posttestCompletedItems.some((e) => e.itemId === id) && !posttestCompletedItems.some((e) => e.itemId === `unlocked:${id}`)) {
+          posttestCompletedItems.push({ itemId: `unlocked:${id}`, itemType: 'UNLOCKED', completedAt: new Date().toISOString() });
           mutated = true;
         }
       }
@@ -822,14 +820,13 @@ export const calculatePosttestScoreService = async (
         where: { topikId: { in: targetTopicIds } },
         select: { id: true },
       });
-      // NOTE: User requested progress not to be artificially inflated by unlocks
-      // pushItems(
-      //   targetTopikItems
-      //     .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-      //     .map((ti: any) => ti.itemId),
-      //   'MATERI',
-      // );
-      // pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
+      pushItems(
+        targetTopikItems
+          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+          .map((ti: any) => ti.itemId),
+        'MATERI',
+      );
+      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
     }
 
     if (mutated) {
