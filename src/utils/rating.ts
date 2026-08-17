@@ -24,12 +24,26 @@ export const createModuleRating = async (
     throw new Error('Anda sudah memberikan rating untuk modul ini.');
   }
 
-  return prisma.rating.create({
-    data: {
-      siswaId,
-      modulId,
-      rating: payload.rating ?? 0,
-      komentar: payload.komentar ?? null,
-    },
-  });
+  try {
+    return await prisma.rating.create({
+      data: {
+        siswaId,
+        modulId,
+        rating: payload.rating ?? 0,
+        komentar: payload.komentar ?? null,
+      },
+    });
+  } catch (err) {
+    // P2002: unique violation (siswaId, modulId) — terjadi jika dua request
+    // paralel lolos dari cek findFirst di atas.
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code?: string }).code === 'P2002'
+    ) {
+      throw new Error('Anda sudah memberikan rating untuk modul ini.');
+    }
+    throw err;
+  }
 };

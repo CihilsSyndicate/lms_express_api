@@ -191,6 +191,7 @@ model Posttest {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     posttestSettings PosttestSetting[]
+    automaticAccessMatery AutomaticAccessMatery[]
 }
 
 model PosttestSetting {
@@ -242,11 +243,13 @@ model PretestSetting {
 }
 
 model AutomaticAccessMatery {
-    id        String   @id @default(cuid())
-    pretestId String?
-    pretest   Pretest? @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    materiId  String
-    materi    Materi   @relation(fields: [materiId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    id         String   @id @default(cuid())
+    pretestId  String?
+    pretest    Pretest? @relation(fields: [pretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    posttestId String?
+    posttest   Posttest? @relation(fields: [posttestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    materiId   String?
+    materi     Materi?  @relation(fields: [materiId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     minScore       Int     @default(0)
     selectedTopics Topik[]
@@ -256,6 +259,8 @@ model AutomaticAccessMatery {
     modulId       String?
     soalPretest   SoalPretest? @relation(fields: [soalPretestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
     soalPretestId String?
+
+    @@index([posttestId])
 }
 
 // Computational Thinking
@@ -330,8 +335,10 @@ model Rating {
     siswaId String
     siswa   Siswa  @relation(fields: [siswaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-    modul   Modul?  @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    modulId String?
+    modul   Modul  @relation(fields: [modulId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    modulId String
+
+    @@unique([siswaId, modulId])
 }
 
 enum ModulType {

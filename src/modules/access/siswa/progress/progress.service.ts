@@ -1,4 +1,5 @@
 import { prisma } from '../../../../lib/prisma';
+import { Prisma } from '../../../../generated/prisma/client';
 import * as bktService from '../learning/bkt/bkt.service';
 import {
   buildCursorPaginatedResponse,
@@ -6,6 +7,167 @@ import {
   decodeCursor,
 } from '../../../../utils/pagination';
 import { pushNotification } from '../../../../utils/realtime';
+
+// ─── Canonical progress helpers (single source of truth) ───────────────────
+
+type CompletedEntry = {
+  itemId: string;
+  itemType: string;
+  completedAt: string;
+};
+
+interface SequenceSteps {
+  stepKeys: string[];
+  groupMembers: Map<string, string[]>; // group step key -> member quiz ids
+}
+
+function parseCompletedEntries(raw: string | null): CompletedEntry[] {
+  try {
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Hitung daftar langkah sequence modul: pretest, topikItems MATERI/RANGKUMAN_TOPIK,
+ * grup kuis (dedup quizGroupId ?? ctGroupId, termasuk kuis yang tidak direferensikan
+ * topikItems), solo kuis, dan posttest. Satu grup kuis = satu langkah.
+ */
+export async function getSequenceSteps(modulId: string): Promise<SequenceSteps> {
+  const modul = await prisma.modul.findUnique({
+    where: { id: modulId },
+    include: {
+      topiks: {
+        include: {
+          topikItems: true,
+          quizzes: { select: { id: true, quizGroupId: true, ctGroupId: true } },
+        },
+      },
+      pretest: true,
+      posttest: true,
+    },
+  });
+
+  const empty: SequenceSteps = { stepKeys: [], groupMembers: new Map() };
+  if (!modul) return empty;
+
+  const stepKeys: string[] = [];
+  const seen = new Set<string>();
+  const groupMembers = new Map<string, string[]>();
+
+  if (modul.pretest) {
+    stepKeys.push('pretest');
+    seen.add('pretest');
+  }
+
+  for (const topik of modul.topiks) {
+    for (const ti of topik.topikItems) {
+      if (
+        (ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK') &&
+        !seen.has(ti.itemId)
+      ) {
+        stepKeys.push(ti.itemId);
+        seen.add(ti.itemId);
+      }
+    }
+  }
+
+  for (const topik of modul.topiks) {
+    for (const quiz of topik.quizzes) {
+      const groupKey = quiz.quizGroupId ?? quiz.ctGroupId;
+      if (groupKey) {
+        const members = groupMembers.get(groupKey) ?? [];
+        if (!members.includes(quiz.id)) members.push(quiz.id);
+        groupMembers.set(groupKey, members);
+        if (!seen.has(groupKey)) {
+          stepKeys.push(groupKey);
+          seen.add(groupKey);
+        }
+      } else if (!seen.has(quiz.id)) {
+        stepKeys.push(quiz.id);
+        seen.add(quiz.id);
+      }
+    }
+  }
+
+  if (modul.posttest) {
+    stepKeys.push('posttest');
+    seen.add('posttest');
+  }
+
+  return { stepKeys, groupMembers };
+}
+
+/**
+ * Hitung persentase progress dari completedContentItems terhadap langkah sequence.
+ * Grup kuis dihitung 1 langkah jika salah satu member-nya ada di daftar completed.
+ */
+function computeProgressPercentage(
+  entries: CompletedEntry[],
+  steps: SequenceSteps,
+  pretestScore: number | null,
+  posttestScore: number | null,
+): number {
+  const completedSet = new Set(entries.map((e) => e.itemId));
+  let completedSteps = 0;
+
+  for (const stepKey of steps.stepKeys) {
+    if (stepKey === 'pretest') {
+      if (pretestScore != null) completedSteps += 1;
+    } else if (stepKey === 'posttest') {
+      if (posttestScore != null || completedSet.has('posttest')) completedSteps += 1;
+    } else {
+      const members = steps.groupMembers.get(stepKey);
+      if (members) {
+        if (completedSet.has(stepKey) || members.some((m) => completedSet.has(m))) {
+          completedSteps += 1;
+        }
+      } else if (completedSet.has(stepKey)) {
+        completedSteps += 1;
+      }
+    }
+  }
+
+  return steps.stepKeys.length > 0
+    ? Math.min(100, Math.round((completedSteps / steps.stepKeys.length) * 100))
+    : 0;
+}
+
+export function progressPercentageFor(
+  progress: {
+    status: string;
+    isGraduated: boolean;
+    pretestScore: number | null;
+    posttestScore: number | null;
+    completedContentItems: string;
+  },
+  steps: SequenceSteps,
+): number {
+  if (progress.status === 'COMPLETED' || progress.isGraduated) return 100;
+  return computeProgressPercentage(
+    parseCompletedEntries(progress.completedContentItems),
+    steps,
+    progress.pretestScore,
+    progress.posttestScore,
+  );
+}
+
+/**
+ * Kunci baris Progress (SELECT ... FOR UPDATE) lalu baca di dalam transaction
+ * untuk mencegah lost update pada completedContentItems.
+ */
+async function lockProgressRow(
+  tx: Prisma.TransactionClient,
+  siswaId: string,
+  modulId: string,
+) {
+  await tx.$queryRaw`SELECT id FROM "Progress" WHERE "siswaId" = ${siswaId} AND "modulId" = ${modulId} FOR UPDATE`;
+  return tx.progress.findUnique({
+    where: { siswaId_modulId: { siswaId, modulId } },
+  });
+}
 
 /**
  * Initialize progress saat siswa mulai modul.
@@ -173,31 +335,30 @@ export const markMateriCompletedService = async (
   const modulId = (materi as any).topik.modulId;
 
   // Track in completedContentItems so tutor/admin views count it correctly
-  const progressRec = await prisma.progress.findUnique({
-    where: { siswaId_modulId: { siswaId, modulId } },
-    select: { id: true, completedContentItems: true },
+  await prisma.$transaction(async (tx) => {
+    const progressRec = await lockProgressRow(tx, siswaId, modulId);
+    if (!progressRec) return;
+
+    const completedItems = parseCompletedEntries(progressRec.completedContentItems);
+    if (completedItems.some((e) => e.itemId === materiId)) return;
+
+    completedItems.push({
+      itemId: materiId,
+      itemType: 'MATERI',
+      completedAt: new Date().toISOString(),
+    });
+
+    const steps = await getSequenceSteps(modulId);
+    const progressPercentage = progressPercentageFor(
+      { ...progressRec, completedContentItems: JSON.stringify(completedItems) },
+      steps,
+    );
+
+    await tx.progress.update({
+      where: { id: progressRec.id },
+      data: { completedContentItems: JSON.stringify(completedItems), progressPercentage },
+    });
   });
-  if (progressRec) {
-    const completedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
-      try {
-        const parsed = JSON.parse(progressRec.completedContentItems || '[]');
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    })();
-    if (!completedItems.some((e) => e.itemId === materiId)) {
-      completedItems.push({ itemId: materiId, itemType: 'MATERI', completedAt: new Date().toISOString() });
-      const totalSequenceSteps = await getTotalSequenceSteps(modulId);
-      const progressPercentage = totalSequenceSteps > 0
-        ? Math.min(100, Math.round((completedItems.length / totalSequenceSteps) * 100))
-        : 0;
-      await prisma.progress.update({
-        where: { id: progressRec.id },
-        data: { completedContentItems: JSON.stringify(completedItems), progressPercentage },
-      });
-    }
-  }
 
   const progress = await prisma.progress.findUnique({
     where: { siswaId_modulId: { siswaId, modulId } },
@@ -218,139 +379,80 @@ export const markItemCompletedService = async (
 ) => {
   await initializeProgressService(siswaId, modulId);
 
-  const progress = await prisma.progress.findUnique({
-    where: { siswaId_modulId: { siswaId, modulId } },
-  });
+  await prisma.$transaction(async (tx) => {
+    const progress = await lockProgressRow(tx, siswaId, modulId);
 
-  if (!progress) throw new Error('Progress tidak ditemukan');
+    if (!progress) throw new Error('Progress tidak ditemukan');
 
-  const completedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
-    try {
-      return JSON.parse(progress.completedContentItems || '[]');
-    } catch {
-      return [];
-    }
-  })();
+    const completedItems = parseCompletedEntries(progress.completedContentItems);
 
-  const alreadyCompleted = completedItems.some((entry) => entry.itemId === itemId);
+    const alreadyCompleted = completedItems.some((entry) => entry.itemId === itemId);
 
-  if (!alreadyCompleted) {
-    completedItems.push({
-      itemId,
-      itemType: itemType.toUpperCase(),
-      completedAt: new Date().toISOString(),
-    });
-  }
-
-  // If marking a QUIZ item, also mark all sibling quizzes in the same QuizGroup
-  if (itemType.toUpperCase() === 'QUIZ') {
-    try {
-      const quizRecord = await prisma.quiz.findUnique({
-        where: { id: itemId },
-        select: { quizGroupId: true, quizType: true, ctGroupId: true },
+    if (!alreadyCompleted) {
+      completedItems.push({
+        itemId,
+        itemType: itemType.toUpperCase(),
+        completedAt: new Date().toISOString(),
       });
-      if (quizRecord?.quizGroupId) {
-        const siblingQuizzes = await prisma.quiz.findMany({
-          where: {
-            quizGroupId: quizRecord.quizGroupId,
-            id: { not: itemId },
-            ...(quizRecord.quizType === 'COMPUTATIONAL_THINKING' && quizRecord.ctGroupId
-              ? { ctGroupId: quizRecord.ctGroupId }
-              : {}),
-          },
-          select: { id: true },
+    }
+
+    // If marking a QUIZ item, also mark all sibling quizzes in the same QuizGroup
+    if (itemType.toUpperCase() === 'QUIZ') {
+      try {
+        const quizRecord = await tx.quiz.findUnique({
+          where: { id: itemId },
+          select: { quizGroupId: true, quizType: true, ctGroupId: true },
         });
-        for (const sq of siblingQuizzes) {
-          if (!completedItems.some((e) => e.itemId === sq.id)) {
-            completedItems.push({
-              itemId: sq.id,
-              itemType: 'QUIZ',
-              completedAt: new Date().toISOString(),
-            });
+        if (quizRecord?.quizGroupId) {
+          const siblingQuizzes = await tx.quiz.findMany({
+            where: {
+              quizGroupId: quizRecord.quizGroupId,
+              id: { not: itemId },
+              ...(quizRecord.quizType === 'COMPUTATIONAL_THINKING' && quizRecord.ctGroupId
+                ? { ctGroupId: quizRecord.ctGroupId }
+                : {}),
+            },
+            select: { id: true },
+          });
+          for (const sq of siblingQuizzes) {
+            if (!completedItems.some((e) => e.itemId === sq.id)) {
+              completedItems.push({
+                itemId: sq.id,
+                itemType: 'QUIZ',
+                completedAt: new Date().toISOString(),
+              });
+            }
           }
         }
+      } catch (err) {
+        console.error('Error marking sibling quizzes:', err);
       }
-    } catch (err) {
-      console.error('Error marking sibling quizzes:', err);
     }
-  }
 
-  const totalSequenceSteps = await getTotalSequenceSteps(modulId);
-  const completedCount = completedItems.length;
-  const progressPercentage = totalSequenceSteps > 0
-    ? Math.min(100, Math.round((completedCount / totalSequenceSteps) * 100))
-    : 0;
+    const steps = await getSequenceSteps(modulId);
+    const progressPercentage = progressPercentageFor(
+      { ...progress, completedContentItems: JSON.stringify(completedItems) },
+      steps,
+    );
 
-  await prisma.progress.update({
-    where: { id: progress.id },
-    data: {
-      completedContentItems: JSON.stringify(completedItems),
-      progressPercentage,
-    },
+    await tx.progress.update({
+      where: { id: progress.id },
+      data: {
+        completedContentItems: JSON.stringify(completedItems),
+        progressPercentage,
+      },
+    });
   });
 
   await bktService.syncModuleProgressSummary(siswaId, modulId);
 
   const updatedProgress = await prisma.progress.findUnique({
-    where: { id: progress.id },
+    where: { siswaId_modulId: { siswaId, modulId } },
     include: { modul: true },
   });
 
   return { message: 'Item berhasil ditandai selesai.', progress: updatedProgress };
 };
-
-/**
- * Hitung total langkah dalam sequence (digunakan untuk progress percentage).
- */
-async function getTotalSequenceSteps(modulId: string): Promise<number> {
-  const modul = await prisma.modul.findUnique({
-    where: { id: modulId },
-    include: {
-      topiks: {
-        include: {
-          topikItems: true,
-          quizzes: { select: { id: true, quizGroupId: true } },
-          quizGroups: { select: { id: true } },
-        },
-      },
-      pretest: true,
-      posttest: true,
-    },
-  });
-
-  if (!modul) return 1;
-
-  let count = 0;
-
-  if (modul.pretest) count += 1;
-
-  // Track quiz groups to count each group as 1 step
-  const countedQuizGroups = new Set<string>();
-
-  for (const topik of modul.topiks) {
-    for (const ti of topik.topikItems) {
-      if (ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK') {
-        count += 1;
-      } else if (ti.itemType === 'QUIZ') {
-        const quiz = topik.quizzes.find((q: any) => q.id === ti.itemId);
-        if (quiz?.quizGroupId) {
-          if (!countedQuizGroups.has(quiz.quizGroupId)) {
-            countedQuizGroups.add(quiz.quizGroupId);
-            count += 1;
-          }
-        } else {
-          count += 1;
-        }
-      }
-    }
-  }
-
-  if (modul.rangkumanAkhir) count += 1;
-
-  if (modul.posttest) count += 1;
-
-  return Math.max(count, 1);
-}
 
 /**
  * Cek completion materi.
@@ -451,67 +553,77 @@ export const calculatePretestScoreService = async (
     answerLogs,
   );
 
-  // Read completedContentItems once for both unlock paths
-  const progressRecord = await prisma.progress.findUnique({
-    where: { siswaId_modulId: { siswaId, modulId } },
-    select: { completedContentItems: true },
-  });
-  const completedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
-    try {
-      const parsed = JSON.parse(progressRecord?.completedContentItems || '[]');
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  })();
-  const existingIds = new Set(completedItems.map((e) => e.itemId));
-  let unlockedCount = 0;
-  let changed = false;
-
-  // Rule-based unlock: AutomaticAccessMatery (specific materis per score threshold)
+  // Rule-based unlock: AutomaticAccessMatery (buka seluruh konten topik target)
   const accessRules = await prisma.automaticAccessMatery.findMany({
     where: { pretestId: pretest.id },
-    select: { materiId: true, minScore: true },
+    select: { minScore: true, selectedTopics: { select: { id: true } } },
   });
-  for (const rule of accessRules) {
-    if (totalScore >= rule.minScore && !existingIds.has(rule.materiId)) {
-      completedItems.push({ itemId: rule.materiId, itemType: 'MATERI', completedAt: new Date().toISOString() });
-      existingIds.add(rule.materiId);
-      unlockedCount++;
-      changed = true;
-    }
-  }
 
-  // Formula-based sequential unlock: first N materis in topic/item order
-  const totalMateris = await prisma.materi.count({ where: { topik: { modulId } } });
-  const formulaCount = totalMateris > 0 ? Math.max(Math.floor(totalMateris * totalScore / 100), 1) : 0;
-  if (formulaCount > 0) {
-    const orderedTopikItems = await prisma.topikItem.findMany({
-      where: { topik: { modulId }, itemType: 'MATERI' },
-      select: { itemId: true },
-      orderBy: [{ topik: { createdAt: 'asc' } }, { orderNumber: 'asc' }],
-      take: formulaCount,
-    });
-    for (const ti of orderedTopikItems) {
-      if (!existingIds.has(ti.itemId)) {
-        completedItems.push({ itemId: ti.itemId, itemType: 'MATERI', completedAt: new Date().toISOString() });
-        existingIds.add(ti.itemId);
-        unlockedCount++;
-        changed = true;
+  let unlockedCount = 0;
+
+  await prisma.$transaction(async (tx) => {
+    const progressRecord = await lockProgressRow(tx, siswaId, modulId);
+    if (!progressRecord) return;
+
+    const completedItems = parseCompletedEntries(progressRecord.completedContentItems);
+    const existingIds = new Set(completedItems.map((e) => e.itemId));
+
+    const pushItems = (itemIds: string[], itemType: string) => {
+      for (const id of itemIds) {
+        if (!existingIds.has(id)) {
+          completedItems.push({ itemId: id, itemType, completedAt: new Date().toISOString() });
+          existingIds.add(id);
+          unlockedCount++;
+        }
       }
-    }
-  }
+    };
 
-  if (changed) {
-    const totalSequenceSteps = await getTotalSequenceSteps(modulId);
-    const progressPercentage = totalSequenceSteps > 0
-      ? Math.min(100, Math.round((completedItems.length / totalSequenceSteps) * 100))
-      : 0;
-    await prisma.progress.updateMany({
-      where: { siswaId, modulId },
-      data: { completedContentItems: JSON.stringify(completedItems), progressPercentage },
-    });
-  }
+    for (const rule of accessRules) {
+      if (totalScore < rule.minScore) continue;
+      const targetTopicIds = rule.selectedTopics.map((t) => t.id);
+      if (targetTopicIds.length === 0) continue;
+      const targetTopikItems = await tx.topikItem.findMany({
+        where: { topikId: { in: targetTopicIds } },
+        select: { itemId: true, itemType: true },
+      });
+      const targetQuizzes = await tx.quiz.findMany({
+        where: { topikId: { in: targetTopicIds } },
+        select: { id: true },
+      });
+      pushItems(
+        targetTopikItems
+          .filter((ti) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+          .map((ti) => ti.itemId),
+        'MATERI',
+      );
+      pushItems(targetQuizzes.map((q) => q.id), 'QUIZ');
+    }
+
+    // Formula-based sequential unlock: first N materis in topic/item order
+    const totalMateris = await tx.materi.count({ where: { topik: { modulId } } });
+    const formulaCount = totalMateris > 0 ? Math.max(Math.floor(totalMateris * totalScore / 100), 1) : 0;
+    if (formulaCount > 0) {
+      const orderedTopikItems = await tx.topikItem.findMany({
+        where: { topik: { modulId }, itemType: 'MATERI' },
+        select: { itemId: true },
+        orderBy: [{ topik: { createdAt: 'asc' } }, { orderNumber: 'asc' }],
+        take: formulaCount,
+      });
+      pushItems(orderedTopikItems.map((ti) => ti.itemId), 'MATERI');
+    }
+
+    if (unlockedCount > 0) {
+      const steps = await getSequenceSteps(modulId);
+      const progressPercentage = progressPercentageFor(
+        { ...progressRecord, completedContentItems: JSON.stringify(completedItems) },
+        steps,
+      );
+      await tx.progress.updateMany({
+        where: { siswaId, modulId },
+        data: { completedContentItems: JSON.stringify(completedItems), progressPercentage },
+      });
+    }
+  });
 
   // Sync summary
   await bktService.syncModuleProgressSummary(siswaId, modulId);
@@ -606,28 +718,66 @@ export const calculatePosttestScoreService = async (
   // Sync summary (sets isGraduated based on finalScore)
   await bktService.syncModuleProgressSummary(siswaId, modulId);
 
-  // Add posttest to completedContentItems
-  const posttestProgress = await prisma.progress.findUnique({
-    where: { siswaId_modulId: { siswaId, modulId } },
-    select: { completedContentItems: true },
+  // Add posttest to completedContentItems + enforce posttest access rules atomically
+  const posttestRules = await prisma.automaticAccessMatery.findMany({
+    where: { posttestId: posttest.id },
+    select: { minScore: true, selectedTopics: { select: { id: true } } },
   });
-  const posttestCompletedItems: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
-    try {
-      const parsed = JSON.parse(posttestProgress?.completedContentItems || '[]');
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
+
+  await prisma.$transaction(async (tx) => {
+    const progressRecord = await lockProgressRow(tx, siswaId, modulId);
+    if (!progressRecord) return;
+
+    const posttestCompletedItems = parseCompletedEntries(progressRecord.completedContentItems);
+    let mutated = false;
+
+    const pushItems = (itemIds: string[], itemType: string) => {
+      for (const id of itemIds) {
+        if (!posttestCompletedItems.some((e) => e.itemId === id)) {
+          posttestCompletedItems.push({ itemId: id, itemType, completedAt: new Date().toISOString() });
+          mutated = true;
+        }
+      }
+    };
+
+    if (!posttestCompletedItems.some((e) => e.itemId === 'posttest')) {
+      posttestCompletedItems.push({ itemId: 'posttest', itemType: 'POSTTEST', completedAt: new Date().toISOString() });
+      mutated = true;
     }
-  })();
-  if (!posttestCompletedItems.some((e) => e.itemId === 'posttest')) {
-    posttestCompletedItems.push({ itemId: 'posttest', itemType: 'POSTTEST', completedAt: new Date().toISOString() });
-    const totalSequenceSteps = await getTotalSequenceSteps(modulId);
-    const progressPercentage = totalSequenceSteps > 0 ? Math.min(100, Math.round((posttestCompletedItems.length / totalSequenceSteps) * 100)) : 0;
-    await prisma.progress.updateMany({
-      where: { siswaId, modulId },
-      data: { completedContentItems: JSON.stringify(posttestCompletedItems), progressPercentage },
-    });
-  }
+
+    for (const rule of posttestRules) {
+      if (normalizedScore < rule.minScore) continue;
+      const targetTopicIds = rule.selectedTopics.map((t) => t.id);
+      if (targetTopicIds.length === 0) continue;
+      const targetTopikItems = await tx.topikItem.findMany({
+        where: { topikId: { in: targetTopicIds } },
+        select: { itemId: true, itemType: true },
+      });
+      const targetQuizzes = await tx.quiz.findMany({
+        where: { topikId: { in: targetTopicIds } },
+        select: { id: true },
+      });
+      pushItems(
+        targetTopikItems
+          .filter((ti) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+          .map((ti) => ti.itemId),
+        'MATERI',
+      );
+      pushItems(targetQuizzes.map((q) => q.id), 'QUIZ');
+    }
+
+    if (mutated) {
+      const steps = await getSequenceSteps(modulId);
+      const progressPercentage = progressPercentageFor(
+        { ...progressRecord, completedContentItems: JSON.stringify(posttestCompletedItems) },
+        steps,
+      );
+      await tx.progress.updateMany({
+        where: { siswaId, modulId },
+        data: { completedContentItems: JSON.stringify(posttestCompletedItems), progressPercentage },
+      });
+    }
+  });
 
   const updatedProg = await prisma.progress.findUnique({
     where: { siswaId_modulId: { siswaId, modulId } },

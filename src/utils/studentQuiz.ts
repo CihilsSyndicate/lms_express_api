@@ -3,6 +3,97 @@ import { AppError } from '@/errors/app.error';
 import * as bktService from '@/modules/access/siswa/learning/bkt/bkt.service';
 import { pushNotification } from '@/utils/realtime';
 
+// ─── Canonical progress helpers (mirror of progress.service.ts) ─────────────
+
+function getSequenceStepsFromModul(modul: {
+  pretest: unknown;
+  posttest: unknown;
+  topiks: Array<{
+    topikItems: Array<{ itemId: string; itemType: string }>;
+    quizzes: Array<{ id: string; quizGroupId: string | null; ctGroupId: string | null }>;
+  }>;
+}): { stepKeys: string[]; groupMembers: Map<string, string[]> } {
+  const stepKeys: string[] = [];
+  const seen = new Set<string>();
+  const groupMembers = new Map<string, string[]>();
+
+  if (modul.pretest) {
+    stepKeys.push('pretest');
+    seen.add('pretest');
+  }
+
+  for (const topik of modul.topiks) {
+    for (const ti of topik.topikItems) {
+      if (
+        (ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK') &&
+        !seen.has(ti.itemId)
+      ) {
+        stepKeys.push(ti.itemId);
+        seen.add(ti.itemId);
+      }
+    }
+  }
+
+  for (const topik of modul.topiks) {
+    for (const quiz of topik.quizzes) {
+      const groupKey = quiz.quizGroupId ?? quiz.ctGroupId;
+      if (groupKey) {
+        const members = groupMembers.get(groupKey) ?? [];
+        if (!members.includes(quiz.id)) members.push(quiz.id);
+        groupMembers.set(groupKey, members);
+        if (!seen.has(groupKey)) {
+          stepKeys.push(groupKey);
+          seen.add(groupKey);
+        }
+      } else if (!seen.has(quiz.id)) {
+        stepKeys.push(quiz.id);
+        seen.add(quiz.id);
+      }
+    }
+  }
+
+  if (modul.posttest) {
+    stepKeys.push('posttest');
+    seen.add('posttest');
+  }
+
+  return { stepKeys, groupMembers };
+}
+
+function progressPercentageFromEntries(
+  entries: Array<{ itemId: string; itemType: string; completedAt: string }>,
+  progress: {
+    status: string;
+    isGraduated: boolean;
+    pretestScore: number | null;
+    posttestScore: number | null;
+  },
+  steps: { stepKeys: string[]; groupMembers: Map<string, string[]> },
+): number {
+  if (progress.status === 'COMPLETED' || progress.isGraduated) return 100;
+  const completedSet = new Set(entries.map((e) => e.itemId));
+  let completedSteps = 0;
+  for (const stepKey of steps.stepKeys) {
+    if (stepKey === 'pretest') {
+      if (progress.pretestScore != null) completedSteps += 1;
+    } else if (stepKey === 'posttest') {
+      if (progress.posttestScore != null || completedSet.has('posttest')) completedSteps += 1;
+    } else {
+      const members = steps.groupMembers.get(stepKey);
+      if (members) {
+        if (completedSet.has(stepKey) || members.some((m) => completedSet.has(m))) {
+          completedSteps += 1;
+        }
+      } else if (completedSet.has(stepKey)) {
+        completedSteps += 1;
+      }
+    }
+  }
+  return steps.stepKeys.length > 0
+    ? Math.min(100, Math.round((completedSteps / steps.stepKeys.length) * 100))
+    : 0;
+}
+
 export const submitQuizAnswer = async (
   siswaId: string,
   quizId: string,
@@ -109,14 +200,15 @@ export const submitQuizAnswer = async (
   if (quiz.topik.modul.isTestComputationalThinking && resolvedKcId) {
     const { unlockedMateriIds } = await bktService.evaluateUnlockedContents(siswaId, modulId);
     if (unlockedMateriIds.length > 0) {
-      const prog = await prisma.progress.findUnique({
-        where: { siswaId_modulId: { siswaId, modulId } },
-        select: { id: true, completedContentItems: true },
-      });
-      if (prog) {
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Progress" WHERE "siswaId" = ${siswaId} AND "modulId" = ${modulId} FOR UPDATE`;
+        const progressRow = await tx.progress.findUnique({
+          where: { siswaId_modulId: { siswaId, modulId } },
+        });
+        if (!progressRow) return;
         const items: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
           try {
-            const parsed = JSON.parse(prog.completedContentItems || '[]');
+            const parsed = JSON.parse(progressRow.completedContentItems || '[]');
             return Array.isArray(parsed) ? parsed : [];
           } catch {
             return [];
@@ -131,12 +223,27 @@ export const submitQuizAnswer = async (
           }
         }
         if (changed) {
-          await prisma.progress.update({
-            where: { id: prog.id },
-            data: { completedContentItems: JSON.stringify(items) },
+          const modul = await tx.modul.findUnique({
+            where: { id: modulId },
+            include: {
+              topiks: {
+                include: {
+                  topikItems: true,
+                  quizzes: { select: { id: true, quizGroupId: true, ctGroupId: true } },
+                },
+              },
+              pretest: true,
+              posttest: true,
+            },
+          });
+          const steps = modul ? getSequenceStepsFromModul(modul) : { stepKeys: [], groupMembers: new Map<string, string[]>() };
+          const progressPercentage = progressPercentageFromEntries(items, progressRow, steps);
+          await tx.progress.update({
+            where: { id: progressRow.id },
+            data: { completedContentItems: JSON.stringify(items), progressPercentage },
           });
         }
-      }
+      });
     }
   }
 

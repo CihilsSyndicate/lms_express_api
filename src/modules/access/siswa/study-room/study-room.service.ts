@@ -1,4 +1,5 @@
 import { prisma } from '../../../../lib/prisma';
+import { getSequenceSteps, progressPercentageFor } from '../progress/progress.service';
 
 export interface StudyRoomQuestion {
   id: string;
@@ -90,11 +91,6 @@ export interface StudyRoomResponse {
   curriculum: {
     pretest: StudyRoomAssessment | null;
     topiks: StudyRoomTopik[];
-    rangkumanAkhir: {
-      itemId: string;
-      title: string;
-      content: string | null;
-    } | null;
     posttest: StudyRoomAssessment | null;
   };
 }
@@ -290,6 +286,16 @@ export const getStudyRoomDataService = async (
   });
 
   if (!progress) {
+    // Race-safe: progress row mungkin belum dibuat saat enrollment & GET berjalan paralel
+    await prisma.progress.create({
+      data: { siswaId, modulId, progressPercentage: 0 },
+    });
+    progress = await prisma.progress.findUnique({
+      where: { siswaId_modulId: { siswaId, modulId } },
+    });
+  }
+
+  if (!progress) {
     throw new Error('Anda belum terdaftar di modul ini');
   }
 
@@ -361,6 +367,21 @@ export const getStudyRoomDataService = async (
         where: { id: progress.id },
         data: { posttestAssignedQuestions: JSON.stringify(posttestSelectedIds) },
       });
+    }
+  }
+
+  // Recompute progress percentage dengan formula kanonik agar sinkron dengan
+  // nilai yang dilihat tutor (progressPercentage kolom ditulis ulang oleh writer).
+  if (progress) {
+    const steps = await getSequenceSteps(modulId);
+    const freshPercentage = progressPercentageFor(progress, steps);
+    if (Math.round(freshPercentage) !== Math.round(progress.progressPercentage)) {
+      progress = await prisma.progress.update({
+        where: { id: progress.id },
+        data: { progressPercentage: freshPercentage },
+      });
+    } else {
+      progress = { ...progress, progressPercentage: freshPercentage };
     }
   }
 
@@ -585,14 +606,6 @@ export const getStudyRoomDataService = async (
     };
   });
 
-  const rangkumanAkhir = modul.rangkumanAkhir
-    ? {
-        itemId: 'rangkuman_akhir',
-        title: 'Rangkuman Akhir',
-        content: modul.rangkumanAkhir,
-      }
-    : null;
-
   return {
     modulId: modul.id,
     moduleName: modul.moduleName,
@@ -603,7 +616,6 @@ export const getStudyRoomDataService = async (
     curriculum: {
       pretest: pretestAssessment,
       topiks,
-      rangkumanAkhir,
       posttest: posttestAssessment,
     },
   };

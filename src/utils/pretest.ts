@@ -179,17 +179,12 @@ export const submitPretestAnswer = async (
         where: { topik: { modulId } },
       });
 
-      // Service already combines rule-based + formula-based unlock; use directly
-      const progressPercentage =
-        totalSubmodules > 0
-          ? Math.round((accessMateryCount / totalSubmodules) * 100)
-          : 0;
-
+      // progressPercentage sudah dihitung kanonik oleh calculatePretestScore;
+      // di sini hanya pastikan status tetap IN_PROGRESS.
       await tx.progress.updateMany({
         where: { siswaId: siswaId as string, modulId: modulId as string },
         data: {
           status: 'IN_PROGRESS',
-          progressPercentage,
         },
       });
 

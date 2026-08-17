@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import {
-  getAksesMateriByPretest,
+  getAksesMateriByAssessment,
   createAksesMateri,
   updateAksesMateri,
   deleteAksesMateri,
@@ -8,10 +8,16 @@ import {
 import { createAksesMateriSchema, updateAksesMateriSchema } from '@/validators/aksesMateri/aksesMateri.validator';
 import { AppError } from '@/errors/app.error';
 
+const assessmentWhere = (req: Request): { pretestId: string } | { posttestId: string } => {
+  const { type, assessmentId, pretestId, posttestId } = req.params;
+  const isPosttest = type === 'posttest' || (posttestId && !pretestId);
+  const id = String(assessmentId ?? (isPosttest ? posttestId : pretestId));
+  return isPosttest ? { posttestId: id } : { pretestId: id };
+};
+
 export const listAksesMateri = async (req: Request, res: Response) => {
   try {
-    const { pretestId } = req.params;
-    const rules = await getAksesMateriByPretest(pretestId);
+    const rules = await getAksesMateriByAssessment(assessmentWhere(req));
     return res.status(200).json(rules);
   } catch (error) {
     console.error('[AKSES-MATERI] List error:', error);
@@ -24,8 +30,13 @@ export const listAksesMateri = async (req: Request, res: Response) => {
 
 export const addAksesMateri = async (req: Request, res: Response) => {
   try {
-    const { pretestId } = req.params;
-    const parsed = createAksesMateriSchema.parse({ ...req.body, pretestId });
+    const { type, pretestId, posttestId } = req.params;
+    const isPosttest = type === 'posttest' || (posttestId && !pretestId);
+    const assessmentId = String(isPosttest ? posttestId : pretestId);
+    const payload = isPosttest
+      ? { ...req.body, posttestId: assessmentId }
+      : { ...req.body, pretestId: assessmentId };
+    const parsed = createAksesMateriSchema.parse(payload);
     const rule = await createAksesMateri(parsed, req.user?.id);
     return res.status(201).json(rule);
   } catch (error) {
@@ -39,7 +50,7 @@ export const addAksesMateri = async (req: Request, res: Response) => {
 
 export const editAksesMateri = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const parsed = updateAksesMateriSchema.parse(req.body);
     const rule = await updateAksesMateri(id, parsed, req.user?.id);
     return res.status(200).json(rule);
@@ -54,7 +65,7 @@ export const editAksesMateri = async (req: Request, res: Response) => {
 
 export const removeAksesMateri = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const result = await deleteAksesMateri(id, req.user?.id);
     return res.status(200).json(result);
   } catch (error) {

@@ -12,6 +12,12 @@ import {
   deleteAllPosttestSoal,
   updateTutorPosttestSettings,
 } from './posttest.controller';
+import {
+  listAksesMateri,
+  addAksesMateri,
+  editAksesMateri,
+  removeAksesMateri,
+} from '../akses-materi/aksesMateri.controller';
 
 const posttestRouter = Router();
 
@@ -26,5 +32,9 @@ posttestRouter.put('/soal/:soalId', updateSoalPosttest);
 posttestRouter.delete('/soal/:soalId', deleteSoalPosttest);
 posttestRouter.delete('/:posttestId/questions', deleteAllPosttestSoal);
 posttestRouter.put('/settings/:posttestId', updateTutorPosttestSettings);
+posttestRouter.get('/:posttestId/access-rules', listAksesMateri);
+posttestRouter.post('/:posttestId/access-rules', addAksesMateri);
+posttestRouter.put('/access-rules/:id', editAksesMateri);
+posttestRouter.delete('/access-rules/:id', removeAksesMateri);
 
 export default posttestRouter;
