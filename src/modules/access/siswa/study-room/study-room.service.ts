@@ -270,7 +270,7 @@ export const getStudyRoomDataService = async (
           topikItems: { orderBy: { orderNumber: 'asc' } },
           materis: true,
           quizzes: {
-            include: { quizAnswerOptions: { orderBy: { createdAt: 'asc' } }, quizSettings: true },
+            include: { quizAnswerOptions: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }, quizSettings: true },
             orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           },
           rangkumans: true,
