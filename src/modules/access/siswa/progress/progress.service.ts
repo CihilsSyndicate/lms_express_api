@@ -658,11 +658,35 @@ export const calculatePretestScoreService = async (
     if (formulaCount > 0) {
       const orderedTopikItems = await tx.topikItem.findMany({
         where: { topik: { modulId }, itemType: 'MATERI' },
-        select: { itemId: true },
+        select: { itemId: true, topikId: true },
         orderBy: [{ topik: { createdAt: 'asc' } }, { orderNumber: 'asc' }],
         take: formulaCount,
       });
+      
+      const pushedMateriIds = new Set(orderedTopikItems.map((ti: any) => ti.itemId));
       pushItems(orderedTopikItems.map((ti: any) => ti.itemId), 'MATERI');
+
+      // Auto-unlock summaries and quizzes for topics whose materis are completely bypassed by formula
+      const coveredTopicIds = Array.from(new Set(orderedTopikItems.map((ti: any) => ti.topikId)));
+      for (const tId of coveredTopicIds) {
+        const materisInTopic = await tx.topikItem.findMany({
+          where: { topikId: tId, itemType: 'MATERI' },
+          select: { itemId: true }
+        });
+        const allCovered = materisInTopic.every((ti: any) => pushedMateriIds.has(ti.itemId));
+        if (allCovered) {
+          const rangkumans = await tx.topikItem.findMany({
+            where: { topikId: tId, itemType: 'RANGKUMAN_TOPIK' },
+            select: { itemId: true }
+          });
+          pushItems(rangkumans.map((ti: any) => ti.itemId), 'RANGKUMAN_TOPIK');
+          const quizzes = await tx.quiz.findMany({
+            where: { topikId: tId },
+            select: { id: true }
+          });
+          pushItems(quizzes.map((q: any) => q.id), 'QUIZ');
+        }
+      }
     }
 
     if (unlockedCount > 0) {
