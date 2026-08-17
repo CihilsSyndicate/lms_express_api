@@ -8,6 +8,18 @@ import {
 } from '../../../../utils/pagination';
 import { pushNotification } from '../../../../utils/realtime';
 
+function normalizeAnswer(str: string): string {
+  return str
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
 // ─── Canonical progress helpers (single source of truth) ───────────────────
 
 type CompletedEntry = {
@@ -506,7 +518,7 @@ export const calculatePretestScoreService = async (
       (item) => item.id === answer.questionId,
     );
     if (question) {
-      const isCorrect = question.correctAnswer.trim() === answer.answer.trim();
+      const isCorrect = normalizeAnswer(question.correctAnswer) === normalizeAnswer(answer.answer);
       maxRawScore += question.skor;
       if (isCorrect) {
         totalRawScore += question.skor;
@@ -677,7 +689,7 @@ export const calculatePosttestScoreService = async (
       (item) => item.id === answer.questionId,
     );
     if (question) {
-      const isCorrect = question.correctAnswer.trim() === answer.answer.trim();
+      const isCorrect = normalizeAnswer(question.correctAnswer) === normalizeAnswer(answer.answer);
       maxRawScore += question.skor;
       if (isCorrect) {
         totalRawScore += question.skor;

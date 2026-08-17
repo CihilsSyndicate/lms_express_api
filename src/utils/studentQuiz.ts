@@ -3,6 +3,18 @@ import { AppError } from '@/errors/app.error';
 import * as bktService from '@/modules/access/siswa/learning/bkt/bkt.service';
 import { pushNotification } from '@/utils/realtime';
 
+function normalizeAnswer(str: string): string {
+  return str
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
 // ─── Canonical progress helpers (mirror of progress.service.ts) ─────────────
 
 function getSequenceStepsFromModul(modul: {
@@ -10,7 +22,11 @@ function getSequenceStepsFromModul(modul: {
   posttest: unknown;
   topiks: Array<{
     topikItems: Array<{ itemId: string; itemType: string }>;
-    quizzes: Array<{ id: string; quizGroupId: string | null; ctGroupId: string | null }>;
+    quizzes: Array<{
+      id: string;
+      quizGroupId: string | null;
+      ctGroupId: string | null;
+    }>;
   }>;
 }): { stepKeys: string[]; groupMembers: Map<string, string[]> } {
   const stepKeys: string[] = [];
@@ -77,11 +93,15 @@ function progressPercentageFromEntries(
     if (stepKey === 'pretest') {
       if (progress.pretestScore != null) completedSteps += 1;
     } else if (stepKey === 'posttest') {
-      if (progress.posttestScore != null || completedSet.has('posttest')) completedSteps += 1;
+      if (progress.posttestScore != null || completedSet.has('posttest'))
+        completedSteps += 1;
     } else {
       const members = steps.groupMembers.get(stepKey);
       if (members) {
-        if (completedSet.has(stepKey) || members.some((m) => completedSet.has(m))) {
+        if (
+          completedSet.has(stepKey) ||
+          members.some((m) => completedSet.has(m))
+        ) {
           completedSteps += 1;
         }
       } else if (completedSet.has(stepKey)) {
@@ -115,7 +135,12 @@ export const submitQuizAnswer = async (
 
   // Server-side time validation — reject submissions that exceed timeLimit + 30s
   const settings = quiz.quizSettings[0];
-  if (settings && settings.timeLimit != null && timeSpent != null && timeSpent > settings.timeLimit + 30) {
+  if (
+    settings &&
+    settings.timeLimit != null &&
+    timeSpent != null &&
+    timeSpent > settings.timeLimit + 30
+  ) {
     throw new AppError(400, 'Waktu pengerjaan telah habis');
   }
 
@@ -127,16 +152,20 @@ export const submitQuizAnswer = async (
         questionId: quizId,
         questionSource: 'QUIZ',
       },
+      orderBy: { answeredAt: 'desc' },
     });
     if (existingAttempt) {
-      throw new AppError(
-        400,
-        'Multiple attempts are not allowed for this quiz.',
-      );
+      // Re-grade with current answer — no new DB row, no BKT update
+      const normCorrectRe = normalizeAnswer(quiz.correctAnswer);
+      const normAnswerRe  = normalizeAnswer(answer);
+      return { isCorrect: normCorrectRe === normAnswerRe, quizId };
     }
   }
 
-  const isCorrect = quiz.correctAnswer.trim() === answer.trim();
+  const normCorrect = normalizeAnswer(quiz.correctAnswer);
+  const normAnswer = normalizeAnswer(answer);
+  const isCorrect = normCorrect === normAnswer;
+  console.log('[QUIZ-GRADE]', { quizId, normCorrect, normAnswer, isCorrect });
   const modulId = quiz.topik.modul.id;
 
   // Sequential access: previous TopikItem must be completed.
@@ -148,7 +177,10 @@ export const submitQuizAnswer = async (
     });
     if (topikItem && topikItem.orderNumber > 1) {
       const prevItem = await prisma.topikItem.findFirst({
-        where: { topikId: topikItem.topikId, orderNumber: topikItem.orderNumber - 1 },
+        where: {
+          topikId: topikItem.topikId,
+          orderNumber: topikItem.orderNumber - 1,
+        },
       });
       if (prevItem) {
         const progress = await prisma.progress.findUnique({
@@ -158,20 +190,28 @@ export const submitQuizAnswer = async (
         const completedIds: string[] = (() => {
           try {
             const parsed = JSON.parse(progress?.completedContentItems || '[]');
-            return Array.isArray(parsed) ? parsed.map((e: any) => e.itemId).filter(Boolean) : [];
-          } catch { return []; }
+            return Array.isArray(parsed)
+              ? parsed.map((e: any) => e.itemId).filter(Boolean)
+              : [];
+          } catch {
+            return [];
+          }
         })();
         if (!completedIds.includes(prevItem.itemId)) {
-          throw new AppError(403, 'Selesaikan konten sebelumnya terlebih dahulu.');
+          throw new AppError(
+            403,
+            'Selesaikan konten sebelumnya terlebih dahulu.',
+          );
         }
       }
     }
   }
 
   // Normalize "unknown" KC ID to null to avoid FK constraint violation
-  const resolvedKcId = knowledgeComponentId && knowledgeComponentId !== 'unknown'
-    ? knowledgeComponentId
-    : null;
+  const resolvedKcId =
+    knowledgeComponentId && knowledgeComponentId !== 'unknown'
+      ? knowledgeComponentId
+      : null;
 
   // 1. Record the answer log
   await prisma.studentAnswerLog.create({
@@ -198,7 +238,10 @@ export const submitQuizAnswer = async (
 
   // 3. For CT modules: evaluate mastery thresholds and persist newly-unlocked materis
   if (quiz.topik.modul.isTestComputationalThinking && resolvedKcId) {
-    const { unlockedMateriIds } = await bktService.evaluateUnlockedContents(siswaId, modulId);
+    const { unlockedMateriIds } = await bktService.evaluateUnlockedContents(
+      siswaId,
+      modulId,
+    );
     if (unlockedMateriIds.length > 0) {
       await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "Progress" WHERE "siswaId" = ${siswaId} AND "modulId" = ${modulId} FOR UPDATE`;
@@ -206,9 +249,15 @@ export const submitQuizAnswer = async (
           where: { siswaId_modulId: { siswaId, modulId } },
         });
         if (!progressRow) return;
-        const items: Array<{ itemId: string; itemType: string; completedAt: string }> = (() => {
+        const items: Array<{
+          itemId: string;
+          itemType: string;
+          completedAt: string;
+        }> = (() => {
           try {
-            const parsed = JSON.parse(progressRow.completedContentItems || '[]');
+            const parsed = JSON.parse(
+              progressRow.completedContentItems || '[]',
+            );
             return Array.isArray(parsed) ? parsed : [];
           } catch {
             return [];
@@ -218,7 +267,11 @@ export const submitQuizAnswer = async (
         let changed = false;
         for (const matId of unlockedMateriIds) {
           if (!existingIds.has(matId)) {
-            items.push({ itemId: matId, itemType: 'MATERI', completedAt: new Date().toISOString() });
+            items.push({
+              itemId: matId,
+              itemType: 'MATERI',
+              completedAt: new Date().toISOString(),
+            });
             changed = true;
           }
         }
@@ -229,18 +282,29 @@ export const submitQuizAnswer = async (
               topiks: {
                 include: {
                   topikItems: true,
-                  quizzes: { select: { id: true, quizGroupId: true, ctGroupId: true } },
+                  quizzes: {
+                    select: { id: true, quizGroupId: true, ctGroupId: true },
+                  },
                 },
               },
               pretest: true,
               posttest: true,
             },
           });
-          const steps = modul ? getSequenceStepsFromModul(modul) : { stepKeys: [], groupMembers: new Map<string, string[]>() };
-          const progressPercentage = progressPercentageFromEntries(items, progressRow, steps);
+          const steps = modul
+            ? getSequenceStepsFromModul(modul)
+            : { stepKeys: [], groupMembers: new Map<string, string[]>() };
+          const progressPercentage = progressPercentageFromEntries(
+            items,
+            progressRow,
+            steps,
+          );
           await tx.progress.update({
             where: { id: progressRow.id },
-            data: { completedContentItems: JSON.stringify(items), progressPercentage },
+            data: {
+              completedContentItems: JSON.stringify(items),
+              progressPercentage,
+            },
           });
         }
       });
