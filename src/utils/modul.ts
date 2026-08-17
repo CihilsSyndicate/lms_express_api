@@ -278,14 +278,38 @@ export const unassignStudentFromModule = async (
       );
     }
 
-    const deleteProgress = await prisma.progress.deleteMany({
+    const deleteCertificates = prisma.certificate.deleteMany({
+      where: { modulId: moduleId, siswaId: studentId },
+    });
+
+    const deleteRatings = prisma.rating.deleteMany({
+      where: { modulId: moduleId, siswaId: studentId },
+    });
+
+    const deleteAnswerLogs = prisma.studentAnswerLog.deleteMany({
+      where: { modulId: moduleId, siswaId: studentId },
+    });
+
+    const deleteKnowledgeStates = prisma.studentKnowledgeState.deleteMany({
+      where: { modulId: moduleId, siswaId: studentId },
+    });
+
+    const deleteProgress = prisma.progress.deleteMany({
       where: {
         modulId: moduleId,
         siswaId: studentId,
       },
     });
 
-    return deleteProgress;
+    const [deletedProgress] = await prisma.$transaction([
+      deleteProgress,
+      deleteCertificates,
+      deleteRatings,
+      deleteAnswerLogs,
+      deleteKnowledgeStates,
+    ]);
+
+    return deletedProgress;
   } catch (error) {
     console.error('Error unassigning student from module:', error);
     throw error;
