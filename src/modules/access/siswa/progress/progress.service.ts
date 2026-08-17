@@ -635,21 +635,22 @@ export const calculatePretestScoreService = async (
       if (totalScore < rule.minScore) continue;
       const targetTopicIds = rule.selectedTopics.map((t: any) => t.id);
       if (targetTopicIds.length === 0) continue;
-      const targetTopikItems = await tx.topikItem.findMany({
-        where: { topikId: { in: targetTopicIds } },
-        select: { itemId: true, itemType: true },
-      });
-      const targetQuizzes = await tx.quiz.findMany({
-        where: { topikId: { in: targetTopicIds } },
-        select: { id: true },
-      });
-      pushItems(
-        targetTopikItems
-          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-          .map((ti: any) => ti.itemId),
-        'MATERI',
-      );
-      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
+      for (const tId of targetTopicIds) {
+        const firstItem = await tx.topikItem.findFirst({
+          where: { topikId: tId },
+          orderBy: { orderNumber: 'asc' },
+          select: { itemId: true, itemType: true },
+        });
+        if (firstItem) {
+          pushItems([firstItem.itemId], firstItem.itemType);
+        } else {
+          const firstQuiz = await tx.quiz.findFirst({
+            where: { topikId: tId },
+            select: { id: true },
+          });
+          if (firstQuiz) pushItems([firstQuiz.id], 'QUIZ');
+        }
+      }
     }
 
     // Formula-based sequential unlock: first N materis in topic/item order
@@ -836,21 +837,23 @@ export const calculatePosttestScoreService = async (
       if (normalizedScore < rule.minScore) continue;
       const targetTopicIds = rule.selectedTopics.map((t: any) => t.id);
       if (targetTopicIds.length === 0) continue;
-      const targetTopikItems = await tx.topikItem.findMany({
-        where: { topikId: { in: targetTopicIds } },
-        select: { itemId: true, itemType: true },
-      });
-      const targetQuizzes = await tx.quiz.findMany({
-        where: { topikId: { in: targetTopicIds } },
-        select: { id: true },
-      });
-      pushItems(
-        targetTopikItems
-          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-          .map((ti: any) => ti.itemId),
-        'MATERI',
-      );
-      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
+      
+      for (const tId of targetTopicIds) {
+        const firstItem = await tx.topikItem.findFirst({
+          where: { topikId: tId },
+          orderBy: { orderNumber: 'asc' },
+          select: { itemId: true, itemType: true },
+        });
+        if (firstItem) {
+          pushItems([firstItem.itemId], firstItem.itemType);
+        } else {
+          const firstQuiz = await tx.quiz.findFirst({
+            where: { topikId: tId },
+            select: { id: true },
+          });
+          if (firstQuiz) pushItems([firstQuiz.id], 'QUIZ');
+        }
+      }
     }
 
     if (mutated) {
