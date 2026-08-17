@@ -8,16 +8,42 @@ import {
 } from '../../../../utils/pagination';
 import { pushNotification } from '../../../../utils/realtime';
 
-function normalizeAnswer(str: string): string {
+function decodeHtmlEntities(str: string): string {
   return str
-    .replace(/<[^>]*>/g, '')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
-    .trim();
+    .replace(/&#\d+;/g, (match) => {
+      const code = parseInt(match.slice(2, -1), 10);
+      return String.fromCharCode(code);
+    });
+}
+
+function normalizeAnswer(str: string): string {
+  if (typeof str !== 'string') return '';
+  let s = str;
+  // Decode entities first (handles double-encoded HTML like &lt;div&gt;)
+  s = decodeHtmlEntities(s);
+  // Strip HTML tags (run twice to catch tags revealed after entity decoding)
+  s = s.replace(/<[^>]*>/g, ' ');
+  s = decodeHtmlEntities(s);
+  s = s.replace(/<[^>]*>/g, ' ');
+  // Normalize all whitespace: non-breaking spaces, tabs, newlines → single space
+  s = s.replace(/[\u00a0\u200b\u200c\u200d\ufeff]/g, ' ');
+  s = s.replace(/\s+/g, ' ');
+  return s.trim();
+}
+
+/**
+ * Find the option index that best matches the given answer text.
+ * Returns -1 if no match found.
+ */
+function findMatchingOptionIndex(options: { option: string }[], answerText: string): number {
+  const normAnswer = normalizeAnswer(answerText);
+  return options.findIndex(opt => normalizeAnswer(opt.option) === normAnswer);
 }
 
 // ─── Canonical progress helpers (single source of truth) ───────────────────
@@ -277,7 +303,7 @@ export const getAllProgressForSiswaService = async (
     },
   });
 
-  return buildCursorPaginatedResponse(progresses, limit, (item) => ({
+  return buildCursorPaginatedResponse(progresses, limit, (item: any) => ({
     createdAt: item.createdAt,
     id: item.id,
   }));
@@ -347,7 +373,7 @@ export const markMateriCompletedService = async (
   const modulId = (materi as any).topik.modulId;
 
   // Track in completedContentItems so tutor/admin views count it correctly
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     const progressRec = await lockProgressRow(tx, siswaId, modulId);
     if (!progressRec) return;
 
@@ -391,7 +417,7 @@ export const markItemCompletedService = async (
 ) => {
   await initializeProgressService(siswaId, modulId);
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     const progress = await lockProgressRow(tx, siswaId, modulId);
 
     if (!progress) throw new Error('Progress tidak ditemukan');
@@ -499,7 +525,14 @@ export const calculatePretestScoreService = async (
 }> => {
   const pretest = await prisma.pretest.findFirst({
     where: { modul: { id: modulId } },
-    include: { pretestQuestions: true, pretestSettings: true },
+    include: {
+      pretestQuestions: {
+        include: {
+          answerOptions: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+        },
+      },
+      pretestSettings: true,
+    },
   });
 
   if (!pretest) throw new Error('Pretest tidak ditemukan');
@@ -515,10 +548,18 @@ export const calculatePretestScoreService = async (
 
   for (const answer of answers) {
     const question = pretest.pretestQuestions.find(
-      (item) => item.id === answer.questionId,
+      (item: any) => item.id === answer.questionId,
     );
     if (question) {
-      const isCorrect = normalizeAnswer(question.correctAnswer) === normalizeAnswer(answer.answer);
+      // Find which option the student submitted matches (by normalized text)
+      const submittedIdx = findMatchingOptionIndex((question as any).answerOptions ?? [], answer.answer);
+      // Find which option is the correct answer
+      const correctIdx = findMatchingOptionIndex((question as any).answerOptions ?? [], question.correctAnswer);
+      // Primary: index-based comparison (most robust)
+      // Fallback: normalized text comparison if no options loaded
+      const isCorrect = (correctIdx !== -1 && submittedIdx !== -1)
+        ? correctIdx === submittedIdx
+        : normalizeAnswer(question.correctAnswer) === normalizeAnswer(answer.answer);
       maxRawScore += question.skor;
       if (isCorrect) {
         totalRawScore += question.skor;
@@ -573,7 +614,7 @@ export const calculatePretestScoreService = async (
 
   let unlockedCount = 0;
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     const progressRecord = await lockProgressRow(tx, siswaId, modulId);
     if (!progressRecord) return;
 
@@ -592,7 +633,7 @@ export const calculatePretestScoreService = async (
 
     for (const rule of accessRules) {
       if (totalScore < rule.minScore) continue;
-      const targetTopicIds = rule.selectedTopics.map((t) => t.id);
+      const targetTopicIds = rule.selectedTopics.map((t: any) => t.id);
       if (targetTopicIds.length === 0) continue;
       const targetTopikItems = await tx.topikItem.findMany({
         where: { topikId: { in: targetTopicIds } },
@@ -604,11 +645,11 @@ export const calculatePretestScoreService = async (
       });
       pushItems(
         targetTopikItems
-          .filter((ti) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-          .map((ti) => ti.itemId),
+          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+          .map((ti: any) => ti.itemId),
         'MATERI',
       );
-      pushItems(targetQuizzes.map((q) => q.id), 'QUIZ');
+      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
     }
 
     // Formula-based sequential unlock: first N materis in topic/item order
@@ -621,7 +662,7 @@ export const calculatePretestScoreService = async (
         orderBy: [{ topik: { createdAt: 'asc' } }, { orderNumber: 'asc' }],
         take: formulaCount,
       });
-      pushItems(orderedTopikItems.map((ti) => ti.itemId), 'MATERI');
+      pushItems(orderedTopikItems.map((ti: any) => ti.itemId), 'MATERI');
     }
 
     if (unlockedCount > 0) {
@@ -674,7 +715,13 @@ export const calculatePosttestScoreService = async (
 
   const pretest = await prisma.pretest.findFirst({
     where: { modul: { id: modulId } },
-    include: { pretestQuestions: true },
+    include: {
+      pretestQuestions: {
+        include: {
+          answerOptions: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+        },
+      },
+    },
   });
 
   if (!pretest) throw new Error('Pretest tidak ditemukan');
@@ -686,10 +733,14 @@ export const calculatePosttestScoreService = async (
 
   for (const answer of answers) {
     const question = pretest.pretestQuestions.find(
-      (item) => item.id === answer.questionId,
+      (item: any) => item.id === answer.questionId,
     );
     if (question) {
-      const isCorrect = normalizeAnswer(question.correctAnswer) === normalizeAnswer(answer.answer);
+      const submittedIdx = findMatchingOptionIndex((question as any).answerOptions ?? [], answer.answer);
+      const correctIdx = findMatchingOptionIndex((question as any).answerOptions ?? [], question.correctAnswer);
+      const isCorrect = (correctIdx !== -1 && submittedIdx !== -1)
+        ? correctIdx === submittedIdx
+        : normalizeAnswer(question.correctAnswer) === normalizeAnswer(answer.answer);
       maxRawScore += question.skor;
       if (isCorrect) {
         totalRawScore += question.skor;
@@ -736,7 +787,7 @@ export const calculatePosttestScoreService = async (
     select: { minScore: true, selectedTopics: { select: { id: true } } },
   });
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     const progressRecord = await lockProgressRow(tx, siswaId, modulId);
     if (!progressRecord) return;
 
@@ -759,7 +810,7 @@ export const calculatePosttestScoreService = async (
 
     for (const rule of posttestRules) {
       if (normalizedScore < rule.minScore) continue;
-      const targetTopicIds = rule.selectedTopics.map((t) => t.id);
+      const targetTopicIds = rule.selectedTopics.map((t: any) => t.id);
       if (targetTopicIds.length === 0) continue;
       const targetTopikItems = await tx.topikItem.findMany({
         where: { topikId: { in: targetTopicIds } },
@@ -771,11 +822,11 @@ export const calculatePosttestScoreService = async (
       });
       pushItems(
         targetTopikItems
-          .filter((ti) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
-          .map((ti) => ti.itemId),
+          .filter((ti: any) => ti.itemType === 'MATERI' || ti.itemType === 'RANGKUMAN_TOPIK')
+          .map((ti: any) => ti.itemId),
         'MATERI',
       );
-      pushItems(targetQuizzes.map((q) => q.id), 'QUIZ');
+      pushItems(targetQuizzes.map((q: any) => q.id), 'QUIZ');
     }
 
     if (mutated) {
@@ -817,7 +868,7 @@ export const generateCertificateIfEligibleService = async (
   siswaId: string,
   modulId: string,
 ): Promise<ClaimResult | null> => {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: any) => {
     const progress = await tx.progress.findUnique({
       where: { siswaId_modulId: { siswaId: siswaId, modulId: modulId } },
       include: { modul: true },
