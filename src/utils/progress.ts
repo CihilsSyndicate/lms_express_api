@@ -1,4 +1,4 @@
-﻿import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Request, Response } from 'express';
 import {
   buildCursorPaginatedResponse,
@@ -282,12 +282,62 @@ export const getModuleProgress = async (
     },
   });
 
+  const quizzes = await prisma.quiz.findMany({
+    where: { topik: { modulId } },
+    select: { id: true, quizType: true, skor: true },
+  });
+  const quizMap = new Map(quizzes.map((q) => [q.id, q]));
+
+  const answerLogs = await prisma.studentAnswerLog.findMany({
+    where: { modulId, questionSource: 'QUIZ' },
+    select: { siswaId: true, questionId: true, isCorrect: true, answeredAt: true },
+    orderBy: { answeredAt: 'asc' },
+  });
+
+  const logsBySiswa = new Map<string, Map<string, any>>();
+  for (const log of answerLogs) {
+    if (!logsBySiswa.has(log.siswaId)) {
+      logsBySiswa.set(log.siswaId, new Map());
+    }
+    logsBySiswa.get(log.siswaId)!.set(log.questionId, log);
+  }
+
   return records.map((p) => {
-    const scores = p.quizScores.map((q) => q.score);
-    const avgQuiz =
-      scores.length > 0
-        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-        : 0;
+    const studentLogs = logsBySiswa.get(p.siswa.id) || new Map();
+    
+    // Merge legacy QuizScore table and new StudentAnswerLog table
+    const latestScores = new Map<string, number>();
+    for (const qs of p.quizScores) {
+      if (qs.quizType === 'QUIZ') {
+        latestScores.set(qs.questionId, qs.score);
+      }
+    }
+    for (const [qId, log] of studentLogs.entries()) {
+      const q = quizMap.get(qId);
+      if (q) {
+        latestScores.set(qId, log.isCorrect ? (q.skor || 10) : 0);
+      }
+    }
+
+    const regulerScores: number[] = [];
+    const ctScores: number[] = [];
+    
+    for (const [qId, score] of latestScores.entries()) {
+      const q = quizMap.get(qId);
+      if (q?.quizType === 'COMPUTATIONAL_THINKING') {
+        ctScores.push(score);
+      } else if (q) {
+        regulerScores.push(score);
+      }
+    }
+
+    const averageQuizScore = regulerScores.length > 0
+      ? Math.round(regulerScores.reduce((a, b) => a + b, 0) / regulerScores.length)
+      : null;
+
+    const averageCtQuizScore = ctScores.length > 0
+      ? Math.round(ctScores.reduce((a, b) => a + b, 0) / ctScores.length)
+      : null;
 
     let recommendation = 'Perlu Penguatan';
     if (p.posttestScore && p.posttestScore >= 75) {
@@ -303,7 +353,8 @@ export const getModuleProgress = async (
       profileImage: p.siswa.profileImage,
       pretestScore: p.pretestScore,
       posttestScore: p.posttestScore,
-      averageQuizScore: avgQuiz,
+      averageQuizScore,
+      averageCtQuizScore,
       progressPercentage: p.progressPercentage,
       status: p.status,
       isGraduated: p.isGraduated,
