@@ -15,7 +15,7 @@ export const createRangkumanHandler = async (req: Request, res: Response) => {
 
 export const updateRangkumanHandler = async (req: Request, res: Response) => {
   try {
-    const result = await updateRangkuman(req.params.id, req.body, req.user?.id, req.user?.role);
+    const result = await updateRangkuman(req.params.id as string, req.body, req.user?.id, req.user?.role);
     return res.status(200).json(result);
   } catch (error) {
     if (error instanceof AppError) return res.status(error.statusCode).json({ message: error.message });
@@ -26,7 +26,7 @@ export const updateRangkumanHandler = async (req: Request, res: Response) => {
 
 export const deleteRangkumanHandler = async (req: Request, res: Response) => {
   try {
-    const result = await deleteRangkuman(req.params.id, req.user?.id, req.user?.role);
+    const result = await deleteRangkuman(req.params.id as string, req.user?.id, req.user?.role);
     return res.status(200).json(result);
   } catch (error) {
     if (error instanceof AppError) return res.status(error.statusCode).json({ message: error.message });

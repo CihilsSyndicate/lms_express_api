@@ -30,22 +30,23 @@ export interface StudyRoomMateri {
 export interface StudyRoomItem {
   id: string;
   itemType: 'MATERI' | 'QUIZ' | 'RANGKUMAN_TOPIK';
-  quizType?: string;
-  ctGroupId?: string | null;
-  ctStory?: string | null;
-  ctAspect?: string | null;
-  ctSubIds?: string[];
+  quizType?: string | undefined;
+  ctGroupId?: string | null | undefined;
+  ctStory?: string | null | undefined;
+  ctAspect?: string | null | undefined;
+  ctSubIds?: string[] | undefined;
   judul: string;
-  isVideo?: boolean;
-  videoUrl?: string | null;
-  article?: string | null;
-  question?: string;
-  correctAnswer?: string;
-  skor?: number;
-  quizImgQuestionUrl?: string | null;
-  quizAnswerOptions?: { id: string; option: string }[];
-  timeLimit?: number | null;
-  quizGroupId?: string | null;
+  isVideo?: boolean | undefined;
+  videoUrl?: string | null | undefined;
+  article?: string | null | undefined;
+  question?: string | undefined;
+  correctAnswer?: string | undefined;
+  skor?: number | undefined;
+  quizImgQuestionUrl?: string | null | undefined;
+  quizAnswerOptions?: { id: string; option: string }[] | undefined;
+  timeLimit?: number | null | undefined;
+  quizGroupId?: string | null | undefined;
+  allowMultipleAttempts?: boolean | undefined;
 }
 
 export interface StudyRoomTopik {
@@ -72,6 +73,7 @@ export interface StudyRoomProgress {
   finalScore: number | null;
   status: string;
   isGraduated: boolean;
+  hasRated?: boolean;
 }
 
 export interface StudyRoomCertificate {
@@ -101,7 +103,9 @@ function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+    const temp = copy[i]!;
+    copy[i] = copy[j]!;
+    copy[j] = temp;
   }
   return copy;
 }
@@ -386,11 +390,20 @@ export const getStudyRoomDataService = async (
     }
   }
 
+  let hasRated = false;
+  if (progress) {
+    const ratingCount = await prisma.rating.count({
+      where: { modulId, siswaId },
+    });
+    hasRated = ratingCount > 0;
+  }
+
   const progressPayload: StudyRoomProgress | null = progress
     ? {
         id: progress.id,
         siswaId: progress.siswaId,
         modulId: progress.modulId,
+        hasRated,
         completedContentItems: parseCompletedContentItems(
           progress.completedContentItems,
         ),
@@ -549,42 +562,44 @@ export const getStudyRoomDataService = async (
     // Group REGULER (only from quizItems — CT not yet mixed in)
     let regulerGroupItem: StudyRoomItem | null = null;
     if (quizItems.length > 0) {
+      const firstReguler = quizItems[0]!;
       regulerGroupItem = {
-        id: quizItems[0].id,
+        id: firstReguler.id,
         itemType: 'QUIZ',
         quizType: 'REGULER',
         ctGroupId: null,
         ctSubIds: quizItems.map((q) => q.id),
-        judul: quizItems[0].judul ?? 'Kuis',
-        question: quizItems[0].question ?? '',
-        correctAnswer: quizItems[0].correctAnswer ?? '',
-        skor: quizItems[0].skor,
-        quizImgQuestionUrl: quizItems[0].quizImgQuestionUrl,
-        quizAnswerOptions: quizItems[0].quizAnswerOptions,
+        judul: firstReguler.judul ?? 'Kuis',
+        question: firstReguler.question ?? '',
+        correctAnswer: firstReguler.correctAnswer ?? '',
+        skor: firstReguler.skor,
+        quizImgQuestionUrl: firstReguler.quizImgQuestionUrl,
+        quizAnswerOptions: firstReguler.quizAnswerOptions,
         timeLimit: quizItems.reduce((m, q) => Math.max(m, q.timeLimit ?? 0), 0) || null,
-        allowMultipleAttempts: quizItems[0].allowMultipleAttempts ?? false,
+        allowMultipleAttempts: firstReguler.allowMultipleAttempts ?? false,
       };
     }
 
     // Group CT separately — never absorbed into REGULER
     let ctGroupItem: StudyRoomItem | null = null;
     if (ctQuizItems.length > 0) {
+      const firstCt = ctQuizItems[0]!;
       ctGroupItem = {
-        id: ctQuizItems[0].id,
+        id: firstCt.id,
         itemType: 'QUIZ',
         quizType: 'COMPUTATIONAL_THINKING',
         ctGroupId: null,
         ctSubIds: ctQuizItems.map((q) => q.id),
-        ctStory: ctQuizItems[0].ctStory ?? null,
-        ctAspect: ctQuizItems[0].ctAspect ?? null,
+        ctStory: firstCt.ctStory ?? null,
+        ctAspect: firstCt.ctAspect ?? null,
         judul: 'Kuis CT',
-        question: ctQuizItems[0].question ?? '',
-        correctAnswer: ctQuizItems[0].correctAnswer ?? '',
-        skor: ctQuizItems[0].skor,
-        quizImgQuestionUrl: ctQuizItems[0].quizImgQuestionUrl,
-        quizAnswerOptions: ctQuizItems[0].quizAnswerOptions,
+        question: firstCt.question ?? '',
+        correctAnswer: firstCt.correctAnswer ?? '',
+        skor: firstCt.skor,
+        quizImgQuestionUrl: firstCt.quizImgQuestionUrl,
+        quizAnswerOptions: firstCt.quizAnswerOptions,
         timeLimit: ctQuizItems.reduce((m, q) => Math.max(m, q.timeLimit ?? 0), 0) || null,
-        allowMultipleAttempts: ctQuizItems[0].allowMultipleAttempts ?? false,
+        allowMultipleAttempts: firstCt.allowMultipleAttempts ?? false,
       };
     }
 

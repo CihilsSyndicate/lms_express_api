@@ -191,7 +191,7 @@ export const updateModule = async (
     const updatedModule = await prisma.modul.update({
       where: { id },
       data: {
-        ...payload,
+        ...Object.fromEntries(Object.entries(payload).filter(([_, v]) => v !== undefined)),
         modulType: newModulType,
         subtitle: payload.subtitle ?? existingModule.subtitle,
         moduleName: payload.moduleName ?? existingModule.moduleName,

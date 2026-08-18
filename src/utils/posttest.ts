@@ -1,7 +1,7 @@
-﻿import { AppError } from '@/errors/app.error';
+import { AppError } from '@/errors/app.error';
 import { prisma } from '@/lib/prisma';
 import { ProgressService } from '@/modules/access/siswa/progress/progress.service';
-import { addPretestQuestion, updatePretestQuestion, deletePretestQuestion } from './pretest';
+import { addPretestQuestion, updatePretestQuestion, deletePretestQuestion, deleteAllPretestQuestions } from './pretest';
 import { buildCursorPaginatedResponse, buildCursorWhere, decodeCursor } from './pagination';
 
 type TestAnswer = { questionId: string; answer: string };
@@ -30,8 +30,11 @@ export const addPosttestQuestion = async (
   const pretest = await prisma.pretest.findFirst({ where: { modul: { id: posttest.modul!.id } } });
   if (!pretest) throw new AppError(404, 'Pretest tidak ditemukan. Buat pretest terlebih dahulu.');
   const answerOptions = (Array.isArray(payload.pilihan) ? payload.pilihan : []).map((opt: string) => ({ option: opt }));
+  const pretestPayload = Object.fromEntries(
+    Object.entries({ pretest_id: pretest.id, pertanyaan: payload.pertanyaan, pilihan: payload.pilihan, jawaban_benar: payload.jawaban_benar, skor: payload.skor ?? 10, questionNumber: payload.questionNumber ?? null, ctGroupId: payload.ctGroupId, ctStory: payload.ctStory, ctAspect: payload.ctAspect }).filter(([_, v]) => v !== undefined)
+  );
   const newSoal = await addPretestQuestion(
-    { pretest_id: pretest.id, pertanyaan: payload.pertanyaan, jawaban_benar: payload.jawaban_benar, skor: payload.skor ?? 10, questionNumber: payload.questionNumber ?? null, ctGroupId: payload.ctGroupId, ctStory: payload.ctStory, ctAspect: payload.ctAspect, answerOptions },
+    pretestPayload as any,
     tutorId, adminBypass,
   );
   const existingSettings = await prisma.posttestSetting.findFirst({ where: { posttestId: payload.posttest_id } });
@@ -129,10 +132,13 @@ export const deletePosttestRecord = async (posttestId: string, tutorId?: string)
 };
 
 export const updatePosttestQuestion = async (soalId: string, data: { pertanyaan?: string; pilihan?: any; jawaban_benar?: string; skor?: number; questionNumber?: number | null; ctGroupId?: string; ctStory?: string; ctAspect?: string }, tutorId?: string) => {
-  return updatePretestQuestion(soalId, {
-    pertanyaan: data.pertanyaan, jawaban_benar: data.jawaban_benar, skor: data.skor,
-    questionNumber: data.questionNumber, ctGroupId: data.ctGroupId, ctStory: data.ctStory, ctAspect: data.ctAspect,
-  }, tutorId);
+  const pretestPayload = Object.fromEntries(
+    Object.entries({
+      pertanyaan: data.pertanyaan, pilihan: data.pilihan, jawaban_benar: data.jawaban_benar, skor: data.skor,
+      questionNumber: data.questionNumber, ctGroupId: data.ctGroupId, ctStory: data.ctStory, ctAspect: data.ctAspect,
+    }).filter(([_, v]) => v !== undefined)
+  );
+  return updatePretestQuestion(soalId, pretestPayload as any, tutorId);
 };
 
 export const deletePosttestQuestion = async (soalId: string, tutorId?: string) => {

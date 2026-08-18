@@ -109,9 +109,9 @@ export const addPretestQuestion = async (
       correctAnswer: payload.jawaban_benar,
       skor: payload.skor ?? 10,
       questionNumber: payload.questionNumber ?? null,
-      ctGroupId: payload.ctGroupId,
-      ctStory: payload.ctStory,
-      ctAspect: payload.ctAspect,
+      ctGroupId: payload.ctGroupId ?? null,
+      ctStory: payload.ctStory ?? null,
+      ctAspect: payload.ctAspect ?? null,
     },
   });
 

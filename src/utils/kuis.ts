@@ -112,7 +112,7 @@ export const updateQuiz = async (quizId: string, payload: CreateQuizInput) => {
     const updatedQuiz = await prisma.quiz.update({
       where: { id: quizId },
       data: {
-        ...payload,
+        ...Object.fromEntries(Object.entries(payload).filter(([_, v]) => v !== undefined)),
         judul: payload.judul ?? null,
         quizImgQuestionUrl: payload.quizImgQuestionUrl ?? null,
       },
