@@ -631,24 +631,38 @@ export const calculatePretestScoreService = async (
       }
     };
 
+    const allTopiks = await tx.topik.findMany({
+      where: { modulId },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    const allTopikIds = allTopiks.map((t: any) => t.id);
+
     for (const rule of accessRules) {
       if (totalScore < rule.minScore) continue;
       const targetTopicIds = rule.selectedTopics.map((t: any) => t.id);
       if (targetTopicIds.length === 0) continue;
       for (const tId of targetTopicIds) {
-        const firstItem = await tx.topikItem.findFirst({
-          where: { topikId: tId },
-          orderBy: { orderNumber: 'asc' },
-          select: { itemId: true, itemType: true },
-        });
-        if (firstItem) {
-          pushItems([firstItem.itemId], firstItem.itemType);
-        } else {
-          const firstQuiz = await tx.quiz.findFirst({
-            where: { topikId: tId },
-            select: { id: true },
-          });
-          if (firstQuiz) pushItems([firstQuiz.id], 'QUIZ');
+        const targetIndex = allTopikIds.indexOf(tId);
+        if (targetIndex !== -1) {
+          // Buka item pertama untuk topik target DAN semua topik sebelumnya (di atasnya)
+          for (let i = 0; i <= targetIndex; i++) {
+            const currentTopicId = allTopikIds[i];
+            const firstItem = await tx.topikItem.findFirst({
+              where: { topikId: currentTopicId },
+              orderBy: { orderNumber: 'asc' },
+              select: { itemId: true, itemType: true },
+            });
+            if (firstItem) {
+              pushItems([firstItem.itemId], firstItem.itemType);
+            } else {
+              const firstQuiz = await tx.quiz.findFirst({
+                where: { topikId: currentTopicId },
+                select: { id: true },
+              });
+              if (firstQuiz) pushItems([firstQuiz.id], 'QUIZ');
+            }
+          }
         }
       }
     }
@@ -666,28 +680,6 @@ export const calculatePretestScoreService = async (
       
       const pushedMateriIds = new Set(orderedTopikItems.map((ti: any) => ti.itemId));
       pushItems(orderedTopikItems.map((ti: any) => ti.itemId), 'MATERI');
-
-      // Auto-unlock summaries and quizzes for topics whose materis are completely bypassed by formula
-      const coveredTopicIds = Array.from(new Set(orderedTopikItems.map((ti: any) => ti.topikId)));
-      for (const tId of coveredTopicIds) {
-        const materisInTopic = await tx.topikItem.findMany({
-          where: { topikId: tId, itemType: 'MATERI' },
-          select: { itemId: true }
-        });
-        const allCovered = materisInTopic.every((ti: any) => pushedMateriIds.has(ti.itemId));
-        if (allCovered) {
-          const rangkumans = await tx.topikItem.findMany({
-            where: { topikId: tId, itemType: 'RANGKUMAN_TOPIK' },
-            select: { itemId: true }
-          });
-          pushItems(rangkumans.map((ti: any) => ti.itemId), 'RANGKUMAN_TOPIK');
-          const quizzes = await tx.quiz.findMany({
-            where: { topikId: tId },
-            select: { id: true }
-          });
-          pushItems(quizzes.map((q: any) => q.id), 'QUIZ');
-        }
-      }
     }
 
     if (unlockedCount > 0) {
