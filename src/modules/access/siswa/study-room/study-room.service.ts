@@ -404,9 +404,12 @@ export const getStudyRoomDataService = async (
         siswaId: progress.siswaId,
         modulId: progress.modulId,
         hasRated,
-        completedContentItems: parseCompletedContentItems(
-          progress.completedContentItems,
-        ),
+        completedContentItems: (() => {
+          const items = parseCompletedContentItems(progress.completedContentItems);
+          return (modul as any).autoAccessEnabled === false
+            ? items.filter((id) => !id.startsWith('unlocked:'))
+            : items;
+        })(),
         progressPercentage: progress.progressPercentage,
         pretestScore: progress.pretestScore,
         pretestCorrectCount: progress.pretestCorrectCount,
