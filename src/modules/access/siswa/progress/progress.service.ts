@@ -607,10 +607,13 @@ export const calculatePretestScoreService = async (
   );
 
   // Rule-based unlock: AutomaticAccessMatery (buka seluruh konten topik target)
-  const accessRules = await prisma.automaticAccessMatery.findMany({
-    where: { pretestId: pretest.id },
-    select: { minScore: true, selectedTopics: { select: { id: true } } },
-  });
+  const modulForAccess = await prisma.modul.findUnique({ where: { id: modulId }, select: { autoAccessEnabled: true } });
+  const accessRules = modulForAccess?.autoAccessEnabled
+    ? await prisma.automaticAccessMatery.findMany({
+        where: { pretestId: pretest.id },
+        select: { minScore: true, selectedTopics: { select: { id: true } } },
+      })
+    : [];
 
   let unlockedCount = 0;
 
@@ -799,10 +802,13 @@ export const calculatePosttestScoreService = async (
   await bktService.syncModuleProgressSummary(siswaId, modulId);
 
   // Add posttest to completedContentItems + enforce posttest access rules atomically
-  const posttestRules = await prisma.automaticAccessMatery.findMany({
-    where: { posttestId: posttest.id },
-    select: { minScore: true, selectedTopics: { select: { id: true } } },
-  });
+  const modulForPostAccess = await prisma.modul.findUnique({ where: { id: modulId }, select: { autoAccessEnabled: true } });
+  const posttestRules = modulForPostAccess?.autoAccessEnabled
+    ? await prisma.automaticAccessMatery.findMany({
+        where: { posttestId: posttest.id },
+        select: { minScore: true, selectedTopics: { select: { id: true } } },
+      })
+    : [];
 
   await prisma.$transaction(async (tx: any) => {
     const progressRecord = await lockProgressRow(tx, siswaId, modulId);

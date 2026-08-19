@@ -214,6 +214,7 @@ export const updateModule = async (
               : existingModule.class,
         pretestId: payload.pretestId ?? existingModule.pretestId,
         posttestId: payload.posttestId ?? existingModule.posttestId,
+        autoAccessEnabled: payload.autoAccessEnabled ?? existingModule.autoAccessEnabled,
       },
     });
 

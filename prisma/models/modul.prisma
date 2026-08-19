@@ -12,6 +12,7 @@ model Modul {
     level                  String? // e.g., 'SD', 'SMP', 'SMA'
     class                  String?
     pretestPostTestEnabled Boolean  @default(true)
+    autoAccessEnabled      Boolean  @default(true)
     hasStudyGroup          Boolean  @default(false)
     whatsappGroupUrl       String?
     hasCertificate              Boolean  @default(false)

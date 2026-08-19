@@ -18,6 +18,7 @@ export const modulBaseSchema = z.object({
   posttestId: z.string().cuid().optional().nullable(),
   hasStudyGroup: z.boolean().optional(),
   whatsappGroupUrl: z.string().url().optional().nullable(),
+  autoAccessEnabled: z.boolean().optional(),
 });
 
 export const createModulSchema = modulBaseSchema.omit({

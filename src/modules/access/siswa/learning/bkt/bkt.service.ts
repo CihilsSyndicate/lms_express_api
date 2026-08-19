@@ -195,6 +195,9 @@ export const evaluateUnlockedContents = async (
     currentMastery: number;
   }[];
 }> => {
+  const modulRecord = await prisma.modul.findUnique({ where: { id: modulId }, select: { autoAccessEnabled: true } });
+  if (!modulRecord?.autoAccessEnabled) return { unlockedMateriIds: [], lockedMateris: [] };
+
   const unlockRules = await prisma.moduleUnlockRule.findMany({
     where: { modulId: modulId },
     include: { knowledgeComponent: true },
