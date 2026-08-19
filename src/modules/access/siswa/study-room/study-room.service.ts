@@ -286,6 +286,14 @@ export const getStudyRoomDataService = async (
 
   if (!modul) throw new Error('Modul tidak ditemukan');
 
+  const siswaRecord = await prisma.siswa.findUnique({
+    where: { id: siswaId },
+    select: { isActive: true },
+  });
+  if (siswaRecord && !siswaRecord.isActive) {
+    throw new Error('Akun Anda telah dinonaktifkan.');
+  }
+
   let progress = await prisma.progress.findUnique({
     where: { siswaId_modulId: { siswaId, modulId } },
   });

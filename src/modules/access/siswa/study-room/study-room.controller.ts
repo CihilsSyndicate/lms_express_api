@@ -23,6 +23,9 @@ export const getStudyRoomData = async (req: Request, res: Response) => {
     if (error.message === 'Anda belum terdaftar di modul ini') {
       return res.status(403).json({ message: error.message });
     }
+    if (error.message === 'Akun Anda telah dinonaktifkan.') {
+      return res.status(403).json({ message: error.message });
+    }
     res.status(500).json({
       message: 'Internal server error saat mengambil data study room.',
     });
