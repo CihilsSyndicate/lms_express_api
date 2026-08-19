@@ -88,6 +88,7 @@ export interface StudyRoomResponse {
   moduleName: string;
   hasCertificate: boolean;
   isTestComputationalThinking: boolean;
+  autoAccessEnabled: boolean;
   progress: StudyRoomProgress | null;
   certificate: StudyRoomCertificate | null;
   curriculum: {
@@ -638,6 +639,7 @@ export const getStudyRoomDataService = async (
     moduleName: modul.moduleName,
     hasCertificate: modul.hasCertificate,
     isTestComputationalThinking: modul.isTestComputationalThinking,
+    autoAccessEnabled: (modul as any).autoAccessEnabled !== false,
     progress: progressPayload,
     certificate,
     curriculum: {
