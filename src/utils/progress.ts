@@ -130,6 +130,7 @@ export const getProgressByStudentId = async (studentId: string) => {
                   select: {
                     id: true,
                     quizType: true,
+                    skor: true,
                     topikId: true,
                     quizSettings: {
                       select: {
@@ -148,7 +149,7 @@ export const getProgressByStudentId = async (studentId: string) => {
     });
 
     // Build a map of quizId -> Quiz data for quick lookup
-    const quizMap = new Map<string, { topikNama: string; quizType: string; minScoreTreshold: number | null }>();
+    const quizMap = new Map<string, { topikNama: string; quizType: string; minScoreTreshold: number | null, skor: number, modulId: string }>();
     for (const p of allProgress) {
       for (const topik of p.modul.topiks) {
         for (const quiz of topik.quizzes) {
@@ -156,8 +157,26 @@ export const getProgressByStudentId = async (studentId: string) => {
             topikNama: topik.nama,
             quizType: quiz.quizType,
             minScoreTreshold: quiz.quizSettings[0]?.minScoreTreshold ?? null,
+            skor: (quiz as any).skor || 10,
+            modulId: p.modul.id,
           });
         }
+      }
+    }
+
+    const allAnswerLogs = await prisma.studentAnswerLog.findMany({
+      where: {
+        siswaId: studentId,
+        questionSource: "QUIZ",
+      },
+      select: { questionId: true, isCorrect: true, answeredAt: true, modulId: true },
+      orderBy: { answeredAt: "desc" },
+    });
+
+    const latestByQuiz = new Map<string, typeof allAnswerLogs[0]>();
+    for (const log of allAnswerLogs) {
+      if (!latestByQuiz.has(log.questionId)) {
+        latestByQuiz.set(log.questionId, log);
       }
     }
 
@@ -181,21 +200,22 @@ export const getProgressByStudentId = async (studentId: string) => {
       ).length;
 
       // Build quiz records from QuizScores
-      const quizRecords = progress.quizScores
-        .filter((qs) => qs.quizType === 'QUIZ')
-        .map((qs) => {
-          const quizData = quizMap.get(qs.questionId);
-          return {
-            topik: quizData?.topikNama || 'Unknown',
-            quizType: (quizData?.quizType as 'REGULER' | 'COMPUTATIONAL_THINKING') || 'REGULER',
-            score: qs.score,
-            minScoreTreshold: quizData?.minScoreTreshold ?? null,
-            status:
-              quizData?.minScoreTreshold != null && qs.score >= quizData.minScoreTreshold
-                ? ('tuntas' as const)
-                : ('di-bawah' as const),
-          };
-        });
+      const quizRecords: any[] = [];
+      for (const [qId, log] of latestByQuiz.entries()) {
+        const qd = quizMap.get(qId);
+        if (qd && qd.modulId === progress.modul.id) {
+          const score = log.isCorrect ? qd.skor : 0;
+          const minT = qd.minScoreTreshold ?? null;
+          quizRecords.push({
+            activityType: "Kuis",
+            topik: qd.topikNama || "Unknown",
+            quizType: qd.quizType || "REGULER",
+            score,
+            minScoreTreshold: minT,
+            status: minT != null && score >= minT ? "tuntas" : "di-bawah",
+          });
+        }
+      }
 
       const scores = progress.quizScores.map((q) => q.score);
       const avgQuiz = scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / (scores.length * 10)) * 100) : 0;
@@ -881,6 +901,10 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
     throw error;
   }
 };
+
+
+
+
 
 
 
