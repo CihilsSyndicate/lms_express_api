@@ -54,10 +54,7 @@ export const getAllStudentProgress = async (
         const quizScores = progress.quizScores.map(
           (q: { score: number }) => q.score,
         );
-        const averageQuizScore =
-          quizScores.length > 0
-            ? quizScores.reduce((a, b) => a + b, 0) / quizScores.length
-            : 0;
+        const averageQuizScore = quizScores.length > 0 ? Math.round((quizScores.reduce((a, b) => a + b, 0) / (quizScores.length * 10)) * 100) : 0;
 
         // Determine recommendation
         let recommendation = 'Perlu Penguatan';
@@ -201,10 +198,7 @@ export const getProgressByStudentId = async (studentId: string) => {
         });
 
       const scores = progress.quizScores.map((q) => q.score);
-      const avgQuiz =
-        scores.length > 0
-          ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-          : 0;
+      const avgQuiz = scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / (scores.length * 10)) * 100) : 0;
 
       let recommendation = 'Perlu Penguatan';
       if (progress.posttestScore && progress.posttestScore >= 75) {
@@ -319,25 +313,23 @@ export const getModuleProgress = async (
       }
     }
 
-    const regulerScores: number[] = [];
-    const ctScores: number[] = [];
+    let regulerEarned = 0; let regulerMax = 0;
+    let ctEarned = 0; let ctMax = 0;
     
     for (const [qId, score] of latestScores.entries()) {
       const q = quizMap.get(qId);
       if (q?.quizType === 'COMPUTATIONAL_THINKING') {
-        ctScores.push(score);
+        ctEarned += score;
+        ctMax += (q.skor || 10);
       } else if (q) {
-        regulerScores.push(score);
+        regulerEarned += score;
+        regulerMax += (q.skor || 10);
       }
     }
 
-    const averageQuizScore = regulerScores.length > 0
-      ? Math.round(regulerScores.reduce((a, b) => a + b, 0) / regulerScores.length)
-      : null;
 
-    const averageCtQuizScore = ctScores.length > 0
-      ? Math.round(ctScores.reduce((a, b) => a + b, 0) / ctScores.length)
-      : null;
+    const averageQuizScore = regulerMax > 0 ? Math.round((regulerEarned / regulerMax) * 100) : null;
+    const averageCtQuizScore = ctMax > 0 ? Math.round((ctEarned / ctMax) * 100) : null;
 
     let recommendation = 'Perlu Penguatan';
     if (p.posttestScore && p.posttestScore >= 75) {
@@ -889,4 +881,8 @@ export const analyzeComputationalThinking = async (studentId: string, modulId?: 
     throw error;
   }
 };
+
+
+
+
 
