@@ -13,6 +13,7 @@ import quizGroupRouter from './kuis/quizGroup.routes';
 import signatureRouter from './signature/signature.routes';
 import { ulasanRouter } from './ulasan/ulasan.routes';
 import rangkumanRouter from './rangkuman/rangkuman.routes';
+import importRouter from './import/import.routes';
 
 export const tutorRouter = Router();
 
@@ -32,3 +33,4 @@ tutorRouter.use('/profile', tutorProfileRouter);
 tutorRouter.use('/signature', signatureRouter);
 tutorRouter.use('/ulasan', ulasanRouter);
 tutorRouter.use('/rangkuman', rangkumanRouter);
+tutorRouter.use('/import', importRouter);
