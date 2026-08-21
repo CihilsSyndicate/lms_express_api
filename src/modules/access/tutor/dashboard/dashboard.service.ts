@@ -70,6 +70,14 @@ export const loadDashboardDataService = async (tutorId: string) => {
         tutorId,
       },
     },
+    include: {
+      siswa: {
+        select: { nama_lengkap: true, profileImage: true },
+      },
+      modul: {
+        select: { moduleName: true },
+      },
+    },
   });
 
   return {
