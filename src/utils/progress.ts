@@ -298,9 +298,26 @@ export const getModuleProgress = async (
 
   const quizzes = await prisma.quiz.findMany({
     where: { topik: { modulId } },
-    select: { id: true, quizType: true, skor: true },
+    select: { id: true, quizType: true, skor: true, quizGroupId: true, ctGroupId: true },
+    orderBy: { createdAt: 'asc' },
   });
   const quizMap = new Map(quizzes.map((q) => [q.id, q]));
+
+  const regulerGroups = new Map<string, string[]>();
+  const ctGroups = new Map<string, string[]>();
+  for (const q of quizzes) {
+    if (q.quizType === 'COMPUTATIONAL_THINKING') {
+      const key = q.ctGroupId ?? `__solo_${q.id}`;
+      if (!ctGroups.has(key)) ctGroups.set(key, []);
+      ctGroups.get(key)!.push(q.id);
+    } else {
+      const key = q.quizGroupId ?? `__solo_${q.id}`;
+      if (!regulerGroups.has(key)) regulerGroups.set(key, []);
+      regulerGroups.get(key)!.push(q.id);
+    }
+  }
+  const regulerGroupList = [...regulerGroups.entries()];
+  const ctGroupList = [...ctGroups.entries()];
 
   const answerLogs = await prisma.studentAnswerLog.findMany({
     where: { modulId, questionSource: 'QUIZ' },
@@ -351,6 +368,27 @@ export const getModuleProgress = async (
     const averageQuizScore = regulerMax > 0 ? Math.round((regulerEarned / regulerMax) * 100) : null;
     const averageCtQuizScore = ctMax > 0 ? Math.round((ctEarned / ctMax) * 100) : null;
 
+    const quizBreakdown = [
+      ...regulerGroupList.map(([, qIds], i) => {
+        let earned = 0; let max = 0;
+        for (const qId of qIds) {
+          const score = latestScores.get(qId);
+          const q = quizMap.get(qId);
+          if (q) { max += q.skor || 10; if (score !== undefined) earned += score; }
+        }
+        return { label: `Kuis Reguler ${i + 1}`, quizType: 'REGULER', score: max > 0 ? Math.round((earned / max) * 100) : null };
+      }),
+      ...ctGroupList.map(([, qIds], i) => {
+        let earned = 0; let max = 0;
+        for (const qId of qIds) {
+          const score = latestScores.get(qId);
+          const q = quizMap.get(qId);
+          if (q) { max += q.skor || 10; if (score !== undefined) earned += score; }
+        }
+        return { label: `Kuis CT ${i + 1}`, quizType: 'COMPUTATIONAL_THINKING', score: max > 0 ? Math.round((earned / max) * 100) : null };
+      }),
+    ];
+
     let recommendation = 'Perlu Penguatan';
     if (p.posttestScore && p.posttestScore >= 75) {
       recommendation = 'Siap Pengayaan';
@@ -367,6 +405,7 @@ export const getModuleProgress = async (
       posttestScore: p.posttestScore,
       averageQuizScore,
       averageCtQuizScore,
+      quizBreakdown,
       progressPercentage: p.progressPercentage,
       status: p.status,
       isGraduated: p.isGraduated,
